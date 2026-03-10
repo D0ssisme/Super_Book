@@ -1,15 +1,15 @@
-// OrderDetail Model
+// CartItems Model
 import mongoose from 'mongoose';
 
-const orderDetailSchema = new mongoose.Schema({
-    order_detail_id: {
+const cartItemsSchema = new mongoose.Schema({
+    cart_item_id: {
         type: Number,
         required: true,
         unique: true
     },
-    order_id: {
+    cart_id: {
         type: Number,
-        ref: 'Order',
+        ref: 'Cart',
         required: true
     },
     book_id: {
@@ -20,12 +20,8 @@ const orderDetailSchema = new mongoose.Schema({
     quantity: {
         type: Number,
         required: true
-    },
-    price: {
-        type: Number,
-        required: true
     }
 });
 
-const OrderDetail = mongoose.model('OrderDetail', orderDetailSchema);
-export default OrderDetail;
+const CartItems = mongoose.model('CartItems', cartItemsSchema);
+export default CartItems;

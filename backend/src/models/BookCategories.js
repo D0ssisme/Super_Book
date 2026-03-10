@@ -1,7 +1,7 @@
-// BookAuthors Model
+// BookCategories Model
 import mongoose from 'mongoose';
 
-const bookAuthorsSchema = new mongoose.Schema({
+const bookCategoriesSchema = new mongoose.Schema({
     id: {
         type: Number,
         required: true,
@@ -12,12 +12,12 @@ const bookAuthorsSchema = new mongoose.Schema({
         ref: 'Book',
         required: true
     },
-    author_id: {
+    category_id: {
         type: Number,
-        ref: 'Author',
+        ref: 'Category',
         required: true
     }
 });
 
-const BookAuthors = mongoose.model('BookAuthors', bookAuthorsSchema);
-export default BookAuthors;
+const BookCategories = mongoose.model('BookCategories', bookCategoriesSchema);
+export default BookCategories;
