@@ -1,2 +1,8 @@
-// Publisher Model - TODO: Implement mongoose schema
-export default {};
+import mongoose from 'mongoose';
+
+const publisherSchema = new mongoose.Schema({
+  name: { type: String, required: true, unique: true },
+  isDeleted: { type: Boolean, default: false }
+}, { timestamps: false });
+
+export default mongoose.model('Publisher', publisherSchema);

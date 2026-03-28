@@ -1,17 +1,8 @@
-// Author Model
 import mongoose from 'mongoose';
 
 const authorSchema = new mongoose.Schema({
-    author_id: {
-        type: Number,
-        required: true,
-        unique: true
-    },
-    author_name: {
-        type: String,
-        required: true
-    }
-});
+  name: { type: String, required: true, unique: true },
+  isDeleted: { type: Boolean, default: false }
+}, { timestamps: false });
 
-const Author = mongoose.model('Author', authorSchema);
-export default Author;
+export default mongoose.model('Author', authorSchema);

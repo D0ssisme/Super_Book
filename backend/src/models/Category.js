@@ -1,17 +1,9 @@
-// Category Model
 import mongoose from 'mongoose';
 
 const categorySchema = new mongoose.Schema({
-    category_id: {
-        type: Number,
-        required: true,
-        unique: true
-    },
-    category_name: {
-        type: String,
-        required: true
-    }
-});
+  name: { type: String, required: true, unique: true },
+  slug : {type: String, required: true, unique: true},
+  isDeleted: { type: Boolean, default: false }
+}, { timestamps: false });
 
-const Category = mongoose.model('Category', categorySchema);
-export default Category;
+export default mongoose.model('Category', categorySchema);

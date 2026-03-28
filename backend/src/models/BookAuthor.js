@@ -1,23 +1,9 @@
-// BookAuthors Model
 import mongoose from 'mongoose';
 
-const bookAuthorsSchema = new mongoose.Schema({
-    id: {
-        type: Number,
-        required: true,
-        unique: true
-    },
-    book_id: {
-        type: Number,
-        ref: 'Book',
-        required: true
-    },
-    author_id: {
-        type: Number,
-        ref: 'Author',
-        required: true
-    }
-});
+const bookAuthorSchema = new mongoose.Schema({
+  bookId: {type: mongoose.Types.ObjectId, ref: 'Book', required: true},
+  authorId: {type: mongoose.Types.ObjectId, ref: 'Author', required: true},
+  isDeleted: { type: Boolean, default: false }
+}, { timestamps: false });
 
-const BookAuthors = mongoose.model('BookAuthors', bookAuthorsSchema);
-export default BookAuthors;
+export default mongoose.model('BookAuthor', bookAuthorSchema);

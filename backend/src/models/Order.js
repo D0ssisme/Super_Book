@@ -1,33 +1,27 @@
-// Order Model
-import mongoose from 'mongoose';
-
+import mongoose from "mongoose";
+import mongoosePaginate from 'mongoose-paginate-v2';
 const orderSchema = new mongoose.Schema({
-    order_id: {
-        type: Number,
-        required: true,
-        unique: true
-    },
-    user_id: {
-        type: Number,
-        ref: 'User',
-        required: true
-    },
-    order_date: {
-        type: Date,
-        default: Date.now
-    },
-    total_price: {
-        type: Number,
-        required: true
-    },
-    status: {
-        type: String,
-        required: true
-    },
-    shipping_address: {
-        type: String
-    }
-});
+  customerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  purchaseDate: { type: Date, default: Date.now },
+  purchaseStatus: { type: String, enum: ['pending', 'processing', 'delivery', 'completed', 'canceled'], default: 'pending' },
+  paymentMethod: { type: String, enum: ['COD', 'CARD', 'PAYOS'], default: 'COD' },
+  paymentStatus: { type: String, enum: ['unpaid', 'paid', 'failed', 'refunded'], default: 'unpaid' },
+  totalAmount: { type: Number },
+  paymentLink: { type: String },
+  paymentLinkId: { type: String },
+  payosOrderId: { type: Number },
+  receiverName: { type: String, required: true },
+  receiverPhone: { type: String, required: true },
+  receiverAddress: { type: String, required: true },
+}, { timestamps: true });
 
-const Order = mongoose.model('Order', orderSchema);
-export default Order;
+orderSchema.plugin(mongoosePaginate);
+
+orderSchema.virtual("details", {
+  ref: "OrderDetail",
+  localField: "_id",
+  foreignField: "orderId"
+})
+orderSchema.set("toObject", { virtuals: true });
+orderSchema.set("toJSON", { virtuals: true });
+export default mongoose.model("Order", orderSchema);

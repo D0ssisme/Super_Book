@@ -1,31 +1,22 @@
-// Book Model
 import mongoose from 'mongoose';
+import mongoosePaginate from 'mongoose-paginate-v2';
 
 const bookSchema = new mongoose.Schema({
-    book_id: {
-        type: Number,
-        required: true,
-        unique: true
-    },
-    title: {
-        type: String,
-        required: true
-    },
-    price: {
-        type: Number,
-        required: true
-    },
-    stock: {
-        type: Number,
-        required: true
-    },
-    description: {
-        type: String
-    },
-    image: {
-        type: String
-    }
-});
+  name: { type: String, required: true },
+  categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true },
+  publisherId: {type: mongoose.Schema.Types.ObjectId, ref: 'Publisher', required: true },
+  imageUrl: [{ type: String }],
+  quantity: { type: Number, default: 0 },
+  price: { type: Number, default: 0 },
+  isDeleted: { type: Boolean, default: false}
+}, { timestamps: true });
 
-const Book = mongoose.model('Book', bookSchema);
-export default Book;
+bookSchema.plugin(mongoosePaginate);
+bookSchema.virtual("authors", {
+  ref: "BookAuthor",
+  localField: "_id",
+  foreignField: "bookId",
+})
+bookSchema.set("toJSON", { virtuals: true });
+bookSchema.set("toObject", { virtuals: true });
+export default mongoose.model('Book', bookSchema);
