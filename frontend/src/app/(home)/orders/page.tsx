@@ -29,6 +29,7 @@ const OrderPage = () => {
 
   const { addresses, isLoading: addressLoading, mutate } = getAllAddress();
   const cart = useCartStore((s) => s.cart);
+  const checkoutItems = useCartStore((s) => s.checkoutItems);
   const fetchCart = useCartStore((s) => s.fetchCart);
   const cartLoading = useCartStore((s) => s.loading);
 
@@ -61,7 +62,12 @@ const OrderPage = () => {
   const receiverAddress = watch('receiverAddress');
   useEffect(() => {
     if (cart && cart.items.length > 0) {
-      const formItems: ItemCart[] = cart.items.map((item) => ({
+      // Filter items to only include selected ones for checkout
+      const itemsToCheckout = checkoutItems && checkoutItems.length > 0
+        ? cart.items.filter(item => checkoutItems.includes(item._id))
+        : cart.items;
+      
+      const formItems: ItemCart[] = itemsToCheckout.map((item) => ({
         bookId: item.bookId,
         quantity: item.quantity,
         price: item.price
@@ -70,7 +76,7 @@ const OrderPage = () => {
     } else if (cart && cart.items.length === 0) {
       router.push('/');
     }
-  }, [cart, setValue, router]);
+  }, [cart, checkoutItems, setValue, router]);
   let isDefault
   useEffect(() => {
     if (addresses && addresses.length > 0 && !getValues('receiverName')) {
@@ -134,6 +140,14 @@ const OrderPage = () => {
 
   if ((!cart && cartLoading) || addressLoading) return <div className="text-center p-10">Loading...</div>;
   if (!cart) return null;
+
+  // Filter items to only show selected ones for checkout
+  const displayItems = checkoutItems && checkoutItems.length > 0
+    ? cart.items.filter(item => checkoutItems.includes(item._id))
+    : cart.items;
+
+  // Calculate total for displayed items only
+  const displayTotal = displayItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
   return (
     <div className="min-h-screen bg-gray-50/50 py-8 px-4 md:px-6">
@@ -202,7 +216,7 @@ const OrderPage = () => {
               <CardContent className="grid gap-4 divide-y">
                 {errors.details && <p className="text-red-500 text-sm font-medium px-2">{errors.details.message}</p>}
 
-                {cart.items.map((item) => (
+                {displayItems.map((item) => (
                   <div key={item._id} className="pt-4 first:pt-0">
                     <OrderItem bookId={item.bookId} quantity={item.quantity} price={item.price} />
                   </div>
@@ -244,12 +258,12 @@ const OrderPage = () => {
                 </div>
                 <CardContent className="p-4 space-y-6">
                   <div className="space-y-2 text-sm">
-                    <div className="flex justify-between text-gray-600"><span>Tạm tính:</span><span>{formatPrice(cart.totalPrice)}</span></div>
+                    <div className="flex justify-between text-gray-600"><span>Tạm tính:</span><span>{formatPrice(displayTotal)}</span></div>
                     <div className="flex justify-between text-gray-600"><span>Vận chuyển:</span><span className="text-green-600 font-medium">Miễn phí</span></div>
                     <Separator className="my-2" />
                     <div className="flex justify-between items-end pt-1">
                       <span className="font-bold text-base text-gray-900">Tổng thanh toán:</span>
-                      <span className="font-bold text-2xl text-red-600">{formatPrice(cart.totalPrice)}</span>
+                      <span className="font-bold text-2xl text-red-600">{formatPrice(displayTotal)}</span>
                     </div>
                   </div>
                   <Button

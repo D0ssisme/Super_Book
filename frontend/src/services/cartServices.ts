@@ -11,13 +11,15 @@ export const cartServices = {
 
   addToCart: async (bookId: string, quantity: number = 1): Promise<Cart> => {
     try {
+      console.log("Adding to cart - bookId:", bookId, "quantity:", quantity);
       const response = await api.post<Cart>("/cart", {
         bookId,
         quantity,
       });
+      console.log("Add to cart response:", response.data);
       return response.data;
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      console.error("Add to cart error:", error.response?.status, error.response?.data);
       throw error;
     }
   },

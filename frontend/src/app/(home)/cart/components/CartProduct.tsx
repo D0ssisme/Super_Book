@@ -1,12 +1,15 @@
 import { formatPrice } from "@/lib/utils";
 import Image from "next/image";
 import QuantityInput from "../../../../components/customer/QuantityInput";
-import { Trash } from "lucide-react";
+import { Trash, Tag } from "lucide-react";
 import { CartItem } from "@/types/cart.type";
 import useSWR from "swr";
 import { bookServices } from "@/services/bookServices";
 
 interface CartItemComponentProps {
+  itemId: string;
+  isSelected: boolean;
+  onSelectChange: () => void;
   bookId: string;
   quantity: number;
   onIncrease: () => void;
@@ -16,6 +19,9 @@ interface CartItemComponentProps {
 }
 
 const CartProduct = ({
+  itemId,
+  isSelected,
+  onSelectChange,
   bookId,
   quantity,
   onIncrease,
@@ -30,6 +36,11 @@ const CartProduct = ({
   );
 
   const maxQuantity = book?.quantity ?? 0;
+
+  // Calculate discounted price if event exists
+  const finalPrice = book?.event
+    ? Math.floor(book.price * (1 - book.event.discountPercent / 100))
+    : book?.price || 0;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const num = Number(e.target.value);
@@ -70,9 +81,28 @@ const CartProduct = ({
   }
 
   return (
-    <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200">
+    <div className="flex items-start gap-3 lg:gap-4">
+      {/* Checkbox */}
+      <input
+        type="checkbox"
+        checked={isSelected}
+        onChange={onSelectChange}
+        className="w-5 h-5 cursor-pointer accent-green-500 mt-1 flex-shrink-0"
+      />
+
+      <div className="flex flex-col lg:flex-row items-start lg:items-center gap-4 p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-all duration-200 border-l-4 border-green-200 flex-1">
       {/* Image + Info */}
-      <div className="flex items-start gap-3 flex-1">
+      <div className="flex items-start gap-3 flex-1 relative">
+        {/* Event Badge */}
+        {book.event && (
+          <div className="absolute -top-2 -left-2 z-10">
+            <span className="inline-flex items-center gap-1 bg-gradient-to-r from-red-500 to-red-600 text-white px-2 py-1 rounded-full text-xs font-bold shadow-lg">
+              <Tag className="w-3 h-3" />
+              -{book.event.discountPercent}%
+            </span>
+          </div>
+        )}
+
         <div className="relative w-24 h-32 lg:w-28 lg:h-36 flex-shrink-0">
           <Image
             fill
@@ -87,9 +117,22 @@ const CartProduct = ({
           <h3 className="font-semibold text-gray-800 text-lg lg:text-xl line-clamp-2 mb-2">
             {book.name}
           </h3>
-          <p className="text-green-600 font-medium text-lg">
-            {formatPrice(book.price)}
-          </p>
+          
+          {book.event ? (
+            <div className="flex items-center gap-2">
+              <p className="text-red-600 font-bold text-lg">
+                {formatPrice(finalPrice)}
+              </p>
+              <p className="text-gray-400 line-through text-sm">
+                {formatPrice(book.price)}
+              </p>
+            </div>
+          ) : (
+            <p className="text-green-600 font-medium text-lg">
+              {formatPrice(book.price)}
+            </p>
+          )}
+
           <p className="text-gray-500 text-sm mt-1">
             Còn lại: {maxQuantity} sản phẩm
           </p>
@@ -132,13 +175,14 @@ const CartProduct = ({
           {/* Total Price */}
           <div className="text-right min-w-[120px]">
             <h2 className="text-red-600 font-bold text-lg lg:text-xl whitespace-nowrap">
-              {formatPrice(book.price * quantity)}
+              {formatPrice(finalPrice * quantity)}
             </h2>
             <p className="text-gray-500 text-sm whitespace-nowrap">
-              {formatPrice(book.price)} × {quantity}
+              {formatPrice(finalPrice)} × {quantity}
             </p>
           </div>
         </div>
+      </div>
       </div>
     </div>
   );

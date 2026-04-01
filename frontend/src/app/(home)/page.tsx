@@ -4,6 +4,7 @@ import CategorySidebar from "./components/CategorySidebar";
 import BrandCarousel from "./components/BrandCarousel";
 import BookShowCase from '@/app/(home)/components/BookShowCase';
 import BookNewest from '@/app/(home)/components/BookNewest';
+import EventShowcase from '@/app/(home)/components/EventShowcase';
 import { getAllTop10BestSellingBooks, getAllTop10NewestBooks } from '@/hooks/useBook';
 
 export default function HomePage() {
@@ -24,6 +25,7 @@ export default function HomePage() {
 
       {/* KHU VỰC DƯỚI: Các section sách nằm dọc (Full width) */}
       <div className="flex flex-col gap-8">
+        <EventShowcase />
         <BookShowCase title={"Sách bán chạy"} books={bestSelling || []} />
         <BookNewest title={"Sách mới nhất"} books={newest || []} />
       </div>

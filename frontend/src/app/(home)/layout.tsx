@@ -6,6 +6,7 @@ import { AppSidebar } from "./components/AppSideBar";
 import Footer from "../../components/customer/Footer";
 import { Toaster } from "@/components/ui/sonner";
 import { ClientProviders } from "@/providers/clientProvider";
+import ChatWidget from "@/components/ChatWidget/ChatWidget";
 
 export default function HomeLayout({
   children,
@@ -25,6 +26,7 @@ export default function HomeLayout({
           </main>
           <Toaster />
           <Footer />
+          <ChatWidget />
         </div>
       </SidebarProvider>
     </ClientProviders>

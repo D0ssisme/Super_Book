@@ -26,7 +26,7 @@ export default function OrderOrderDetailPage() {
   const [order, setOrder] = useState<OrderWithDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [isPaying, setIsPaying] = useState(false);
-  const clearCart = useCartStore((state) => state.clearCart);
+  const fetchCart = useCartStore((state) => state.fetchCart);
 
 
   useEffect(() => {
@@ -34,7 +34,8 @@ export default function OrderOrderDetailPage() {
       try {
         const res = await orderServices.getOrderDetailById(id);
         setOrder(res);
-        await clearCart()
+        // Refresh cart state (backend already removed ordered items)
+        await fetchCart();
       } catch (error) {
         console.error("Lỗi tải đơn hàng:", error);
         toast.error("Không tìm thấy đơn hàng");

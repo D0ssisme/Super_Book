@@ -16,6 +16,7 @@ import {
   User,
   Home,
   LogOut,
+  Flame,
 } from "lucide-react";
 import { removeJWTfromCookie } from "@/lib/cookies";
 
@@ -163,6 +164,16 @@ export default function Sidebar({ isOpen }: { isOpen: boolean }) {
           <FileText className={getIconClass("/admin/supply-receipts")} />
           <span className={getTextClass("/admin/supply-receipts")}>
             Phiếu nhập hàng
+          </span>
+        </Link>
+
+        <Link
+          href="/admin/events"
+          className={getItemClass("/admin/events")}
+        >
+          <Flame className={getIconClass("/admin/events")} />
+          <span className={getTextClass("/admin/events")}>
+            Sự kiện Giảm giá
           </span>
         </Link>
       </nav>

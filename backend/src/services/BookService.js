@@ -1,5 +1,6 @@
 import Book from "../models/Book.js";
 import BookAuthor from "../models/BookAuthor.js";
+import Event from "../models/Event.js";
 import {
   deleteImageIntoCloudinary,
   uploadToCloudinary,
@@ -120,6 +121,40 @@ export async function findBookService(_id) {
     "name"
   );
   book.authors = authors.map((a) => a.authorId.name);
+
+  // Get active event based on applyType
+  const now = new Date();
+  const activeEvent = await Event.findOne({
+    status: 'active',
+    startDate: { $lte: now },
+    endDate: { $gte: now }
+  }).lean();
+
+  if (activeEvent) {
+    // Check if this book qualifies for the event
+    if (activeEvent.applyType === 'all') {
+      book.event = activeEvent;
+    } else if (activeEvent.applyType === 'products' && activeEvent.bookIds?.length > 0) {
+      // Check if book is in the bookIds array
+      if (activeEvent.bookIds.some(id => id.toString() === book._id.toString())) {
+        book.event = activeEvent;
+      } else {
+        book.event = null;
+      }
+    } else if (activeEvent.applyType === 'categories' && activeEvent.categoryIds?.length > 0) {
+      // Check if book's category is in the categoryIds array
+      if (activeEvent.categoryIds.some(id => id.toString() === book.categoryId._id.toString())) {
+        book.event = activeEvent;
+      } else {
+        book.event = null;
+      }
+    } else {
+      book.event = null;
+    }
+  } else {
+    book.event = null;
+  }
+
   return book;
 }
 
@@ -247,12 +282,43 @@ export async function getAllBooksService(query) {
         ...book,
         authors: authorsByBookId[book._id.toString()] || [],
         mainImage: book.imageUrl?.[0] || "https://placehold.co/400x600/e2e8f0/64748b?text=No+Image",
+        event: null
       }));
+
+      // Get active event based on applyType
+      const now = new Date();
+      const activeEvent = await Event.findOne({
+        status: 'active',
+        startDate: { $lte: now },
+        endDate: { $gte: now }
+      }).lean();
+
+      // Attach events to books based on applyType
+      const booksWithEvents = booksWithAuthors.map((book) => {
+        let event = null;
+        if (activeEvent) {
+          if (activeEvent.applyType === 'all') {
+            event = activeEvent;
+          } else if (activeEvent.applyType === 'products' && activeEvent.bookIds?.length > 0) {
+            if (activeEvent.bookIds.some(id => id.toString() === book._id.toString())) {
+              event = activeEvent;
+            }
+          } else if (activeEvent.applyType === 'categories' && activeEvent.categoryIds?.length > 0) {
+            if (activeEvent.categoryIds.some(id => id.toString() === book.categoryId._id.toString())) {
+              event = activeEvent;
+            }
+          }
+        }
+        return {
+          ...book,
+          event
+        };
+      });
 
       return {
         success: true,
         message: "Get all books successfully",
-        data: booksWithAuthors,
+        data: booksWithEvents,
         pagination: {
           totalItems: total,
           totalPages: Math.ceil(total / limit),

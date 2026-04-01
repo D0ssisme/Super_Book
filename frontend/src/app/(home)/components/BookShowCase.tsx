@@ -40,6 +40,7 @@ const BookShowCase = ({ title, books = [] }: BookShowCaseProps) => {
             name={book.book.name}
             price={book.book.price}
             stock={book.book.quantity}
+            event={book.book.event}
           />
         ))}
       </div>

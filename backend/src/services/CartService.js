@@ -3,25 +3,46 @@ import Cart from "../models/Cart.js";
 
 // chua cap nhat lai quantity book nhé
 export async function addItemToCart(bookId, customerId, quantity) {
+  // Validate inputs
+  if (!bookId || !customerId) {
+    throw new Error("bookId and customerId are required");
+  }
+  
+  if (quantity === undefined || quantity === null) {
+    throw new Error("quantity is required");
+  }
+  
+  const qty = Number(quantity);
+  if (isNaN(qty) || qty < 1) {
+    throw new Error("quantity must be a positive number");
+  }
+
   const book = await Book.findById(bookId);
   if (!book) {
     throw new Error(`Book with id ${bookId} not found`);
   }
+  
+  // Use findOneAndUpdate to avoid duplicate key errors
   let cart = await Cart.findOne({ customerId: customerId });
+  
   if (!cart) {
+    // Create new cart if doesn't exist
     cart = new Cart({
       customerId: customerId,
-      items: [{ bookId, quantity, price: book.price }],
+      items: [{ bookId, quantity: qty, price: book.price }],
     });
+    await cart.save();
   } else {
+    // Update existing cart
     const index = cart.items.findIndex((i) => i.bookId.equals(bookId));
     if (index > -1) {
-      cart.items[index].quantity += Number(quantity);
+      cart.items[index].quantity += qty;
     } else {
-      cart.items.push({ bookId, quantity, price: book.price });
+      cart.items.push({ bookId, quantity: qty, price: book.price });
     }
+    await cart.save();
   }
-  await cart.save();
+  
   return cart;
 }
 
@@ -97,7 +118,16 @@ export async function clearCartService(customerId) {
 }
 
 export async function getCartService(customerId) {
-  const cart = await Cart.findOne({ customerId });
-  if (!cart) throw new Error("Cart not found");
+  let cart = await Cart.findOne({ customerId });
+  if (!cart) {
+    // Create an empty cart if it doesn't exist
+    cart = new Cart({
+      customerId: customerId,
+      items: [],
+      totalQuantity: 0,
+      totalPrice: 0
+    });
+    await cart.save();
+  }
   return cart;
 }

@@ -84,8 +84,8 @@ export default function UsersPage() {
   // Lọc user
   const filteredUsers = users.filter((user) => {
     const matchSearch =
-      user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.username.toLowerCase().includes(searchTerm.toLowerCase());
+      (user?.fullName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+      (user?.username?.toLowerCase() || '').includes(searchTerm.toLowerCase());
     const matchRole = roleFilter === "all" || user.role === roleFilter;
     return matchSearch && matchRole;
   });

@@ -8,6 +8,8 @@ export const useCartStore = create<CartStore>((set, get) => ({
   cart: null,
   loading: false,
   error: null,
+  selectedItemIds: [],
+  checkoutItems: [],
 
   fetchCart: async () => {
     set({ loading: true, error: null });
@@ -21,6 +23,30 @@ export const useCartStore = create<CartStore>((set, get) => ({
       });
       console.log(error);
     }
+  },
+
+  toggleSelectItem: (itemId: string) => {
+    const currentSelected = get().selectedItemIds;
+    if (currentSelected.includes(itemId)) {
+      set({ selectedItemIds: currentSelected.filter(id => id !== itemId) });
+    } else {
+      set({ selectedItemIds: [...currentSelected, itemId] });
+    }
+  },
+
+  selectAllItems: () => {
+    const cart = get().cart;
+    if (!cart) return;
+    const allItemIds = cart.items.map(item => item._id);
+    set({ selectedItemIds: allItemIds });
+  },
+
+  deselectAllItems: () => {
+    set({ selectedItemIds: [] });
+  },
+
+  setCheckoutItems: (itemIds: string[]) => {
+    set({ checkoutItems: itemIds });
   },
 
   addToCart: async (bookId: string, quantity: number) => {

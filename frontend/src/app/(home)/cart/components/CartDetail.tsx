@@ -7,6 +7,10 @@ import { useCartStore } from "@/stores/useCartStore";
 const CartDetail = () => {
   const cart = useCartStore((s) => s.cart);
   const loading = useCartStore((s) => s.loading);
+  const selectedItemIds = useCartStore((s) => s.selectedItemIds);
+  const toggleSelectItem = useCartStore((s) => s.toggleSelectItem);
+  const selectAllItems = useCartStore((s) => s.selectAllItems);
+  const deselectAllItems = useCartStore((s) => s.deselectAllItems);
 
   const fetchCart = useCartStore((s) => s.fetchCart);
   const updateCartItem = useCartStore((s) => s.updateCartItem);
@@ -23,6 +27,15 @@ const CartDetail = () => {
 
   const cartCount = cart?.totalQuantity ?? 0;
   const items = cart?.items ?? [];
+  const allSelected = items.length > 0 && selectedItemIds.length === items.length;
+
+  const handleSelectAll = () => {
+    if (allSelected) {
+      deselectAllItems();
+    } else {
+      selectAllItems();
+    }
+  };
 
   // Loading state
   if (loading) {
@@ -51,10 +64,26 @@ const CartDetail = () => {
         <h4 className="text-gray-600 font-medium">{cartCount} sản phẩm</h4>
       </div>
 
+      {/* Select All Checkbox */}
+      <div className="flex items-center gap-3 mb-4 pb-4 border-b border-gray-200">
+        <input
+          type="checkbox"
+          checked={allSelected}
+          onChange={handleSelectAll}
+          className="w-4 h-4 cursor-pointer accent-green-500"
+        />
+        <label className="font-medium text-gray-700 cursor-pointer">
+          Chọn tất cả ({selectedItemIds.length}/{items.length})
+        </label>
+      </div>
+
       <div className="space-y-4">
         {items.map((item) => (
           <div key={item._id} className="border-b pb-4 last:border-b-0">
             <CartProduct
+              itemId={item._id}
+              isSelected={selectedItemIds.includes(item._id)}
+              onSelectChange={() => toggleSelectItem(item._id)}
               bookId={item.bookId}
               quantity={item.quantity}
               onIncrease={() => updateCartItem(item._id, item.quantity + 1)}

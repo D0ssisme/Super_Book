@@ -9,6 +9,7 @@ import cartRoute from './routes/CartRouters.js';
 import { connectDB } from './config/db.js';
 import cors from 'cors';
 import { seedAdmin } from './utils/seedAdmin.js';
+import { cleanupCorruptedCarts } from './utils/cleanupCarts.js';
 import categoryRoute from './routes/CategoryRouters.js';
 import orderRoute from './routes/OrderRouters.js';
 import authRoute from './routes/AuthRouters.js';
@@ -19,6 +20,7 @@ import receiptRouter from './routes/ReceiptRouters.js';
 import { setup } from './utils/hosting.js';
 import supplyReceiptRouter from './routes/SupplyReceiptRouters.js';
 import paymentRouter from './routes/PaymentRouters.js';
+import eventRouter from './routes/EventRouters.js';
 import { errorHandler } from './middlewares/errorHandle.js';
 import addressRouter from './routes/AddressRouters.js';
 import statisticsRouter from './routes/StatisticsRouters.js';
@@ -43,11 +45,13 @@ app.use(process.env.API_TAG + "/suppliers", supplierRouter)
 app.use(process.env.API_TAG + "/receipts", receiptRouter);
 app.use(process.env.API_TAG + "/supply-receipts", supplyReceiptRouter);
 app.use(process.env.API_TAG + "/payment", paymentRouter)
+app.use(process.env.API_TAG + "/events", eventRouter)
 app.use(process.env.API_TAG + "/statistics", statisticsRouter)
 app.listen(process.env.PORTBE, async () => {
   console.log("Server is running on port " + process.env.PORTBE);
 });
 
+await cleanupCorruptedCarts().catch(err => console.warn("Cleanup warning:", err.message));
 await seedAdmin();
 
 app.use(errorHandler)

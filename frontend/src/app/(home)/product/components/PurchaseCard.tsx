@@ -1,7 +1,7 @@
 "use client";
 
 import { useCartStore } from "@/stores/useCartStore";
-import { MessageCircle, Share2, ShoppingCart } from "lucide-react";
+import { MessageCircle, Share2, ShoppingCart, Tag } from "lucide-react";
 import React, { useState } from "react";
 import QuantityInput from "@/components/customer/QuantityInput";
 import { toast } from "sonner";
@@ -12,6 +12,11 @@ interface Book {
   price: number;
   quantity: number; // Số lượng tồn kho
   imageUrl?: string[];
+  event?: {
+    _id: string;
+    name: string;
+    discountPercent: number;
+  } | null;
   // Các thuộc tính khác...
 }
 
@@ -28,6 +33,12 @@ const PurchaseCard = ({ book, initialQuantity = 1 }: PurchaseCardProps) => {
 
   const maxQuantity = Math.min(book.quantity, 99);
   const isOutOfStock = book.quantity <= 0;
+
+  // Calculate discounted price if event exists
+  const finalPrice = book.event
+    ? Math.floor(book.price * (1 - book.event.discountPercent / 100))
+    : book.price;
+  const savings = book.price - finalPrice;
 
   // Quantity handlers
   const onIncrease = () => {
@@ -141,12 +152,43 @@ const PurchaseCard = ({ book, initialQuantity = 1 }: PurchaseCardProps) => {
   return (
     <div className="bg-white rounded-xl shadow-md p-6 border border-green-100 sticky top-6">
       <div className="space-y-4">
+        {/* Event Badge */}
+        {book.event && (
+          <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
+            <div className="flex items-center gap-1 bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">
+              <Tag className="w-4 h-4" />
+              -{book.event.discountPercent}%
+            </div>
+            <div className="flex-1">
+              <p className="text-sm font-semibold text-gray-700">
+                {book.event.name}
+              </p>
+              <p className="text-xs text-gray-600">
+                Tiết kiệm: {savings.toLocaleString("vi-VN")}đ
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Price Section */}
         <div className="pb-4 border-b border-green-100">
           <p className="text-sm text-gray-500 mb-1">Giá bán</p>
-          <p className="text-3xl font-bold text-green-700">
-            {book.price.toLocaleString("vi-VN")}đ
-          </p>
+          <div className="flex items-end gap-3">
+            {book.event ? (
+              <>
+                <p className="text-3xl font-bold text-red-600">
+                  {finalPrice.toLocaleString("vi-VN")}đ
+                </p>
+                <p className="text-sm line-through text-gray-400 pb-1">
+                  {book.price.toLocaleString("vi-VN")}đ
+                </p>
+              </>
+            ) : (
+              <p className="text-3xl font-bold text-green-700">
+                {book.price.toLocaleString("vi-VN")}đ
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Stock Status */}
@@ -184,7 +226,7 @@ const PurchaseCard = ({ book, initialQuantity = 1 }: PurchaseCardProps) => {
             <div className="flex justify-between items-center">
               <span className="text-gray-700 font-medium">Tạm tính:</span>
               <span className="text-2xl font-bold text-green-700">
-                {(book.price * quantity).toLocaleString("vi-VN")}đ
+                {(finalPrice * quantity).toLocaleString("vi-VN")}đ
               </span>
             </div>
           </div>

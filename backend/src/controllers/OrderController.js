@@ -9,6 +9,7 @@ import {
 } from "../services/OrderService.js";
 import OrderDetail from '../models/OrderDetail.js';
 import Book from '../models/Book.js';
+import Cart from '../models/Cart.js';
 
 
 //Get orders by customerId
@@ -114,6 +115,35 @@ export async function createOrder(req, res) {
     if (!order) {
       return res.status(400).send({ message: "Error creating Order" });
     }
+
+    // Remove ordered items from cart
+    try {
+      const cart = await Cart.findOne({ customerId: req.user.id });
+      if (cart && cart.items.length > 0) {
+        // Get all bookIds from order details
+        const orderedBookIds = details.map(d => d.bookId);
+        
+        // Filter cart items to keep only those NOT in the order
+        cart.items = cart.items.filter(item => {
+          const itemBookId = typeof item.bookId === 'string' ? item.bookId : item.bookId.toString();
+          return !orderedBookIds.some(obId => {
+            const orderedId = typeof obId === 'string' ? obId : obId.toString();
+            return itemBookId === orderedId;
+          });
+        });
+
+        // Recalculate totals
+        cart.totalQuantity = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+        cart.totalPrice = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+        await cart.save();
+        console.log("[createOrder] Removed items from cart. Remaining:", cart.items.length);
+      }
+    } catch (cartError) {
+      console.error("[createOrder] Error removing items from cart:", cartError.message);
+      // Don't fail the order if cart removal fails
+    }
+
     return res.status(200).json(order);
   } catch (err) {
     res.status(400).send({ message: err.message });

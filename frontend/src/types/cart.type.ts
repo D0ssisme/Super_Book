@@ -19,6 +19,8 @@ export interface CartStore {
   cart: Cart | null;
   loading: boolean;
   error: string | null;
+  selectedItemIds: string[];
+  checkoutItems: string[];
 
   // Actions
   fetchCart: () => Promise<void>;
@@ -26,5 +28,9 @@ export interface CartStore {
   updateCartItem: (bookId: string, quantity: number) => Promise<void>;
   removeCartItem: (cartDetailId: string) => Promise<void>;
   clearCart: () => Promise<void>;
+  toggleSelectItem: (itemId: string) => void;
+  selectAllItems: () => void;
+  deselectAllItems: () => void;
+  setCheckoutItems: (itemIds: string[]) => void;
 
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import Image from 'next/image';
-import { LogOut, Star, User2 } from 'lucide-react';
+import { Star, User2, ShoppingCart } from 'lucide-react';
+import { useEffect } from 'react';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import CartIcon from './CartIcon';
 import SearchInput from './SearchInput';
@@ -9,21 +10,22 @@ import Link from 'next/link';
 import { AuthDialog } from '@/components/auth-dialog';
 import { useUser } from '@/services/authservices';
 import { removeJWTfromCookie } from '@/lib/cookies';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { useRouter } from 'next/navigation';
+import UserDropdown from './UserDropdown';
+import CartPreviewDropdown from './CartPreviewDropdown';
+import { useCartStore } from '@/stores/useCartStore';
 
 export default function UserNavbar() {
   const { user, mutate } = useUser();
-  const router  = useRouter()
+  const router = useRouter();
+  const cart = useCartStore((s) => s.cart);
+  const fetchCart = useCartStore((s) => s.fetchCart);
+
+  useEffect(() => {
+    fetchCart();
+  }, [fetchCart]);
 
   const handleLogout = async () => {
     router.push("/")
@@ -57,46 +59,29 @@ export default function UserNavbar() {
 
           {/* Phải: Cart + User */}
           <div className="flex items-center gap-4">
-            <Link href="/cart">
-              <CartIcon />
-            </Link>
+            {/* Cart icon + text together */}
+            <div className="flex items-center gap-1.5">
+              {/* Cart icon with badge */}
+              <Link href="/cart" className="relative">
+                <div className="relative">
+                  <ShoppingCart size={20} className="text-gray-700 hover:text-blue-600 transition-colors" />
+                  {cart?.items && cart.items.length > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                      {cart.items.length}
+                    </span>
+                  )}
+                </div>
+              </Link>
+
+              {/* Cart text with dropdown */}
+              <CartPreviewDropdown 
+                cartItems={cart?.items || []} 
+                totalPrice={cart?.totalPrice || 0}
+              />
+            </div>
 
             {user ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <div className="size-9 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer text-primary">
-                    <User2 size={20} />
-
-                  </div>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none truncate">{user.data.fullName}</p>
-                      <p className="text-xs leading-none text-muted-foreground truncate">{user.data.email}</p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild className="cursor-pointer">
-                    <Link href="/account">
-                      Hồ sơ cá nhân
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="cursor-pointer">
-                    Đơn mua
-                  </DropdownMenuItem>
-                  {user.data.role === "admin" && (
-                    <DropdownMenuItem asChild className="cursor-pointer">
-                      <Link href="/admin">Quản Lý</Link>
-                    </DropdownMenuItem>
-                  )}
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Đăng xuất</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <UserDropdown user={user.data} onLogout={handleLogout} isMobile={true} />
             ) : (
               <AuthDialog>
                 <User2 size={24} className="cursor-pointer text-gray-700" />
@@ -134,48 +119,30 @@ export default function UserNavbar() {
               <span>Giới thiệu</span>
             </Link>
 
-            <Link href="/cart" className="flex items-center gap-2 text-gray-700 hover:text-primary transition-colors font-medium text-sm uppercase tracking-wide">
-              <CartIcon />
-              <span>Giỏ hàng</span>
-            </Link>
+            {/* Cart icon + text together */}
+            <div className="flex items-center gap-1.5">
+              {/* Cart icon with badge */}
+              <Link href="/cart" className="relative">
+                <div className="relative">
+                  <ShoppingCart size={20} className="text-gray-700 hover:text-blue-600 transition-colors" />
+                  {cart?.items && cart.items.length > 0 && (
+                    <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                      {cart.items.length}
+                    </span>
+                  )}
+                </div>
+              </Link>
+
+              {/* Cart text with dropdown */}
+              <CartPreviewDropdown 
+                cartItems={cart?.items || []} 
+                totalPrice={cart?.totalPrice || 0}
+              />
+            </div>
           </div>
 
           {user ? (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline" className="gap-2 rounded-full border-primary/20 hover:bg-primary/5 hover:text-primary px-4 h-10">
-                  <User2 size={18} />
-                  <span className="font-semibold max-w-[120px] truncate">
-                    {user.data.fullName}
-                  </span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56 mt-2">
-                <DropdownMenuLabel>
-                  <div className="flex flex-col space-y-1">
-                    <p className="text-sm font-medium leading-none">{user.data.fullName}</p>
-                    <p className="text-xs leading-none text-muted-foreground">{user.data.email}</p>
-                  </div>
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem asChild className="cursor-pointer">
-                  <Link href="/account">
-                    Hồ sơ cá nhân
-                  </Link>
-                </DropdownMenuItem>
-                {user.data.role === "admin" && (
-                  <DropdownMenuItem asChild className="cursor-pointer">
-                    <Link href="/admin">Quản Lý</Link>
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem className="cursor-pointer">Đơn mua</DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="cursor-pointer text-red-600 focus:text-red-600 focus:bg-red-50">
-                  <LogOut className="mr-2 h-4 w-4" />
-                  <span>Đăng xuất</span>
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <UserDropdown user={user.data} onLogout={handleLogout} isMobile={false} />
           ) : (
             <AuthDialog>
               <Button className="rounded-full px-6 font-semibold shadow-md cursor-pointer">
