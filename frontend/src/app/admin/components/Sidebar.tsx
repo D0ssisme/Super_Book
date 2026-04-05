@@ -17,6 +17,7 @@ import {
   Home,
   LogOut,
   Flame,
+  MessageSquare,
 } from "lucide-react";
 import { removeJWTfromCookie } from "@/lib/cookies";
 
@@ -175,6 +176,14 @@ export default function Sidebar({ isOpen }: { isOpen: boolean }) {
           <span className={getTextClass("/admin/events")}>
             Sự kiện Giảm giá
           </span>
+        </Link>
+
+        <Link
+          href="/admin/reviews"
+          className={getItemClass("/admin/reviews")}
+        >
+          <MessageSquare className={getIconClass("/admin/reviews")} />
+          <span className={getTextClass("/admin/reviews")}>Đánh giá</span>
         </Link>
       </nav>
 
