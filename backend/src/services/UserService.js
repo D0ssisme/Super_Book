@@ -2,17 +2,20 @@ import User from '../models/User.js';
 import { ErrorResponse } from '../utils/error.js';
 
 export async function createUserService(data) {
- 
+
   return User.create(data);
 }
 
-export async function updateUserService(targetUserId,data, currentUserId) {
-  if (targetUserId.toString() === currentUserId.toString() && data.role === "admin") {
-    throw new ErrorResponse("Bạn không thể tự nâng quyền lên admin", 403);
+export async function updateUserService(targetUserId, data, currentUserId) {
+  // Kiểm tra xem người thực hiện là admin không
+  const currentUser = await User.findById(currentUserId);
+  const isAdmin = currentUser?.role === 'admin';
+
+  // Nếu có thay đổi role mà không phải admin thì cấm
+  if (data.role && !isAdmin) {
+    throw new ErrorResponse("Bạn không có quyền thay đổi vai trò", 403);
   }
-  if (data.role === "admin") {
-    throw new ErrorResponse("Bạn không có quyền gán role admin", 403);
-  }
+
   const user = await User.findById(targetUserId);
   if (!user) {
     throw new ErrorResponse("Người dùng không tồn tại", 404);

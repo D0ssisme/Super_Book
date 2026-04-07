@@ -17,7 +17,6 @@ export default function UsersPage() {
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
   const [showModal, setShowModal] = useState<boolean>(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
   const [showFormPassword, setShowFormPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [emailError, setEmailError] = useState<string>("");
@@ -133,7 +132,7 @@ export default function UsersPage() {
 
     try {
       if (editingUser) {
-        // Update user - only send password if it's changed
+        // Update user - gửi role vì admin có quyền thay đổi
         const updateData = {
           fullName: formData.fullName,
           username: formData.username,
@@ -255,13 +254,6 @@ export default function UsersPage() {
     setShowModal(false);
   };
 
-  const togglePasswordVisibility = (userId: string) => {
-    setShowPassword((prev) => ({
-      ...prev,
-      [userId]: !prev[userId],
-    }));
-  };
-
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       {/* Header */}
@@ -310,7 +302,6 @@ export default function UsersPage() {
                   <th className="px-4 py-3 text-left text-gray-700 font-semibold text-sm">Username</th>
                   <th className="px-4 py-3 text-left text-gray-700 font-semibold text-sm">Email</th>
                   <th className="px-4 py-3 text-left text-gray-700 font-semibold text-sm">Số điện thoại</th>
-                  <th className="px-4 py-3 text-left text-gray-700 font-semibold text-sm">Mật khẩu</th>
                   <th className="px-4 py-3 text-left text-gray-700 font-semibold text-sm">Vai trò</th>
                   <th className="px-4 py-3 text-center text-gray-700 font-semibold text-sm">Thao tác</th>
                 </tr>
@@ -318,13 +309,13 @@ export default function UsersPage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
+                    <td colSpan={6} className="px-4 py-12 text-center text-gray-400">
                       Đang tải dữ liệu...
                     </td>
                   </tr>
                 ) : paginatedUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
+                    <td colSpan={6} className="px-4 py-12 text-center text-gray-400">
                       Không tìm thấy người dùng nào 👥
                     </td>
                   </tr>
@@ -335,19 +326,6 @@ export default function UsersPage() {
                       <td className="px-4 py-4 text-gray-600">{user.username}</td>
                       <td className="px-4 py-4 text-gray-600">{user.email}</td>
                       <td className="px-4 py-4 text-gray-600">{user.phone}</td>
-                      <td className="px-4 py-4 text-gray-600">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm">
-                            {showPassword[user._id] ? user.password : "••••••••"}
-                          </span>
-                          <button
-                            onClick={() => togglePasswordVisibility(user._id)}
-                            className="text-gray-400 hover:text-teal-600 transition"
-                          >
-                            {showPassword[user._id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                        </div>
-                      </td>
                       <td className="px-4 py-4">
                         <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${user.role === "admin"
                           ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
