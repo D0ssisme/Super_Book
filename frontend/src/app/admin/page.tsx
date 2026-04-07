@@ -17,6 +17,20 @@ import {
 } from "recharts";
 import { getOverviewStats, getProfitStats, getRevenueStats, getTopProducts, getTopCategories, getPaymentMethodsStats, getComparisonStats } from "@/api/statisticsApi";
 
+// Helper function để format date từ input type="date"
+const formatDateToISO = (dateString: string): string => {
+  if (!dateString) return "";
+  // Input type="date" trả về YYYY-MM-DD
+  return dateString;
+};
+
+// Helper function để display date ở định dạng DD/MM/YYYY
+const formatDateDisplay = (dateString: string): string => {
+  if (!dateString) return "";
+  const [year, month, day] = dateString.split('-');
+  return `${day}/${month}/${year}`;
+};
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
     totalBooks: 0,
@@ -508,11 +522,11 @@ export default function AdminDashboard() {
               {profitView === "day" && (
                 <div className="mb-4 text-sm text-gray-600">
                   {dateFrom && dateTo ? (
-                    <span>Thống kê từ <strong>{new Date(dateFrom).toLocaleDateString("vi-VN")}</strong> đến <strong>{new Date(dateTo).toLocaleDateString("vi-VN")}</strong></span>
+                    <span>Thống kê từ <strong>{formatDateDisplay(dateFrom)}</strong> đến <strong>{formatDateDisplay(dateTo)}</strong></span>
                   ) : dateFrom ? (
-                    <span>Thống kê từ <strong>{new Date(dateFrom).toLocaleDateString("vi-VN")}</strong></span>
+                    <span>Thống kê từ <strong>{formatDateDisplay(dateFrom)}</strong></span>
                   ) : dateTo ? (
-                    <span>Thống kê đến <strong>{new Date(dateTo).toLocaleDateString("vi-VN")}</strong></span>
+                    <span>Thống kê đến <strong>{formatDateDisplay(dateTo)}</strong></span>
                   ) : (
                     <span>Chọn khoảng thời gian để xem thống kê</span>
                   )}

@@ -21,6 +21,7 @@ export default function UsersPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [emailError, setEmailError] = useState<string>("");
   const [phoneError, setPhoneError] = useState<string>("");
+  const [passwordError, setPasswordError] = useState<string>("");
   const [formData, setFormData] = useState({
     fullName: "",
     username: "",
@@ -47,7 +48,7 @@ export default function UsersPage() {
 
   // Phone validation (Vietnam phone number format)
   const validatePhone = (phone: string): boolean => {
-    const phoneRegex = /^(0|\+84)(\s?\.?\d){9,10}$/;
+    const phoneRegex = /^0\d{9}$/;
     if (!phone) {
       setPhoneError("S\u1ed1 \u0111i\u1ec7n tho\u1ea1i kh\u00f4ng \u0111\u01b0\u1ee3c \u0111\u1ec3 tr\u1ed1ng");
       return false;
@@ -127,6 +128,12 @@ export default function UsersPage() {
         title: 'Thiếu thông tin',
         text: 'Vui lòng nhập mật khẩu!',
       });
+      return;
+    }
+
+    // Validate password length when provided
+    if (formData.password && formData.password.length < 6) {
+      setPasswordError("Mật khẩu phải có ít nhất 6 ký tự!");
       return;
     }
 
@@ -212,6 +219,7 @@ export default function UsersPage() {
     // Reset validation errors
     setEmailError("");
     setPhoneError("");
+    setPasswordError("");
 
     if (user) {
       setEditingUser(user);
@@ -243,6 +251,7 @@ export default function UsersPage() {
     setShowFormPassword(false);
     setEmailError("");
     setPhoneError("");
+    setPasswordError("");
     setFormData({
       fullName: "",
       username: "",
@@ -458,8 +467,14 @@ export default function UsersPage() {
                   <input
                     type={showFormPassword ? "text" : "password"}
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent pr-12"
+                    onChange={(e) => {
+                      setFormData({ ...formData, password: e.target.value });
+                      setPasswordError("");
+                    }}
+                    className={`w-full border px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent pr-12 ${passwordError
+                      ? 'border-red-500 focus:ring-red-500'
+                      : 'border-gray-300 focus:ring-emerald-500'
+                      }`}
                   />
                   <button
                     type="button"
@@ -469,6 +484,11 @@ export default function UsersPage() {
                     {showFormPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
+                {passwordError && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                    <span>⚠️</span> {passwordError}
+                  </p>
+                )}
               </div>
 
               {/* Vai trò */}

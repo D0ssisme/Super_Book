@@ -15,6 +15,9 @@ const getToken = () => {
 // Create axios instance with auth
 const api = axios.create({
     baseURL: apiUrl,
+    headers: {
+        'Content-Type': 'application/json',
+    },
 });
 
 // Add token to requests

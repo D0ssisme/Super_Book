@@ -252,7 +252,7 @@ export default function SuppliersPage() {
                 ) : paginatedSuppliers.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-4 py-12 text-center text-gray-400">
-                      Không tìm thấy nhà cung cấp nào 
+                      Không tìm thấy nhà cung cấp nào
                     </td>
                   </tr>
                 ) : (
@@ -295,7 +295,10 @@ export default function SuppliersPage() {
             totalItems={filteredSuppliers.length}
             itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
-            onItemsPerPageChange={setItemsPerPage}
+            onItemsPerPageChange={(items) => {
+              setItemsPerPage(items);
+              setCurrentPage(1);
+            }}
           />
         </div>
       </div>

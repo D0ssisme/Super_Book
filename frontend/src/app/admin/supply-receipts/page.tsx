@@ -41,7 +41,7 @@ export default function SupplyReceiptsPage() {
         params.status = statusFilter;
       }
       const response = await getAllSupplyReceipts(params);
-      
+
       // Map dữ liệu từ backend sang frontend format
       const mappedReceipts = (response.data || []).map((r: any) => ({
         id: r._id,
@@ -59,10 +59,10 @@ export default function SupplyReceiptsPage() {
           sub_amount: d.importPrice * d.quantity,
         })),
       }));
-      
+
       setReceipts(mappedReceipts);
       setTotalItems(response.pagination?.total || mappedReceipts.length);
-      
+
       // Fetch thống kê số lượng theo trạng thái
       const allResponse = await getAllSupplyReceipts({ limit: 1000 });
       const allReceipts = allResponse.data || [];
@@ -321,41 +321,37 @@ export default function SupplyReceiptsPage() {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => { setStatusFilter("all"); setCurrentPage(1); }}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
-              statusFilter === "all"
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${statusFilter === "all"
                 ? "bg-teal-600 text-white shadow-md"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}
+              }`}
           >
             Tất cả <span className="ml-1 px-2 py-0.5 rounded-full bg-white/20 text-xs">{statusCounts.all}</span>
           </button>
           <button
             onClick={() => { setStatusFilter("pending"); setCurrentPage(1); }}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
-              statusFilter === "pending"
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${statusFilter === "pending"
                 ? "bg-amber-500 text-white shadow-md"
                 : "bg-amber-50 text-amber-700 hover:bg-amber-100 border border-amber-200"
-            }`}
+              }`}
           >
             Đang xử lý <span className="ml-1 px-2 py-0.5 rounded-full bg-white/20 text-xs">{statusCounts.pending}</span>
           </button>
           <button
             onClick={() => { setStatusFilter("completed"); setCurrentPage(1); }}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
-              statusFilter === "completed"
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${statusFilter === "completed"
                 ? "bg-teal-500 text-white shadow-md"
                 : "bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200"
-            }`}
+              }`}
           >
             Hoàn tất <span className="ml-1 px-2 py-0.5 rounded-full bg-white/20 text-xs">{statusCounts.completed}</span>
           </button>
           <button
             onClick={() => { setStatusFilter("canceled"); setCurrentPage(1); }}
-            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
-              statusFilter === "canceled"
+            className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${statusFilter === "canceled"
                 ? "bg-red-500 text-white shadow-md"
                 : "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"
-            }`}
+              }`}
           >
             Đã hủy <span className="ml-1 px-2 py-0.5 rounded-full bg-white/20 text-xs">{statusCounts.canceled}</span>
           </button>
@@ -404,18 +400,17 @@ export default function SupplyReceiptsPage() {
                           {new Date(r.supply_date).toLocaleDateString("vi-VN")}
                         </td>
                         <td className="px-4 py-4">
-                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium capitalize ${
-                            r.supply_status === "completed"
+                          <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium capitalize ${r.supply_status === "completed"
                               ? "bg-teal-50 text-teal-700 border border-teal-200"
                               : r.supply_status === "canceled"
-                              ? "bg-red-50 text-red-700 border border-red-200"
-                              : "bg-amber-50 text-amber-700 border border-amber-200"
-                          }`}>
+                                ? "bg-red-50 text-red-700 border border-red-200"
+                                : "bg-amber-50 text-amber-700 border border-amber-200"
+                            }`}>
                             {r.supply_status === "completed"
                               ? "Hoàn tất"
                               : r.supply_status === "canceled"
-                              ? "Đã hủy"
-                              : "Đang xử lý"}
+                                ? "Đã hủy"
+                                : "Đang xử lý"}
                           </span>
                         </td>
                         <td className="px-4 py-4 text-right text-gray-800 font-semibold">
@@ -450,7 +445,10 @@ export default function SupplyReceiptsPage() {
             totalItems={totalItems}
             itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
-            onItemsPerPageChange={setItemsPerPage}
+            onItemsPerPageChange={(items) => {
+              setItemsPerPage(items);
+              setCurrentPage(1);
+            }}
           />
         </div>
       </div>
