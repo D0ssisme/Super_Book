@@ -3,7 +3,7 @@ export interface SupplyReceipt {
   supplier_id: string;
   admin_id: string;
   supply_date: string;
-  supply_status: "pending" | "completed" | "cancelled";
+  supply_status: "pending" | "completed" | "canceled";
   items: SupplyItem[];
   total_amount: number;
 }

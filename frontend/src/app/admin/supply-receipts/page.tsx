@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import Swal from "sweetalert2";
 import { getAllSupplyReceipts, createSupplyReceipt, updateSupplyReceipt, deleteSupplyReceipt } from "@/api/supplreceiptApi";
 import { getAllSuppliers } from "@/api/supplierApi";
 import { getAllBooks } from "@/api/bookApi";
@@ -25,7 +26,7 @@ export default function SupplyReceiptsPage() {
     all: 0,
     pending: 0,
     completed: 0,
-    cancelled: 0,
+    canceled: 0,
   });
 
   // Fetch data từ API
@@ -69,7 +70,7 @@ export default function SupplyReceiptsPage() {
         all: allReceipts.length,
         pending: allReceipts.filter((r: any) => r.purchaseStatus === "pending").length,
         completed: allReceipts.filter((r: any) => r.purchaseStatus === "completed").length,
-        cancelled: allReceipts.filter((r: any) => r.purchaseStatus === "cancelled").length,
+        canceled: allReceipts.filter((r: any) => r.purchaseStatus === "canceled").length,
       });
     } catch (error) {
       console.error("Error fetching receipts:", error);
@@ -196,22 +197,38 @@ export default function SupplyReceiptsPage() {
   // Lưu phiếu nhập
   const handleSubmit = async () => {
     if (!formData.supplier_id || formData.items.length === 0) {
-      alert("Vui lòng chọn nhà cung cấp và thêm ít nhất 1 sản phẩm!");
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: "Vui lòng chọn nhà cung cấp và thêm ít nhất 1 sản phẩm!",
+      });
       return;
     }
 
     // Kiểm tra tất cả items có đủ thông tin
     for (const item of formData.items) {
       if (!item.book_id) {
-        alert("Vui lòng chọn sách cho tất cả sản phẩm!");
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: "Vui lòng chọn sách cho tất cả sản phẩm!",
+        });
         return;
       }
       if (!item.quantity || item.quantity <= 0) {
-        alert("Số lượng phải lớn hơn 0!");
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: "Số lượng phải lớn hơn 0!",
+        });
         return;
       }
       if (!item.import_price || item.import_price <= 0) {
-        alert("Giá nhập phải lớn hơn 0!");
+        Swal.fire({
+          icon: "error",
+          title: "Lỗi",
+          text: "Giá nhập phải lớn hơn 0!",
+        });
         return;
       }
     }
@@ -247,14 +264,37 @@ export default function SupplyReceiptsPage() {
 
   // Xóa phiếu
   const handleDelete = async (id: string) => {
-    if (window.confirm("Bạn có chắc muốn xóa phiếu nhập này?")) {
-      try {
-        await deleteSupplyReceipt(id);
-        fetchReceipts();
-      } catch (error) {
-        console.error("Error deleting receipt:", error);
-        alert("Có lỗi xảy ra khi xóa phiếu nhập!");
-      }
+    const result = await Swal.fire({
+      title: "Xác nhận xóa phiếu nhập",
+      html: "Bạn có chắc muốn xóa phiếu nhập này?<br/><small class='text-red-500'>⚠️ Hành động này không thể hoàn tác!</small>",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#ef4444",
+      cancelButtonColor: "#6b7280",
+      confirmButtonText: "Xóa",
+      cancelButtonText: "Hủy",
+      reverseButtons: true,
+    });
+
+    if (!result.isConfirmed) return;
+
+    try {
+      await deleteSupplyReceipt(id);
+      await fetchReceipts();
+      Swal.fire({
+        icon: "success",
+        title: "Thành công",
+        text: "Xóa phiếu nhập thành công!",
+        timer: 1500,
+        showConfirmButton: false,
+      });
+    } catch (error: any) {
+      console.error("Error deleting receipt:", error);
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: error?.response?.data?.message || "Có lỗi xảy ra khi xóa phiếu nhập!",
+      });
     }
   };
 
@@ -310,14 +350,14 @@ export default function SupplyReceiptsPage() {
             Hoàn tất <span className="ml-1 px-2 py-0.5 rounded-full bg-white/20 text-xs">{statusCounts.completed}</span>
           </button>
           <button
-            onClick={() => { setStatusFilter("cancelled"); setCurrentPage(1); }}
+            onClick={() => { setStatusFilter("canceled"); setCurrentPage(1); }}
             className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 ${
-              statusFilter === "cancelled"
+              statusFilter === "canceled"
                 ? "bg-red-500 text-white shadow-md"
                 : "bg-red-50 text-red-700 hover:bg-red-100 border border-red-200"
             }`}
           >
-            Đã hủy <span className="ml-1 px-2 py-0.5 rounded-full bg-white/20 text-xs">{statusCounts.cancelled}</span>
+            Đã hủy <span className="ml-1 px-2 py-0.5 rounded-full bg-white/20 text-xs">{statusCounts.canceled}</span>
           </button>
         </div>
       </div>
@@ -367,13 +407,13 @@ export default function SupplyReceiptsPage() {
                           <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium capitalize ${
                             r.supply_status === "completed"
                               ? "bg-teal-50 text-teal-700 border border-teal-200"
-                              : r.supply_status === "cancelled"
+                              : r.supply_status === "canceled"
                               ? "bg-red-50 text-red-700 border border-red-200"
                               : "bg-amber-50 text-amber-700 border border-amber-200"
                           }`}>
                             {r.supply_status === "completed"
                               ? "Hoàn tất"
-                              : r.supply_status === "cancelled"
+                              : r.supply_status === "canceled"
                               ? "Đã hủy"
                               : "Đang xử lý"}
                           </span>
@@ -461,7 +501,7 @@ export default function SupplyReceiptsPage() {
                 >
                   <option value="pending">Đang xử lý</option>
                   <option value="completed">Hoàn tất</option>
-                  <option value="cancelled">Đã hủy</option>
+                  <option value="canceled">Đã hủy</option>
                 </select>
               </div>
             </div>
