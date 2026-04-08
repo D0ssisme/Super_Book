@@ -334,9 +334,9 @@ export const OrderTable = ({ orders, onViewOrder }: OrderTableProps) => {
               {/* Thông tin khách hàng */}
               <TableCell>
                 <div className="space-y-1">
-                  <div className="font-medium">{order.customerId.fullName}</div>
+                  <div className="font-medium">{order.customerId?.fullName || "Khách hàng"}</div>
                   <div className="text-sm text-gray-500">
-                    #{order.customerId._id.slice(-8).toUpperCase()}
+                    {order.customerId?._id ? `#${order.customerId._id.slice(-8).toUpperCase()}` : ""}
                   </div>
                 </div>
               </TableCell>
@@ -347,7 +347,7 @@ export const OrderTable = ({ orders, onViewOrder }: OrderTableProps) => {
                   <div className="text-sm text-gray-500">
                     {order.receiverPhone}
                   </div>
-                  {order.customerId.phone && (
+                  {order.receiverAddress && (
                     <div className="text-sm text-gray-500">
                       {order.receiverAddress}
                     </div>
