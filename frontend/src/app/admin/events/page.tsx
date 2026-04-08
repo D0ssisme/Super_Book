@@ -8,11 +8,14 @@ import {
   createEventApi,
   updateEventApi,
   deleteEventApi,
+  updateEventStatusApi,
+  EventStatus,
 } from "@/services/EventApi";
 import { bookServices } from "@/services/bookServices";
 import { categoryServices } from "@/services/categoryServices";
 import { Book } from "@/types/book.type";
 import { Category } from "@/types/category.type";
+import Pagination from "../components/Pagination";
 
 interface Event {
   _id: string;
@@ -30,12 +33,19 @@ interface Event {
 export default function EventsPage() {
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState({
+    currentPage: 1,
+    totalPages: 1,
+    totalItems: 0,
+    limit: 10,
+  });
   const [showModal, setShowModal] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
   const [books, setBooks] = useState<Book[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [booksLoading, setBooksLoading] = useState(false);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
+  const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -48,15 +58,27 @@ export default function EventsPage() {
   });
 
   useEffect(() => {
-    fetchEvents();
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    fetchEvents();
+  }, [pagination.currentPage, pagination.limit]);
 
   const fetchEvents = async () => {
     try {
       setLoading(true);
-      const data = await getAllEventsApi();
-      setEvents(data);
+      const result = await getAllEventsApi(
+        pagination.currentPage,
+        pagination.limit
+      );
+      setEvents(result.events as Event[]);
+      setPagination((prev) => ({
+        ...prev,
+        totalItems: result.totalItems,
+        totalPages: Math.max(1, result.totalPages),
+        currentPage: result.currentPage,
+      }));
     } catch (error) {
       toast.error("Lỗi tải sự kiện");
       console.error(error);
@@ -99,6 +121,11 @@ export default function EventsPage() {
       !formData.endDate
     ) {
       toast.error("Vui lòng điền đầy đủ thông tin");
+      return;
+    }
+
+    if (formData.endDate < formData.startDate) {
+      toast.error("Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu");
       return;
     }
 
@@ -176,11 +203,68 @@ export default function EventsPage() {
     return new Date(date).toLocaleDateString("vi-VN");
   };
 
-  const isEventActive = (event: Event) => {
+  const isEventExpired = (event: Event) => {
+    const now = new Date();
+    const end = new Date(event.endDate);
+    return now > end;
+  };
+
+  const getAutoStatusByDate = (event: Event): EventStatus => {
     const now = new Date();
     const start = new Date(event.startDate);
     const end = new Date(event.endDate);
-    return now >= start && now <= end && event.status === "active";
+
+    if (event.status === "inactive") return "inactive";
+    if (now >= start && now <= end) return "active";
+    return "upcoming";
+  };
+
+  const getDisplayStatus = (event: Event) => {
+    if (isEventExpired(event)) return "expired" as const;
+    return getAutoStatusByDate(event);
+  };
+
+  const getStatusLabel = (status: EventStatus | "expired") => {
+    switch (status) {
+      case "active":
+        return "Đang diễn ra";
+      case "upcoming":
+        return "Sắp tới";
+      case "inactive":
+        return "Không hoạt động";
+      default:
+        return "Đã hết hạn";
+    }
+  };
+
+  const handleStatusChange = async (
+    eventId: string,
+    currentStatus: EventStatus,
+    nextStatus: EventStatus
+  ) => {
+    if (currentStatus === nextStatus) return;
+
+    try {
+      setStatusUpdatingId(eventId);
+      const updated = await updateEventStatusApi(eventId, nextStatus);
+
+      setEvents((prev) =>
+        prev.map((event) =>
+          event._id === eventId
+            ? {
+                ...event,
+                status: (updated?.status as EventStatus) || nextStatus,
+              }
+            : event
+        )
+      );
+
+      toast.success("Cập nhật trạng thái thành công");
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || "Lỗi cập nhật trạng thái");
+    } finally {
+      setStatusUpdatingId(null);
+    }
   };
 
   return (
@@ -220,8 +304,9 @@ export default function EventsPage() {
             Không có sự kiện nào
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full">
+          <>
+            <div className="overflow-x-auto">
+              <table className="w-full">
               <thead className="bg-gray-100 border-b">
                 <tr>
                   <th className="px-6 py-3 text-left text-gray-700 font-semibold">
@@ -239,7 +324,7 @@ export default function EventsPage() {
                   <th className="px-6 py-3 text-left text-gray-700 font-semibold">
                     Kết thúc
                   </th>
-                  <th className="px-6 py-3 text-left text-gray-700 font-semibold">
+                  <th className="px-6 py-3 text-left text-gray-700 font-semibold w-[220px]">
                     Trạng thái
                   </th>
                   <th className="px-6 py-3 text-left text-gray-700 font-semibold">
@@ -284,20 +369,41 @@ export default function EventsPage() {
                       {formatDate(event.startDate)}
                     </td>
                     <td className="px-6 py-3">{formatDate(event.endDate)}</td>
-                    <td className="px-6 py-3">
-                      {isEventActive(event) ? (
-                        <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
-                          <Check className="w-4 h-4" /> Đang diễn hành
-                        </span>
-                      ) : event.status === "upcoming" ? (
-                        <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
-                          <Calendar className="w-4 h-4" /> Sắp tới
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium">
-                          <X className="w-4 h-4" /> Không hoạt động
-                        </span>
-                      )}
+                    <td className="px-6 py-3 w-[220px] align-top">
+                      <div className="space-y-2">
+                        {getDisplayStatus(event) === "active" ? (
+                          <span className="inline-flex items-center gap-1 bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                            <Check className="w-4 h-4" /> {getStatusLabel(getDisplayStatus(event))}
+                          </span>
+                        ) : getDisplayStatus(event) === "upcoming" ? (
+                          <span className="inline-flex items-center gap-1 bg-blue-100 text-blue-800 px-3 py-1 rounded-full text-sm font-medium">
+                            <Calendar className="w-4 h-4" /> {getStatusLabel(getDisplayStatus(event))}
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 bg-gray-100 text-gray-800 px-3 py-1 rounded-full text-sm font-medium">
+                            <X className="w-4 h-4" /> {getStatusLabel(getDisplayStatus(event))}
+                          </span>
+                        )}
+
+                        <select
+                          value={getAutoStatusByDate(event)}
+                          disabled={isEventExpired(event) || statusUpdatingId === event._id}
+                          onChange={(e) =>
+                            handleStatusChange(
+                              event._id,
+                              getAutoStatusByDate(event),
+                              e.target.value as EventStatus
+                            )
+                          }
+                          className="w-[170px] border border-gray-300 rounded-md px-2 py-1 text-sm disabled:bg-gray-100 disabled:text-gray-500"
+                        >
+                          <option value="upcoming">Sắp tới</option>
+                          <option value="active">Đang diễn ra</option>
+                          <option value="inactive">Không hoạt động</option>
+                        </select>
+
+               
+                      </div>
                     </td>
                     <td className="px-6 py-3">
                       <div className="flex gap-2">
@@ -318,8 +424,28 @@ export default function EventsPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
+              </table>
+            </div>
+
+            <div className="px-6 pb-6">
+              <Pagination
+                currentPage={pagination.currentPage}
+                totalPages={pagination.totalPages}
+                totalItems={pagination.totalItems}
+                itemsPerPage={pagination.limit}
+                onPageChange={(page) =>
+                  setPagination((prev) => ({ ...prev, currentPage: page }))
+                }
+                onItemsPerPageChange={(items) =>
+                  setPagination((prev) => ({
+                    ...prev,
+                    limit: items,
+                    currentPage: 1,
+                  }))
+                }
+              />
+            </div>
+          </>
         )}
       </div>
 
@@ -571,6 +697,7 @@ export default function EventsPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, startDate: e.target.value })
                   }
+                  max={formData.endDate || undefined}
                   className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
@@ -585,6 +712,7 @@ export default function EventsPage() {
                   onChange={(e) =>
                     setFormData({ ...formData, endDate: e.target.value })
                   }
+                  min={formData.startDate || undefined}
                   className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>

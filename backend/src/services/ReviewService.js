@@ -3,8 +3,9 @@ import User from '../models/User.js';
 import Book from '../models/Book.js';
 import Order from '../models/Order.js';
 import OrderDetail from '../models/OrderDetail.js';
-
+//các trạng thái của review: pending (đang chờ duyệt), approved (đã được duyệt và hiển thị công khai), hidden (bị ẩn do không đạt yêu cầu)
 const ALLOWED_REVIEW_STATUSES = ['pending', 'approved', 'hidden'];
+// Các trạng thái đơn hàng đủ điều kiện để được phép đánh giá sách: delivery (đang giao) hoặc completed (hoàn thành)
 const ELIGIBLE_ORDER_STATUSES = ['delivery', 'completed'];
 
 function parsePositiveInt(value, fallback) {

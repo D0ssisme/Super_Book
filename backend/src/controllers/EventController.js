@@ -34,7 +34,7 @@ export const createEvent = async (req, res) => {
 
 export const getAllEvents = async (req, res) => {
   try {
-    const events = await getAllEventsService();
+    const events = await getAllEventsService(req.query);
     res.status(200).json({
       message: 'Lấy danh sách sự kiện thành công',
       data: events

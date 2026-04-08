@@ -1,9 +1,40 @@
 import api from "@/lib/axios";
 
-export async function getAllEventsApi() {
+export type EventStatus = "active" | "inactive" | "upcoming";
+
+interface EventListPayload {
+  events?: any[];
+  totalEvents?: number;
+  totalPages?: number;
+  currentPage?: number;
+}
+
+export interface EventListResponse {
+  events: any[];
+  totalItems: number;
+  totalPages: number;
+  currentPage: number;
+  limit: number;
+}
+
+export async function getAllEventsApi(
+  page: number = 1,
+  limit: number = 10
+): Promise<EventListResponse> {
   try {
-    const response = await api.get(`/events`);
-    return response.data.events || [];
+    const response = await api.get(`/events`, {
+      params: { page, limit },
+    });
+
+    const payload: EventListPayload = response.data?.data || {};
+
+    return {
+      events: payload.events || [],
+      totalItems: payload.totalEvents || 0,
+      totalPages: payload.totalPages || 1,
+      currentPage: payload.currentPage || page,
+      limit,
+    };
   } catch (error) {
     throw error;
   }
@@ -12,7 +43,7 @@ export async function getAllEventsApi() {
 export async function getActiveEventsApi() {
   try {
     const response = await api.get(`/events/active`);
-    return response.data.events || [];
+   return response.data?.data || [];
   } catch (error) {
     throw error;
   }
@@ -21,7 +52,7 @@ export async function getActiveEventsApi() {
 export async function getEventByIdApi(eventId: string) {
   try {
     const response = await api.get(`/events/${eventId}`);
-    return response.data.event;
+    return response.data?.data || null;
   } catch (error) {
     throw error;
   }
@@ -81,6 +112,18 @@ export async function removeBookFromEventApi(
       `/events/${eventId}/remove-book/${bookId}`
     );
     return response.data;
+  } catch (error) {
+    throw error;
+  }
+}
+
+export async function updateEventStatusApi(
+  eventId: string,
+  status: EventStatus
+) {
+  try {
+    const response = await api.put(`/events/${eventId}/status`, { status });
+    return response.data?.data;
   } catch (error) {
     throw error;
   }
