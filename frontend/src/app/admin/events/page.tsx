@@ -237,10 +237,12 @@ export default function EventsPage() {
     }
   };
 
+  const isAdminEnabled = (event: Event) => event.status !== "inactive";
+
   const handleStatusChange = async (
     eventId: string,
     currentStatus: EventStatus,
-    nextStatus: EventStatus
+    nextStatus: "active" | "inactive"
   ) => {
     if (currentStatus === nextStatus) return;
 
@@ -385,22 +387,35 @@ export default function EventsPage() {
                           </span>
                         )}
 
-                        <select
-                          value={getAutoStatusByDate(event)}
-                          disabled={isEventExpired(event) || statusUpdatingId === event._id}
-                          onChange={(e) =>
-                            handleStatusChange(
-                              event._id,
-                              getAutoStatusByDate(event),
-                              e.target.value as EventStatus
-                            )
-                          }
-                          className="w-[170px] border border-gray-300 rounded-md px-2 py-1 text-sm disabled:bg-gray-100 disabled:text-gray-500"
-                        >
-                          <option value="upcoming">Sắp tới</option>
-                          <option value="active">Đang diễn ra</option>
-                          <option value="inactive">Không hoạt động</option>
-                        </select>
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            role="switch"
+                            aria-checked={isAdminEnabled(event)}
+                            disabled={isEventExpired(event) || statusUpdatingId === event._id}
+                            onClick={() =>
+                              handleStatusChange(
+                                event._id,
+                                event.status,
+                                isAdminEnabled(event) ? "inactive" : "active"
+                              )
+                            }
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                              isAdminEnabled(event) ? "bg-emerald-500" : "bg-gray-300"
+                            } disabled:cursor-not-allowed disabled:opacity-60`}
+                          >
+                            <span
+                              className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
+                                isAdminEnabled(event) ? "translate-x-5" : "translate-x-1"
+                              }`}
+                            />
+                          </button>
+                          <span className="text-xs text-gray-600">
+                            {isAdminEnabled(event)
+                              ? " Cho hoạt động"
+                              : "Tắt"}
+                          </span>
+                        </div>
 
                
                       </div>
@@ -451,7 +466,7 @@ export default function EventsPage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-white/25 backdrop-blur-[1px] flex items-center justify-center z-50">
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full mx-4 p-6">
             <h3 className="text-xl font-bold text-gray-800 mb-4">
               {editingEvent ? "Sửa sự kiện" : "Thêm sự kiện mới"}

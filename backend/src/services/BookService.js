@@ -122,35 +122,39 @@ export async function findBookService(_id) {
   );
   book.authors = authors.map((a) => a.authorId.name);
 
-  // Get active event based on applyType
+  // Get all active events
   const now = new Date();
-  const activeEvent = await Event.findOne({
+  const activeEvents = await Event.find({
     status: 'active',
     startDate: { $lte: now },
     endDate: { $gte: now }
   }).lean();
 
-  if (activeEvent) {
-    // Check if this book qualifies for the event
-    if (activeEvent.applyType === 'all') {
-      book.event = activeEvent;
-    } else if (activeEvent.applyType === 'products' && activeEvent.bookIds?.length > 0) {
-      // Check if book is in the bookIds array
-      if (activeEvent.bookIds.some(id => id.toString() === book._id.toString())) {
-        book.event = activeEvent;
-      } else {
-        book.event = null;
+  if (activeEvents && activeEvents.length > 0) {
+    let bestEvent = null;
+    let maxDiscount = -1;
+
+    for (const activeEvent of activeEvents) {
+      let applies = false;
+      // Check if this book qualifies for the event
+      if (activeEvent.applyType === 'all') {
+        applies = true;
+      } else if (activeEvent.applyType === 'products' && activeEvent.bookIds?.length > 0) {
+        if (activeEvent.bookIds.some(id => id.toString() === book._id.toString())) {
+          applies = true;
+        }
+      } else if (activeEvent.applyType === 'categories' && activeEvent.categoryIds?.length > 0) {
+        if (activeEvent.categoryIds.some(id => id.toString() === book.categoryId._id.toString())) {
+          applies = true;
+        }
       }
-    } else if (activeEvent.applyType === 'categories' && activeEvent.categoryIds?.length > 0) {
-      // Check if book's category is in the categoryIds array
-      if (activeEvent.categoryIds.some(id => id.toString() === book.categoryId._id.toString())) {
-        book.event = activeEvent;
-      } else {
-        book.event = null;
+
+      if (applies && activeEvent.discountPercent > maxDiscount) {
+        maxDiscount = activeEvent.discountPercent;
+        bestEvent = activeEvent;
       }
-    } else {
-      book.event = null;
     }
+    book.event = bestEvent;
   } else {
     book.event = null;
   }
@@ -285,33 +289,43 @@ export async function getAllBooksService(query) {
         event: null
       }));
 
-      // Get active event based on applyType
+      // Get all active events
       const now = new Date();
-      const activeEvent = await Event.findOne({
+      const activeEvents = await Event.find({
         status: 'active',
         startDate: { $lte: now },
         endDate: { $gte: now }
       }).lean();
 
-      // Attach events to books based on applyType
+      // Attach best matching event to each book (highest discount)
       const booksWithEvents = booksWithAuthors.map((book) => {
-        let event = null;
-        if (activeEvent) {
+        let bestEvent = null;
+        let maxDiscount = -1;
+
+        for (const activeEvent of activeEvents) {
+          let applies = false;
+
           if (activeEvent.applyType === 'all') {
-            event = activeEvent;
+            applies = true;
           } else if (activeEvent.applyType === 'products' && activeEvent.bookIds?.length > 0) {
             if (activeEvent.bookIds.some(id => id.toString() === book._id.toString())) {
-              event = activeEvent;
+              applies = true;
             }
           } else if (activeEvent.applyType === 'categories' && activeEvent.categoryIds?.length > 0) {
             if (activeEvent.categoryIds.some(id => id.toString() === book.categoryId._id.toString())) {
-              event = activeEvent;
+              applies = true;
             }
           }
+
+          if (applies && activeEvent.discountPercent > maxDiscount) {
+            maxDiscount = activeEvent.discountPercent;
+            bestEvent = activeEvent;
+          }
         }
+
         return {
           ...book,
-          event
+          event: bestEvent
         };
       });
 
