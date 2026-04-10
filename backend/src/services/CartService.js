@@ -1,5 +1,39 @@
 import Book from "../models/Book.js";
 import Cart from "../models/Cart.js";
+import { getActiveEvents, getEffectiveBookPrice } from "../utils/eventPricing.js";
+
+async function syncCartPricing(cart) {
+  if (!cart || !Array.isArray(cart.items) || cart.items.length === 0) {
+    return false;
+  }
+
+  const activeEvents = await getActiveEvents();
+  const bookIds = [...new Set(cart.items.map((item) => item.bookId?.toString()).filter(Boolean))];
+
+  if (bookIds.length === 0) {
+    return false;
+  }
+
+  const books = await Book.find({ _id: { $in: bookIds } })
+    .select("_id price categoryId")
+    .lean();
+
+  const booksById = new Map(books.map((book) => [book._id.toString(), book]));
+  let changed = false;
+
+  for (const item of cart.items) {
+    const book = booksById.get(item.bookId?.toString());
+    if (!book) continue;
+
+    const { price: effectivePrice } = getEffectiveBookPrice(book, activeEvents);
+    if (item.price !== effectivePrice) {
+      item.price = effectivePrice;
+      changed = true;
+    }
+  }
+
+  return changed;
+}
 
 // chua cap nhat lai quantity book nhé
 export async function addItemToCart(bookId, customerId, quantity) {
@@ -21,6 +55,9 @@ export async function addItemToCart(bookId, customerId, quantity) {
   if (!book) {
     throw new Error(`Book with id ${bookId} not found`);
   }
+
+  const activeEvents = await getActiveEvents();
+  const { price: effectivePrice } = getEffectiveBookPrice(book, activeEvents);
   
   // Use findOneAndUpdate to avoid duplicate key errors
   let cart = await Cart.findOne({ customerId: customerId });
@@ -29,16 +66,17 @@ export async function addItemToCart(bookId, customerId, quantity) {
     // Create new cart if doesn't exist
     cart = new Cart({
       customerId: customerId,
-      items: [{ bookId, quantity: qty, price: book.price }],
+      items: [{ bookId, quantity: qty, price: effectivePrice }],
     });
     await cart.save();
   } else {
     // Update existing cart
     const index = cart.items.findIndex((i) => i.bookId.equals(bookId));
     if (index > -1) {
+      cart.items[index].price = effectivePrice;
       cart.items[index].quantity += qty;
     } else {
-      cart.items.push({ bookId, quantity: qty, price: book.price });
+      cart.items.push({ bookId, quantity: qty, price: effectivePrice });
     }
     await cart.save();
   }
@@ -49,6 +87,8 @@ export async function addItemToCart(bookId, customerId, quantity) {
 export async function updateItemQuantity(cartDetailId, customerId, quantity) {
   const cart = await Cart.findOne({ customerId });
   if (!cart) throw new Error("Cart not found");
+
+  await syncCartPricing(cart);
 
   const index = cart.items.findIndex(
     (item) => item._id && item._id.toString() === cartDetailId
@@ -128,6 +168,13 @@ export async function getCartService(customerId) {
       totalPrice: 0
     });
     await cart.save();
+    return cart;
   }
+
+  const changed = await syncCartPricing(cart);
+  if (changed) {
+    await cart.save();
+  }
+
   return cart;
 }

@@ -11,6 +11,7 @@ interface CartItemComponentProps {
   isSelected: boolean;
   onSelectChange: () => void;
   bookId: string;
+  price: number;
   quantity: number;
   onIncrease: () => void;
   onDecrease: () => void;
@@ -23,6 +24,7 @@ const CartProduct = ({
   isSelected,
   onSelectChange,
   bookId,
+  price,
   quantity,
   onIncrease,
   onDecrease,
@@ -37,10 +39,12 @@ const CartProduct = ({
 
   const maxQuantity = book?.quantity ?? 0;
 
-  // Calculate discounted price if event exists
-  const finalPrice = book?.event
-    ? Math.floor(book.price * (1 - book.event.discountPercent / 100))
-    : book?.price || 0;
+  // Always trust backend cart price to keep cart/checkout/order consistent.
+  const finalPrice = price;
+  const hasDiscount = (book?.price || 0) > finalPrice;
+  const discountPercent = hasDiscount && book?.price
+    ? Math.max(0, Math.round(((book.price - finalPrice) / book.price) * 100))
+    : 0;
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const num = Number(e.target.value);
@@ -94,11 +98,11 @@ const CartProduct = ({
       {/* Image + Info */}
       <div className="flex items-start gap-3 flex-1 relative">
         {/* Event Badge */}
-        {book.event && (
+        {hasDiscount && (
           <div className="absolute -top-2 -left-2 z-10">
             <span className="inline-flex items-center gap-1 bg-gradient-to-r from-red-500 to-red-600 text-white px-2 py-1 rounded-full text-xs font-bold shadow-lg">
               <Tag className="w-3 h-3" />
-              -{book.event.discountPercent}%
+              -{discountPercent}%
             </span>
           </div>
         )}
@@ -118,7 +122,7 @@ const CartProduct = ({
             {book.name}
           </h3>
           
-          {book.event ? (
+          {hasDiscount ? (
             <div className="flex items-center gap-2">
               <p className="text-red-600 font-bold text-lg">
                 {formatPrice(finalPrice)}

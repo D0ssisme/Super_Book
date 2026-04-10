@@ -2,6 +2,7 @@ import Order from "../models/Order.js";
 import OrderDetail from "../models/OrderDetail.js";
 import Book from "../models/Book.js";
 import mongoose from "mongoose";
+import { getActiveEvents, getEffectiveBookPrice } from "../utils/eventPricing.js";
 
 //CREATE
 export async function createOrderService(customerId, paymentMethod, details, receiverName, receiverPhone, receiverAddress) {
@@ -13,6 +14,8 @@ export async function createOrderService(customerId, paymentMethod, details, rec
     receiverAddress: receiverAddress,
   });
   if (details && details.length > 0) {
+    const activeEvents = await getActiveEvents();
+
     await Promise.all(
       details.map(async (item) => {
         const book = await Book.findById(item.bookId);
@@ -25,11 +28,14 @@ export async function createOrderService(customerId, paymentMethod, details, rec
         if (book.quantity < item.quantity) {
           throw new Error("Out of stock");
         }
+
+        const { price: effectivePrice } = getEffectiveBookPrice(book, activeEvents);
+
         return await OrderDetail.create({
           orderId: order._id,
           bookId: book._id,
           quantity: item.quantity,
-          price: book.price,
+          price: effectivePrice,
         });
       })
     );
