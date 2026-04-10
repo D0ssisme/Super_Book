@@ -5,12 +5,133 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { PackageOpen, Eye, MapPin, Phone, User, CreditCard, BookOpen, ChevronLeft, ChevronRight } from "lucide-react";
+import { PackageOpen, Eye, MapPin, Phone, User, CreditCard, BookOpen, ChevronLeft, ChevronRight, Loader2, MessageSquare } from "lucide-react";
 import { getAllOrderByToken } from '@/services/PaymentService';
 import { orderServices } from '@/services/orderServices';
 import { Order, OrderDetail, OrderWithDetails } from '@/types/order.type';
 import Image from "next/image";
 import useSWR from 'swr';
+import { reviewServices } from "@/services/reviewServices";
+import { ReviewDetail } from "@/types/review.type";
+import { toast } from "sonner";
+import { ReviewFormDialog } from "@/components/review/ReviewFormDialog";
+
+const REVIEWABLE_PURCHASE_STATUS = new Set(["delivery", "completed"]);
+
+const OrderItemReviewAction = ({
+  orderId,
+  bookId,
+  bookName,
+  purchaseStatus,
+}: {
+  orderId: string;
+  bookId: string;
+  bookName: string;
+  purchaseStatus?: string;
+}) => {
+  const [openCreate, setOpenCreate] = useState(false);
+  const [openView, setOpenView] = useState(false);
+  const [selectedReview, setSelectedReview] = useState<ReviewDetail | null>(null);
+  const [isFetchingReview, setIsFetchingReview] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const canCheckReview = Boolean(bookId && orderId && REVIEWABLE_PURCHASE_STATUS.has(purchaseStatus || ""));
+
+  const { data: reviewPermission, isLoading, mutate } = useSWR(
+    canCheckReview ? ["review-can", orderId, bookId] : null,
+    () => reviewServices.canReview(bookId, orderId)
+  );
+
+  if (!canCheckReview) {
+    return null;
+  }
+
+  const handleCreateReview = async (payload: { rating: number; content: string; images: string[] }) => {
+    try {
+      setIsSubmitting(true);
+      await reviewServices.createMyReview({
+        bookId,
+        orderId,
+        rating: payload.rating,
+        content: payload.content,
+        images: payload.images,
+      });
+      toast.success("Đánh giá đã được gửi và đang chờ duyệt");
+      setOpenCreate(false);
+      await mutate();
+    } catch (error) {
+      toast.error("Không thể gửi đánh giá");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenView = async () => {
+    if (!reviewPermission?.reviewId) return;
+    try {
+      setOpenView(true);
+      setIsFetchingReview(true);
+      const detail = await reviewServices.getMyReviewDetail(reviewPermission.reviewId);
+      setSelectedReview(detail);
+    } catch (error) {
+      toast.error("Không thể tải chi tiết đánh giá");
+      setOpenView(false);
+    } finally {
+      setIsFetchingReview(false);
+    }
+  };
+
+  return (
+    <>
+      {isLoading ? (
+        <Button variant="outline" size="sm" disabled>
+          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+          Kiểm tra...
+        </Button>
+      ) : reviewPermission?.canReview ? (
+        <Button variant="outline" size="sm" onClick={() => setOpenCreate(true)}>
+          <MessageSquare className="w-4 h-4 mr-1" />
+          Đánh giá
+        </Button>
+      ) : reviewPermission?.reviewId ? (
+        <Button variant="ghost" size="sm" className="text-primary" onClick={handleOpenView}>
+          <Eye className="w-4 h-4 mr-1" />
+          Xem đánh giá
+        </Button>
+      ) : null}
+
+      <ReviewFormDialog
+        open={openCreate}
+        onOpenChange={setOpenCreate}
+        title="Đánh giá sản phẩm"
+        description={bookName}
+        submitText="Gửi đánh giá"
+        loading={isSubmitting}
+        onUploadImages={reviewServices.uploadReviewImages}
+        onSubmit={handleCreateReview}
+      />
+
+      <ReviewFormDialog
+        open={openView}
+        onOpenChange={(nextOpen) => {
+          setOpenView(nextOpen);
+          if (!nextOpen) {
+            setSelectedReview(null);
+          }
+        }}
+        title="Đánh giá của bạn"
+        description={bookName}
+        readOnly
+        loading={isFetchingReview}
+        initialValues={{
+          rating: selectedReview?.rating,
+          content: selectedReview?.content,
+          images: selectedReview?.images,
+        }}
+      />
+    </>
+  );
+};
 
 const OrderDetailList = ({ orderId }: { orderId: string }) => {
   const { data: order, isLoading } = useSWR<OrderWithDetails>(
@@ -51,6 +172,14 @@ const OrderDetailList = ({ orderId }: { orderId: string }) => {
             </div>
             <div className="text-xs text-right text-gray-400 mt-1">
               Tổng: {formatCurrency(item.total || (item.price * item.quantity))}
+            </div>
+            <div className="mt-2 flex justify-end">
+              <OrderItemReviewAction
+                orderId={orderId}
+                bookId={item.bookId}
+                bookName={item.bookName}
+                purchaseStatus={order?.purchaseStatus}
+              />
             </div>
           </div>
         </div>
@@ -180,6 +309,31 @@ export function OrdersTab() {
                         {renderStatusBadge(order.purchaseStatus, 'purchase')}
                         {renderStatusBadge(order.paymentStatus, 'payment')}
                       </div>
+
+                      {REVIEWABLE_PURCHASE_STATUS.has(order.purchaseStatus) && (
+                        <Dialog>
+                          <DialogTrigger asChild>
+                            <Button size="sm" className="mt-2 w-full sm:w-auto">
+                              <MessageSquare className="w-4 h-4 mr-2" /> Đánh giá
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent className="sm:max-w-[520px] max-h-[90vh] overflow-y-auto">
+                            <DialogHeader>
+                              <DialogTitle>Đánh giá đơn hàng</DialogTitle>
+                              <DialogDescription>
+                                Chọn từng sản phẩm để đánh giá nhanh
+                              </DialogDescription>
+                            </DialogHeader>
+
+                            <div className="space-y-3 p-4 bg-white rounded-lg border shadow-sm">
+                              <h4 className="font-semibold flex items-center gap-2 text-sm text-gray-900 border-b pb-2">
+                                <BookOpen className="w-4 h-4 text-blue-600" /> Sản phẩm có thể đánh giá
+                              </h4>
+                              <OrderDetailList orderId={order._id} />
+                            </div>
+                          </DialogContent>
+                        </Dialog>
+                      )}
 
                       {/* DIALOG CHI TIẾT */}
                       <Dialog>

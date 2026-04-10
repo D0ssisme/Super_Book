@@ -1,5 +1,10 @@
 import api from "@/lib/axios";
 import {
+  CanReviewResponse,
+  CreateMyReviewPayload,
+  MyReviewFilters,
+  PublicBookReviewFilters,
+  PublicBookReviewStats,
   ReviewDetail,
   ReviewFilters,
   ReviewItem,
@@ -7,6 +12,7 @@ import {
   ReviewPagination,
   ReviewStats,
   UpdateReviewStatusPayload,
+  UpdateMyReviewPayload,
 } from "@/types/review.type";
 import {
   deleteMockReviewById,
@@ -34,6 +40,12 @@ function toPagination(totalItems: number, page: number, limit: number): ReviewPa
     hasNext: page < totalPages,
     hasPrev: page > 1,
   };
+}
+
+function cleanParams<T extends Record<string, unknown>>(params: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(params).filter(([, value]) => value !== undefined && value !== null && value !== "")
+  ) as Partial<T>;
 }
 
 export const reviewServices = {
@@ -120,5 +132,73 @@ export const reviewServices = {
       }
       throw error;
     }
+  },
+
+  async getMyReviews(filters: MyReviewFilters): Promise<ReviewListResponse> {
+    const response = await api.get("/reviews/me", {
+      params: cleanParams(filters),
+    });
+    const data = response.data?.data ?? [];
+    const pagination = response.data?.pagination ?? toPagination(data.length, filters.page, filters.limit);
+    return { data, pagination };
+  },
+
+  async getMyReviewDetail(reviewId: string): Promise<ReviewDetail> {
+    const response = await api.get(`/reviews/me/${reviewId}`);
+    return response.data?.data ?? response.data;
+  },
+
+  async createMyReview(payload: CreateMyReviewPayload): Promise<ReviewDetail> {
+    const response = await api.post("/reviews", payload);
+    return response.data?.data ?? response.data;
+  },
+
+  async updateMyReview(reviewId: string, payload: UpdateMyReviewPayload): Promise<ReviewDetail> {
+    const response = await api.put(`/reviews/me/${reviewId}`, payload);
+    return response.data?.data ?? response.data;
+  },
+
+  async deleteMyReview(reviewId: string): Promise<void> {
+    await api.delete(`/reviews/me/${reviewId}`);
+  },
+
+  async canReview(bookId: string, orderId?: string): Promise<CanReviewResponse> {
+    const response = await api.get("/reviews/can-review", {
+      params: cleanParams({ bookId, orderId }),
+    });
+    return response.data?.data ?? response.data;
+  },
+
+  async getPublicBookReviews(bookId: string, filters: PublicBookReviewFilters): Promise<ReviewListResponse> {
+    const response = await api.get(`/reviews/books/${bookId}`, {
+      params: cleanParams(filters),
+    });
+    const data = response.data?.data ?? [];
+    const pagination = response.data?.pagination ?? toPagination(data.length, filters.page, filters.limit);
+    return { data, pagination };
+  },
+
+  async getPublicBookReviewStats(bookId: string): Promise<PublicBookReviewStats> {
+    const response = await api.get(`/reviews/books/${bookId}/stats`);
+    return response.data?.data ?? response.data;
+  },
+
+  async uploadReviewImages(files: File[]): Promise<string[]> {
+    if (!files.length) {
+      return [];
+    }
+
+    const formData = new FormData();
+    files.forEach((file) => {
+      formData.append("images", file);
+    });
+
+    const response = await api.post("/reviews/upload-images", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      },
+    });
+
+    return response.data?.data?.images ?? [];
   },
 };

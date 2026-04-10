@@ -5,18 +5,139 @@ import { useParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import {
   CheckCircle2, MapPin, Phone, User, CreditCard,
-  ChevronLeft, Package, Truck, Clock, AlertCircle, Banknote, Loader2
+  ChevronLeft, Package, Truck, Clock, AlertCircle, Banknote, Loader2, MessageSquare, Eye
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
+import useSWR from "swr";
 
 import { orderServices } from "@/services/orderServices";
 import { createPayment } from "@/services/PaymentService";
 import { OrderWithDetails } from "@/types/order.type";
 import { useCartStore } from '@/stores/useCartStore';
+import { reviewServices } from "@/services/reviewServices";
+import { ReviewDetail } from "@/types/review.type";
+import { ReviewFormDialog } from "@/components/review/ReviewFormDialog";
+
+const REVIEWABLE_PURCHASE_STATUS = new Set(["delivery", "completed"]);
+
+const OrderItemReviewAction = ({
+  orderId,
+  bookId,
+  bookName,
+  purchaseStatus,
+}: {
+  orderId: string;
+  bookId: string;
+  bookName: string;
+  purchaseStatus?: string;
+}) => {
+  const [openCreate, setOpenCreate] = useState(false);
+  const [openView, setOpenView] = useState(false);
+  const [selectedReview, setSelectedReview] = useState<ReviewDetail | null>(null);
+  const [isFetchingReview, setIsFetchingReview] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const canCheckReview = Boolean(bookId && orderId && REVIEWABLE_PURCHASE_STATUS.has(purchaseStatus || ""));
+
+  const { data: reviewPermission, isLoading, mutate } = useSWR(
+    canCheckReview ? ["order-detail-review-can", orderId, bookId] : null,
+    () => reviewServices.canReview(bookId, orderId)
+  );
+
+  if (!canCheckReview) {
+    return null;
+  }
+
+  const handleCreateReview = async (payload: { rating: number; content: string; images: string[] }) => {
+    try {
+      setIsSubmitting(true);
+      await reviewServices.createMyReview({
+        bookId,
+        orderId,
+        rating: payload.rating,
+        content: payload.content,
+        images: payload.images,
+      });
+      toast.success("Đánh giá đã được gửi và đang chờ duyệt");
+      setOpenCreate(false);
+      await mutate();
+    } catch (error) {
+      toast.error("Không thể gửi đánh giá");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleOpenView = async () => {
+    if (!reviewPermission?.reviewId) return;
+    try {
+      setOpenView(true);
+      setIsFetchingReview(true);
+      const detail = await reviewServices.getMyReviewDetail(reviewPermission.reviewId);
+      setSelectedReview(detail);
+    } catch (error) {
+      toast.error("Không thể tải chi tiết đánh giá");
+      setOpenView(false);
+    } finally {
+      setIsFetchingReview(false);
+    }
+  };
+
+  return (
+    <>
+      {isLoading ? (
+        <Button variant="outline" size="sm" disabled>
+          <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+          Kiểm tra...
+        </Button>
+      ) : reviewPermission?.canReview ? (
+        <Button variant="outline" size="sm" onClick={() => setOpenCreate(true)}>
+          <MessageSquare className="w-4 h-4 mr-1" />
+          Đánh giá
+        </Button>
+      ) : reviewPermission?.reviewId ? (
+        <Button variant="ghost" size="sm" className="text-primary" onClick={handleOpenView}>
+          <Eye className="w-4 h-4 mr-1" />
+          Xem đánh giá
+        </Button>
+      ) : null}
+
+      <ReviewFormDialog
+        open={openCreate}
+        onOpenChange={setOpenCreate}
+        title="Đánh giá sản phẩm"
+        description={bookName}
+        submitText="Gửi đánh giá"
+        loading={isSubmitting}
+        onUploadImages={reviewServices.uploadReviewImages}
+        onSubmit={handleCreateReview}
+      />
+
+      <ReviewFormDialog
+        open={openView}
+        onOpenChange={(nextOpen) => {
+          setOpenView(nextOpen);
+          if (!nextOpen) {
+            setSelectedReview(null);
+          }
+        }}
+        title="Đánh giá của bạn"
+        description={bookName}
+        readOnly
+        loading={isFetchingReview}
+        initialValues={{
+          rating: selectedReview?.rating,
+          content: selectedReview?.content,
+          images: selectedReview?.images,
+        }}
+      />
+    </>
+  );
+};
 
 export default function OrderOrderDetailPage() {
   const params = useParams();
@@ -178,6 +299,14 @@ export default function OrderOrderDetailPage() {
                       <h4 className="font-medium text-gray-900 line-clamp-2">{item.bookName}</h4>
                       <p className="text-sm text-gray-500">Số lượng: x{item.quantity}</p>
                       <p className="text-sm font-medium text-primary">{formatCurrency(item.price)}</p>
+                      <div className="pt-1">
+                        <OrderItemReviewAction
+                          orderId={order._id}
+                          bookId={item.bookId}
+                          bookName={item.bookName}
+                          purchaseStatus={order.purchaseStatus}
+                        />
+                      </div>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-bold">{formatCurrency(item.price * item.quantity)}</p>

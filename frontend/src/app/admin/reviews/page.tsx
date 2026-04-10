@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import useSWR from "swr";
-import Swal from "sweetalert2";
 import { MessageSquare, EyeOff, CheckCircle, CircleSlash } from "lucide-react";
 import { toast } from "sonner";
 import Pagination from "../components/Pagination";
@@ -123,32 +122,6 @@ export default function ReviewsPage() {
     }
   };
 
-  // Xóa review sau khi người dùng xác nhận
-  const handleDelete = async (review: ReviewItem) => {
-    const result = await Swal.fire({
-      title: "Xóa đánh giá",
-      text: `Bạn có chắc muốn xóa đánh giá của ${review.user.fullName}?`,
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: "Xóa",
-      cancelButtonText: "Hủy",
-    });
-
-    if (!result.isConfirmed) {
-      return;
-    }
-
-    try {
-      await reviewServices.deleteReview(review._id);
-      toast.success("Xóa đánh giá thành công");
-      await refreshAllData();
-    } catch (error) {
-      toast.error("Xóa đánh giá thất bại");
-    }
-  };
-
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       <div className="bg-white border-l-4 border-emerald-600 px-6 py-5 rounded-lg shadow-sm mb-6">
@@ -210,7 +183,6 @@ export default function ReviewsPage() {
             reviews={reviews}
             onView={handleView}
             onStatusChange={handleStatusChange}
-            onDelete={handleDelete}
           />
 
            {/* Phân trang: truyền thông tin trang hiện tại + callback đổi trang/đổi số dòng */}

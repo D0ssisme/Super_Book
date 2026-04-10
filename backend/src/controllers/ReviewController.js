@@ -1,7 +1,6 @@
 import {
   canReviewService,
   createMyReviewService,
-  deleteAdminReviewService,
   deleteMyReviewService,
   getMyReviewDetailService,
   getMyReviewsService,
@@ -13,6 +12,7 @@ import {
   updateMyReviewService,
   updateAdminReviewStatusService,
 } from '../services/ReviewService.js';
+import { uploadToCloudinary } from '../middlewares/uploadImage.js';
 
 function toStatusCode(error) {
   const message = (error?.message || '').toLowerCase();
@@ -87,6 +87,21 @@ export async function canReview(req, res) {
   }
 }
 
+// Upload anh danh gia va tra ve danh sach URL de frontend gui kem payload review.
+export async function uploadReviewImages(req, res) {
+  try {
+    const files = Array.isArray(req.files) ? req.files : [];
+    if (files.length === 0) {
+      return res.status(400).json({ message: 'Images are required' });
+    }
+
+    const images = await uploadToCloudinary(files, 'book-store/reviews');
+    return res.status(200).json({ data: { images } });
+  } catch (error) {
+    return res.status(500).json({ message: error.message || 'Upload review images failed' });
+  }
+}
+
 
 
 // Lấy danh sách đánh giá của 1 cuốn sách (để hiển thị lên trang chi tiết sách)
@@ -137,16 +152,6 @@ export async function updateAdminReviewStatus(req, res) {
   try {
     const data = await updateAdminReviewStatusService(req.params.id, req.body);
     res.status(200).json({ data });
-  } catch (error) {
-    res.status(toStatusCode(error)).json({ message: error.message });
-  }
-}
-
-// Xóa bài đánh giá của người khác nếu có lỗi nặng
-export async function deleteAdminReview(req, res) {
-  try {
-    await deleteAdminReviewService(req.params.id);
-    res.status(200).json({ message: 'Review deleted successfully' });
   } catch (error) {
     res.status(toStatusCode(error)).json({ message: error.message });
   }

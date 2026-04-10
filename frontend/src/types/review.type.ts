@@ -24,6 +24,7 @@ export interface ReviewItem {
   _id: string;
   rating: number;
   content: string;
+  images?: string[];
   status: ReviewStatus;
   moderationNote?: string;
   createdAt: string;
@@ -73,4 +74,50 @@ export interface ReviewStats {
 export interface UpdateReviewStatusPayload {
   status: ReviewStatus;
   moderationNote?: string;
+}
+
+export interface MyReviewFilters {
+  page: number;
+  limit: number;
+  status?: ReviewStatus | "all";
+}
+
+export interface CreateMyReviewPayload {
+  bookId: string;
+  orderId?: string;
+  rating: number;
+  content?: string;
+  images?: string[];
+}
+
+export interface UpdateMyReviewPayload {
+  rating?: number;
+  content?: string;
+  images?: string[];
+}
+
+export interface CanReviewResponse {
+  canReview: boolean;
+  reason?: string;
+  orderId?: string;
+  reviewId?: string;
+}
+
+export interface PublicBookReviewFilters {
+  page: number;
+  limit: number;
+  rating?: number | "all";
+  sort?: "newest" | "oldest" | "highest" | "lowest";
+}
+
+export interface PublicBookReviewStats {
+  averageRating: number;
+  totalReviews: number;
+  ratingBreakdown: {
+    1: number;
+    2: number;
+    3: number;
+    4: number;
+    5: number;
+  };
 }
