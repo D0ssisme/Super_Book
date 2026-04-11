@@ -8,6 +8,7 @@ import Pagination from "../components/Pagination";
 import ReviewFilterTabs from "./components/ReviewFilterTabs";
 import ReviewTable from "./components/ReviewTable";
 import ReviewDetailDialog from "./components/ReviewDetailDialog";
+import ReviewModerationDialog from "./components/ReviewModerationDialog";
 import { reviewServices } from "@/services/reviewServices";
 import { ReviewFilters, ReviewItem, ReviewStats, ReviewStatus } from "@/types/review.type";
 
@@ -56,6 +57,15 @@ export default function ReviewsPage() {
 
   // State điều khiển dialog chi tiết review
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+
+  // State điều khiển dialog ẩn review + lý do kiểm duyệt.
+  const [isModerationOpen, setIsModerationOpen] = useState(false);
+  // State lưu review của ai,sản phẩm nào 
+  const [targetReview, setTargetReview] = useState<ReviewItem | null>(null);
+  //lưu lý do kiểm duyệt khi ấn ẩn review
+  const [moderationReason, setModerationReason] = useState("");
+  const [moderationError, setModerationError] = useState("");
+  const [isSubmittingModeration, setIsSubmittingModeration] = useState(false);
 
   // Lấy danh sách review theo filters (SWR tự cache + revalidate)
   const {
@@ -111,12 +121,56 @@ export default function ReviewsPage() {
     await Promise.all([mutateReviews(), mutateStats()]);
   };
 
+  const updateReviewStatus = async (reviewId: string, status: ReviewStatus, moderationNote = "") => {
+    await reviewServices.updateReviewStatus(reviewId, {
+      status,
+      moderationNote,
+    });
+    await refreshAllData();
+  };
+
+  const closeModerationDialog = () => {
+    setIsModerationOpen(false);
+    setTargetReview(null);
+    setModerationReason("");
+    setModerationError("");
+  };
+
+  const handleConfirmHiddenStatus = async () => {
+    if (!targetReview) return;
+
+    const normalizedReason = moderationReason.trim();
+    if (!normalizedReason) {
+      setModerationError("Vui lòng nhập lý do khi ẩn đánh giá");
+      return;
+    }
+
+    try {
+      setIsSubmittingModeration(true);
+      await updateReviewStatus(targetReview._id, "hidden", normalizedReason);
+      toast.success("Đã ẩn đánh giá");
+      closeModerationDialog();
+    } catch (error) {
+      setModerationError("Cập nhật trạng thái thất bại");
+    } finally {
+      setIsSubmittingModeration(false);
+    }
+  };
+
   // Đổi trạng thái review (pending/approved/hidden...)
   const handleStatusChange = async (review: ReviewItem, status: ReviewStatus) => {
+    if (status === "hidden") {
+      setTargetReview(review);
+      setModerationReason(review.moderationNote || "");
+      setModerationError("");
+      setIsModerationOpen(true);
+      return;
+    }
+
     try {
-      await reviewServices.updateReviewStatus(review._id, { status });
+      // Clear note khi duyệt/chuyển pending để tránh giữ lý do cũ.
+      await updateReviewStatus(review._id, status, "");
       toast.success("Cập nhật trạng thái thành công");
-      await refreshAllData();
     } catch (error) {
       toast.error("Cập nhật trạng thái thất bại");
     }
@@ -203,6 +257,29 @@ export default function ReviewsPage() {
         reviewId={selectedReviewId}
         open={isDetailOpen}
         onOpenChange={setIsDetailOpen}
+      />
+
+{/*Dialog ẩn review: truyền review đang chọn + lý do kiểm duyệt  */}
+      <ReviewModerationDialog
+        open={isModerationOpen}
+        onOpenChange={(open) => {
+          if (!open) {
+            closeModerationDialog();
+            return;
+          }
+          setIsModerationOpen(true);
+        }}
+        review={targetReview}
+        reason={moderationReason}
+        onReasonChange={(value) => {
+          setModerationReason(value);
+          if (moderationError) {
+            setModerationError("");
+          }
+        }}
+        onConfirm={handleConfirmHiddenStatus}
+        loading={isSubmittingModeration}
+        error={moderationError}
       />
     </div>
   );

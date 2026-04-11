@@ -555,8 +555,17 @@ export async function updateAdminReviewStatusService(reviewId, payload) {
   }
 
   const update = { status: payload.status };
-  if (payload.moderationNote !== undefined) {
-    update.moderationNote = payload.moderationNote;
+  const normalizedNote = typeof payload?.moderationNote === 'string' ? payload.moderationNote.trim() : '';
+
+  // Khi ẩn đánh giá, luôn yêu cầu lý do để khách hàng hiểu nguyên nhân.
+  if (payload.status === 'hidden') {
+    if (!normalizedNote) {
+      throw new Error('moderationNote is required when hiding review');
+    }
+    update.moderationNote = normalizedNote;
+  } else {
+    // Trạng thái approved/pending không cần giữ lại lý do ẩn cũ.
+    update.moderationNote = '';
   }
 
   const updated = await Review.findByIdAndUpdate(reviewId, update, { new: true })

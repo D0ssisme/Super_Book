@@ -133,6 +133,7 @@ const OrderItemReviewAction = ({
           rating: selectedReview?.rating,
           content: selectedReview?.content,
           images: selectedReview?.images,
+          moderationNote: selectedReview?.moderationNote,
         }}
       />
     </>

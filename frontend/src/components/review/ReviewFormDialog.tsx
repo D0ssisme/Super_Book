@@ -21,6 +21,7 @@ interface ReviewFormValues {
   rating: number;
   content: string;
   images: string[];
+  moderationNote?: string;
 }
 
 interface LocalImageFile {
@@ -207,6 +208,15 @@ export function ReviewFormDialog({
               />
               <p className="text-xs text-gray-500 text-right">{content.length}/1000</p>
             </div>
+
+            {readOnly && initialValues?.moderationNote ? (
+              <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                <p className="text-xs font-semibold text-amber-900">Lý do kiểm duyệt</p>
+                <p className="text-sm text-amber-800 mt-1 whitespace-pre-wrap">
+                  {initialValues.moderationNote}
+                </p>
+              </div>
+            ) : null}
 
             <div className="space-y-2">
               <div className="flex items-center justify-between">
