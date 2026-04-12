@@ -1,4 +1,7 @@
-export const baseUrl = process.env.NEXT_PUBLIC_API_URL;
+const rawBaseUrl =
+  process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
+
+export const baseUrl = rawBaseUrl.replace(/\/+$/, "");
 
 export const sortBookOptions = [
   { value: "newest", label: "Mới nhất" },
@@ -11,9 +14,9 @@ export const sortBookOptions = [
 
 export const statusMap = new Map([
   ["all", "Tất cả"],
-  ['pending', 'Chờ xử lý'],
-  ['processing', 'Đang xử lý'],
-  ['delivery', 'Đang giao hàng'],
-  ['completed', 'Đã hoàn thành'],
-  ['canceled', 'Đã hủy']
+  ["pending", "Chờ xử lý"],
+  ["processing", "Đang xử lý"],
+  ["delivery", "Đang giao hàng"],
+  ["completed", "Đã hoàn thành"],
+  ["canceled", "Đã hủy"],
 ]);

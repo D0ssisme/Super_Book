@@ -1,22 +1,47 @@
-'use client';
+"use client";
 
-import React, { Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, ArrowLeft, RefreshCcw, Loader2 } from 'lucide-react';
-import { cancelPayment } from '@/services/PaymentService';
+import React, { Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { AlertCircle, ArrowLeft, RefreshCcw, Loader2 } from "lucide-react";
+import { cancelPayment } from "@/services/PaymentService";
+import { toast } from "sonner";
 
 const PaymentCancelContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
-  const orderCode = searchParams.get('orderCode');
+  const orderCode = searchParams.get("orderCode");
+  const orderId = searchParams.get("orderId");
+  const cancelTarget = orderId || orderCode;
 
-  if (!orderCode) {
+  if (!cancelTarget) {
     return null;
   }
-  const res = cancelPayment(orderCode)
+
+  React.useEffect(() => {
+    const doCancel = async () => {
+      try {
+        setIsSubmitting(true);
+        await cancelPayment(cancelTarget);
+      } catch (error: any) {
+        toast.error(
+          error?.response?.data?.message || "Hủy thanh toán thất bại",
+        );
+      } finally {
+        setIsSubmitting(false);
+      }
+    };
+    doCancel();
+  }, [cancelTarget]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -38,7 +63,9 @@ const PaymentCancelContent = () => {
           <div className="bg-red-50 p-4 rounded-lg border border-red-100 space-y-3">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Mã đơn hàng:</span>
-              <span className="font-bold text-gray-900">#{orderCode}</span>
+              <span className="font-bold text-gray-900">
+                #{orderCode || orderId}
+              </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Trạng thái:</span>
@@ -54,7 +81,8 @@ const PaymentCancelContent = () => {
           <Button
             variant="outline"
             className="w-full border-gray-300"
-            onClick={() => router.push('/')}
+            disabled={isSubmitting}
+            onClick={() => router.push("/")}
           >
             <ArrowLeft className="w-4 h-4 mr-2" /> Về trang chủ
           </Button>
@@ -65,7 +93,13 @@ const PaymentCancelContent = () => {
 };
 
 const PaymentCancelPage = () => (
-  <Suspense fallback={<div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin w-8 h-8 text-gray-500" /></div>}>
+  <Suspense
+    fallback={
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="animate-spin w-8 h-8 text-gray-500" />
+      </div>
+    }
+  >
     <PaymentCancelContent />
   </Suspense>
 );

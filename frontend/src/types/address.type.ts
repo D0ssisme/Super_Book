@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-const ADDRESS_TYPES = ["Nhà riêng", "Phòng trọ","Văn phòng", "Khác"] as const;
+const ADDRESS_TYPES = ["Nhà riêng", "Phòng trọ", "Văn phòng", "Khác"] as const;
 
 export const addressSchema = z.object({
   _id: z.string().optional(),
@@ -14,11 +14,14 @@ export const addressSchema = z.object({
 
   addressType: z.enum(ADDRESS_TYPES),
 
-  detail: z.string().trim().min(1, { message: "Vui lòng nhập địa chỉ chi tiết" }),
+  detail: z
+    .string()
+    .trim()
+    .min(1, { message: "Vui lòng nhập địa chỉ chi tiết" }),
 
-  province: z.string().min(1, { message: "Vui lòng chọn tỉnh/thành" }),
+  province: z.string().optional().default(""),
 
-  district: z.string().min(1, { message: "Vui lòng chọn phường/xã" }),
+  district: z.string().optional().default(""),
 
   isDefault: z.boolean(),
 });

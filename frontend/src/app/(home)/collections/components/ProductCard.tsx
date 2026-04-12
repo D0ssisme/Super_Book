@@ -14,13 +14,20 @@ export interface ProductCardProps {
   imgSrc: string;
   stock: number;
   event?: {
-    _id: string;
-    name: string;
+    _id?: string;
+    name?: string;
     discountPercent: number;
   } | null;
 }
 
-const ProductCard = ({ _id, name, price, imgSrc, stock, event }: ProductCardProps) => {
+const ProductCard = ({
+  _id,
+  name,
+  price,
+  imgSrc,
+  stock,
+  event,
+}: ProductCardProps) => {
   const { addToCart } = useCartStore();
 
   const discountedPrice = event
@@ -49,8 +56,7 @@ const ProductCard = ({ _id, name, price, imgSrc, stock, event }: ProductCardProp
         {event && (
           <div className="absolute top-2 right-2 z-10">
             <div className="flex items-center gap-1 bg-gradient-to-r from-red-500 to-red-600 text-white px-2 py-1 rounded-full text-xs font-bold shadow-lg">
-              <Tag className="w-3 h-3" />
-              -{event.discountPercent}%
+              <Tag className="w-3 h-3" />-{event.discountPercent}%
             </div>
           </div>
         )}

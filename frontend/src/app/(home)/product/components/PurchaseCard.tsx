@@ -13,8 +13,8 @@ interface Book {
   quantity: number; // Số lượng tồn kho
   imageUrl?: string[];
   event?: {
-    _id: string;
-    name: string;
+    _id?: string;
+    name?: string;
     discountPercent: number;
   } | null;
   // Các thuộc tính khác...
@@ -156,8 +156,7 @@ const PurchaseCard = ({ book, initialQuantity = 1 }: PurchaseCardProps) => {
         {book.event && (
           <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
             <div className="flex items-center gap-1 bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">
-              <Tag className="w-4 h-4" />
-              -{book.event.discountPercent}%
+              <Tag className="w-4 h-4" />-{book.event.discountPercent}%
             </div>
             <div className="flex-1">
               <p className="text-sm font-semibold text-gray-700">
