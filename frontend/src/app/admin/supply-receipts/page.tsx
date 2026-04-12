@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, Loader2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, RefreshCw, Eye } from "lucide-react";
 import Swal from "sweetalert2";
-import { getAllSupplyReceipts, createSupplyReceipt, updateSupplyReceipt, deleteSupplyReceipt } from "@/api/supplreceiptApi";
+import { getAllSupplyReceipts, createSupplyReceipt, updateSupplyReceipt, updateSupplyReceiptStatus } from "@/api/supplreceiptApi";
 import { getAllSuppliers } from "@/api/supplierApi";
 import { getAllBooks } from "@/api/bookApi";
 import SearchableSelect from "@/components/SearchableSelect";
@@ -120,6 +120,13 @@ export default function SupplyReceiptsPage() {
 
   // Pagination đã được xử lý từ API
   const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const isEditableStatus = (status?: string) => status === "pending";
+  const canUpdateStatus = (status?: string) => status === "pending" || status === "completed";
+  const isReadonlyEdit = Boolean(editing && !isEditableStatus(editing.supply_status));
+
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [statusReceipt, setStatusReceipt] = useState<SupplyReceipt | null>(null);
+  const [newStatus, setNewStatus] = useState<string>("");
 
   const [formData, setFormData] = useState<Omit<SupplyReceipt, "id" | "total_amount">>({
     supplier_id: "",
@@ -141,6 +148,7 @@ export default function SupplyReceiptsPage() {
         supplier_id: receipt.supplier_id,
         admin_id: receipt.admin_id,
         supply_date: receipt.supply_date.slice(0, 10),
+        // Form chi tiet khong cap nhat status, chi hien thong tin nhap hang.
         supply_status: receipt.supply_status,
         items: receipt.items,
       });
@@ -150,6 +158,7 @@ export default function SupplyReceiptsPage() {
         supplier_id: "",
         admin_id: "u1",
         supply_date: new Date().toISOString().slice(0, 10),
+        // Tao moi luon mac dinh pending.
         supply_status: "pending",
         items: [],
       });
@@ -171,6 +180,10 @@ export default function SupplyReceiptsPage() {
 
   // Thêm dòng sản phẩm
   const addItem = () => {
+    if (editing && !isEditableStatus(editing.supply_status)) {
+      return;
+    }
+
     setFormData({
       ...formData,
       items: [...formData.items, { book_id: "", import_price: 1000, quantity: 1, sub_amount: 1000 }],
@@ -179,6 +192,10 @@ export default function SupplyReceiptsPage() {
 
   // Cập nhật dòng
   const updateItem = (index: number, field: keyof SupplyItem, value: any) => {
+    if (editing && !isEditableStatus(editing.supply_status)) {
+      return;
+    }
+
     const newItems = [...formData.items];
     const updatedItem = { ...newItems[index], [field]: value };
     updatedItem.sub_amount = updatedItem.import_price * updatedItem.quantity;
@@ -188,6 +205,10 @@ export default function SupplyReceiptsPage() {
 
   // Xóa dòng sản phẩm
   const removeItem = (index: number) => {
+    if (editing && !isEditableStatus(editing.supply_status)) {
+      return;
+    }
+
     setFormData({
       ...formData,
       items: formData.items.filter((_, i) => i !== index),
@@ -196,6 +217,10 @@ export default function SupplyReceiptsPage() {
 
   // Lưu phiếu nhập
   const handleSubmit = async () => {
+    if (editing && !isEditableStatus(editing.supply_status)) {
+      return;
+    }
+
     if (!formData.supplier_id || formData.items.length === 0) {
       Swal.fire({
         icon: "error",
@@ -235,9 +260,8 @@ export default function SupplyReceiptsPage() {
 
     try {
       // Map dữ liệu sang format backend
-      const apiData = {
+      const apiData: any = {
         supplierId: formData.supplier_id,
-        purchaseStatus: formData.supply_status,
         supplyDate: formData.supply_date,
         details: formData.items.map((item) => ({
           bookId: item.book_id,
@@ -245,6 +269,8 @@ export default function SupplyReceiptsPage() {
           quantity: item.quantity,
         })),
       };
+
+      // Khong gui purchaseStatus khi tao/sua chi tiet, backend se mac dinh pending luc tao.
 
       console.log("Sending data:", apiData); // Debug
 
@@ -258,42 +284,56 @@ export default function SupplyReceiptsPage() {
       fetchReceipts();
     } catch (error: any) {
       console.error("Error saving receipt:", error);
-      alert(error?.response?.data?.message || "Có lỗi xảy ra khi lưu phiếu nhập!");
+      Swal.fire({
+        icon: "error",
+        title: "Lỗi",
+        text: error?.response?.data?.message || "Có lỗi xảy ra khi lưu phiếu nhập!",
+      });
     }
   };
 
-  // Xóa phiếu
-  const handleDelete = async (id: string) => {
-    const result = await Swal.fire({
-      title: "Xác nhận xóa phiếu nhập",
-      html: "Bạn có chắc muốn xóa phiếu nhập này?<br/><small class='text-red-500'>⚠️ Hành động này không thể hoàn tác!</small>",
-      icon: "warning",
-      showCancelButton: true,
-      confirmButtonColor: "#ef4444",
-      cancelButtonColor: "#6b7280",
-      confirmButtonText: "Xóa",
-      cancelButtonText: "Hủy",
-      reverseButtons: true,
-    });
+  const openStatusUpdateModal = (receipt: SupplyReceipt) => {
+    if (receipt.supply_status === "canceled") {
+      Swal.fire({
+        icon: "info",
+        title: "Không thể cập nhật",
+        text: "Phiếu đã hủy không thể đổi trạng thái nữa.",
+      });
+      return;
+    }
+    setStatusReceipt(receipt);
+    setNewStatus("");
+    setShowStatusModal(true);
+  };
 
-    if (!result.isConfirmed) return;
+  const submitStatusUpdate = async () => {
+    if (!statusReceipt || !newStatus) return;
 
     try {
-      await deleteSupplyReceipt(id);
+      await updateSupplyReceiptStatus(statusReceipt.id, newStatus);
+
+      if (editing?.id === statusReceipt.id) {
+        setEditing((prev) => (prev ? { ...prev, supply_status: newStatus as SupplyReceipt["supply_status"] } : prev));
+        setFormData((prev) => ({ ...prev, supply_status: newStatus as SupplyReceipt["supply_status"] }));
+      }
+
       await fetchReceipts();
+      setShowStatusModal(false);
       Swal.fire({
         icon: "success",
         title: "Thành công",
-        text: "Xóa phiếu nhập thành công!",
+        text:
+          newStatus === "completed"
+            ? "Đã xác nhận phiếu và cộng tồn kho thành công."
+            : "Đã hủy phiếu nhập thành công.",
         timer: 1500,
         showConfirmButton: false,
       });
     } catch (error: any) {
-      console.error("Error deleting receipt:", error);
       Swal.fire({
         icon: "error",
         title: "Lỗi",
-        text: error?.response?.data?.message || "Có lỗi xảy ra khi xóa phiếu nhập!",
+        text: error?.response?.data?.message || "Không thể cập nhật trạng thái phiếu nhập!",
       });
     }
   };
@@ -344,7 +384,7 @@ export default function SupplyReceiptsPage() {
                 : "bg-teal-50 text-teal-700 hover:bg-teal-100 border border-teal-200"
               }`}
           >
-            Hoàn tất <span className="ml-1 px-2 py-0.5 rounded-full bg-white/20 text-xs">{statusCounts.completed}</span>
+            Đã xác nhận <span className="ml-1 px-2 py-0.5 rounded-full bg-white/20 text-xs">{statusCounts.completed}</span>
           </button>
           <button
             onClick={() => { setStatusFilter("canceled"); setCurrentPage(1); }}
@@ -386,7 +426,7 @@ export default function SupplyReceiptsPage() {
                 ) : receipts.length === 0 ? (
                   <tr>
                     <td colSpan={6} className="px-4 py-12 text-center text-gray-400">
-                      Chưa có phiếu nhập nào 📦
+                      Chưa có phiếu nhập nào 
                     </td>
                   </tr>
                 ) : (
@@ -407,7 +447,7 @@ export default function SupplyReceiptsPage() {
                                 : "bg-amber-50 text-amber-700 border border-amber-200"
                             }`}>
                             {r.supply_status === "completed"
-                              ? "Hoàn tất"
+                              ? "Đã xác nhận"
                               : r.supply_status === "canceled"
                                 ? "Đã hủy"
                                 : "Đang xử lý"}
@@ -421,14 +461,25 @@ export default function SupplyReceiptsPage() {
                             <button
                               onClick={() => openModal(r)}
                               className="p-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-all duration-200"
+                              title={!isEditableStatus(r.supply_status) ? "Xem thông tin phiếu" : "Sửa phiếu"}
                             >
-                              <Pencil className="w-4 h-4" />
+                              {!isEditableStatus(r.supply_status) ? (
+                                <Eye className="w-4 h-4" />
+                              ) : (
+                                <Pencil className="w-4 h-4" />
+                              )}
                             </button>
                             <button
-                              onClick={() => handleDelete(r.id)}
-                              className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all duration-200"
+                              onClick={() => openStatusUpdateModal(r)}
+                              disabled={!canUpdateStatus(r.supply_status)}
+                              title={canUpdateStatus(r.supply_status) ? "Cập nhật trạng thái" : "Phiếu đã hủy"}
+                              className={`p-2 rounded-lg transition-all duration-200 ${
+                                !canUpdateStatus(r.supply_status)
+                                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                  : "bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+                              }`}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <RefreshCw className="w-4 h-4" />
                             </button>
                           </div>
                         </td>
@@ -458,7 +509,7 @@ export default function SupplyReceiptsPage() {
         <div className="fixed inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-xl shadow-2xl p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto border border-gray-200">
             <h3 className="text-xl font-bold text-gray-800 mb-5 pb-3 border-b-2 border-emerald-600">
-              {editing ? "Sửa phiếu nhập" : "Thêm phiếu nhập mới"}
+              {editing ? (isReadonlyEdit ? "Xem thông tin phiếu nhập" : "Sửa phiếu nhập") : "Thêm phiếu nhập mới"}
             </h3>
 
             {/* Nhà cung cấp */}
@@ -466,42 +517,28 @@ export default function SupplyReceiptsPage() {
               <label className="block text-gray-700 mb-2 font-medium text-sm">Nhà cung cấp *</label>
               <SearchableSelect
                 value={formData.supplier_id}
-                onChange={(value: string) => setFormData({ ...formData, supplier_id: value })}
+                onChange={(value: string) => {
+                  if (isReadonlyEdit) return;
+                  setFormData({ ...formData, supplier_id: value });
+                }}
                 options={suppliers.map((s: any) => ({ _id: s.id, name: s.name }))}
                 placeholder="Chọn nhà cung cấp"
+                disabled={isReadonlyEdit}
               />
             </div>
 
-            {/* Ngày và trạng thái */}
-            <div className="flex gap-4 mb-4">
-              <div className="flex-1">
-                <label className="block text-gray-700 mb-2 font-medium text-sm">Ngày nhập *</label>
-                <input
-                  type="date"
-                  value={formData.supply_date}
-                  onChange={(e) =>
-                    setFormData({ ...formData, supply_date: e.target.value })
-                  }
-                  className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="block text-gray-700 mb-2 font-medium text-sm">Trạng thái *</label>
-                <select
-                  value={formData.supply_status}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      supply_status: e.target.value as SupplyReceipt["supply_status"],
-                    })
-                  }
-                  className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-                >
-                  <option value="pending">Đang xử lý</option>
-                  <option value="completed">Hoàn tất</option>
-                  <option value="canceled">Đã hủy</option>
-                </select>
-              </div>
+            {/* Ngày nhập */}
+            <div className="mb-4">
+              <label className="block text-gray-700 mb-2 font-medium text-sm">Ngày nhập *</label>
+              <input
+                type="date"
+                value={formData.supply_date}
+                onChange={(e) =>
+                  setFormData({ ...formData, supply_date: e.target.value })
+                }
+                disabled={isReadonlyEdit}
+                className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              />
             </div>
 
             {/* Sản phẩm */}
@@ -519,6 +556,7 @@ export default function SupplyReceiptsPage() {
                         }
                         options={books.map((b: any) => ({ _id: b.id, name: b.name }))}
                         placeholder="Chọn sách"
+                        disabled={isReadonlyEdit}
                       />
                     </div>
                     <div className="col-span-4 sm:col-span-2">
@@ -531,6 +569,7 @@ export default function SupplyReceiptsPage() {
                           updateItem(index, "quantity", Number(e.target.value) || 0)
                         }
                         onFocus={(e) => e.target.select()}
+                        disabled={isReadonlyEdit}
                         className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         placeholder="Nhập SL"
                       />
@@ -545,6 +584,7 @@ export default function SupplyReceiptsPage() {
                           updateItem(index, "import_price", Number(e.target.value) || 0)
                         }
                         onFocus={(e) => e.target.select()}
+                        disabled={isReadonlyEdit}
                         className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         placeholder="Nhập giá"
                       />
@@ -558,7 +598,8 @@ export default function SupplyReceiptsPage() {
                     <div className="col-span-1 flex items-end justify-center pb-1">
                       <button
                         onClick={() => removeItem(index)}
-                        className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all duration-200"
+                        disabled={isReadonlyEdit}
+                        className={`p-2 rounded-lg transition-all duration-200 ${isReadonlyEdit ? "bg-gray-100 text-gray-400 cursor-not-allowed" : "bg-red-100 text-red-600 hover:bg-red-200"}`}
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -568,7 +609,8 @@ export default function SupplyReceiptsPage() {
               </div>
               <button
                 onClick={addItem}
-                className="mt-3 flex items-center gap-2 text-emerald-700 font-medium hover:text-emerald-800 transition"
+                disabled={isReadonlyEdit}
+                className={`mt-3 flex items-center gap-2 font-medium transition ${isReadonlyEdit ? "text-gray-400 cursor-not-allowed" : "text-emerald-700 hover:text-emerald-800"}`}
               >
                 <Plus className="w-4 h-4" /> Thêm sản phẩm
               </button>
@@ -581,17 +623,80 @@ export default function SupplyReceiptsPage() {
 
             {/* Buttons */}
             <div className="flex gap-3">
-              <button
-                onClick={handleSubmit}
-                className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-2.5 rounded-lg hover:shadow-lg transition-all duration-300 font-semibold"
+              {isReadonlyEdit ? (
+                <button
+                  onClick={resetForm}
+                  className="flex-1 bg-gray-200 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-300 transition-all duration-300 font-semibold"
+                >
+                  Đóng
+                </button>
+              ) : (
+                <>
+                  <button
+                    onClick={handleSubmit}
+                    className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-2.5 rounded-lg hover:shadow-lg transition-all duration-300 font-semibold"
+                  >
+                    {editing ? "Cập nhật" : "Thêm mới"}
+                  </button>
+                  <button
+                    onClick={resetForm}
+                    className="flex-1 bg-gray-200 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-300 transition-all duration-300 font-semibold"
+                  >
+                    Hủy
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL CẬP NHẬT TRẠNG THÁI */}
+      {showStatusModal && statusReceipt && (
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm border border-gray-200 animate-in fade-in zoom-in duration-200">
+            <h3 className="text-xl font-bold text-gray-800 mb-2">Cập nhật trạng thái phiếu</h3>
+            <p className="text-sm text-emerald-800 mb-5 bg-emerald-50 p-3 rounded-lg border border-emerald-200">
+              Lưu ý: Chỉ khi đổi trạng thái sang <strong>Đã xác nhận</strong> thì tồn kho sách mới được cộng.
+            </p>
+
+            <div className="mb-6">
+              <label className="block text-gray-700 mb-2 font-medium text-sm">Chọn trạng thái mới</label>
+              <select
+                value={newStatus}
+                onChange={(e) => setNewStatus(e.target.value)}
+                className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white text-gray-800"
               >
-                {editing ? "Cập nhật" : "Thêm mới"}
+                <option value="" disabled>-- Chọn trạng thái --</option>
+                {statusReceipt.supply_status === "pending" && (
+                  <>
+                    <option value="completed">Đã xác nhận</option>
+                    <option value="canceled">Đã hủy</option>
+                  </>
+                )}
+                {statusReceipt.supply_status === "completed" && (
+                  <option value="canceled">Đã hủy</option>
+                )}
+              </select>
+            </div>
+
+            <div className="flex gap-3 justify-end mt-2">
+              <button
+                onClick={() => setShowStatusModal(false)}
+                className="px-5 py-2.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-all font-medium min-w-[100px] text-center"
+              >
+                Trở lại
               </button>
               <button
-                onClick={resetForm}
-                className="flex-1 bg-gray-200 text-gray-700 px-4 py-2.5 rounded-lg hover:bg-gray-300 transition-all duration-300 font-semibold"
+                onClick={submitStatusUpdate}
+                disabled={!newStatus}
+                className={`px-5 py-2.5 rounded-lg text-white transition-all font-medium min-w-[100px] text-center ${
+                  !newStatus
+                    ? "bg-emerald-400 cursor-not-allowed opacity-70"
+                    : "bg-gradient-to-r from-emerald-600 to-teal-600 hover:shadow-lg"
+                }`}
               >
-                Hủy
+                Xác nhận
               </button>
             </div>
           </div>

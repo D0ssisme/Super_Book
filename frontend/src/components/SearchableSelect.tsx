@@ -12,13 +12,15 @@ interface SearchableSelectProps {
   onChange: (value: string) => void;
   options: Option[];
   placeholder?: string;
+  disabled?: boolean;
 }
 
 export default function SearchableSelect({
   value,
   onChange,
   options,
-  placeholder = "Chọn..."
+  placeholder = "Chọn...",
+  disabled = false,
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -53,6 +55,7 @@ export default function SearchableSelect({
   }, [isOpen]);
 
   const handleSelect = (optionId: string) => {
+    if (disabled) return;
     onChange(optionId);
     setIsOpen(false);
     setSearchTerm("");
@@ -60,6 +63,7 @@ export default function SearchableSelect({
 
   const handleClear = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (disabled) return;
     onChange("");
     setSearchTerm("");
   };
@@ -67,8 +71,15 @@ export default function SearchableSelect({
   return (
     <div ref={containerRef} className="relative w-full">
       <div
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full border border-gray-300 bg-white px-3 py-2 rounded-lg focus-within:outline-none focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent cursor-pointer hover:border-gray-400 transition-colors flex items-center justify-between"
+        onClick={() => {
+          if (disabled) return;
+          setIsOpen(!isOpen);
+        }}
+        className={`w-full border bg-white px-3 py-2 rounded-lg transition-colors flex items-center justify-between ${
+          disabled
+            ? "border-gray-200 bg-gray-100 text-gray-500 cursor-not-allowed"
+            : "border-gray-300 focus-within:outline-none focus-within:ring-2 focus-within:ring-emerald-500 focus-within:border-transparent cursor-pointer hover:border-gray-400"
+        }`}
       >
         <input
           ref={inputRef}
@@ -77,7 +88,10 @@ export default function SearchableSelect({
           value={isOpen ? searchTerm : ""}
           onChange={(e) => setSearchTerm(e.target.value)}
           onClick={(e) => e.stopPropagation()}
-          onFocus={() => setIsOpen(true)}
+          onFocus={() => {
+            if (!disabled) setIsOpen(true);
+          }}
+          disabled={disabled}
           className="flex-1 outline-none text-sm bg-transparent placeholder-gray-400"
         />
         <div className="flex items-center gap-1">

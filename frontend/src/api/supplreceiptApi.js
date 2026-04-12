@@ -60,12 +60,6 @@ export const updateSupplyReceiptStatus = async (id, purchaseStatus) => {
     return response.data;
 };
 
-// Delete supply receipt
-export const deleteSupplyReceipt = async (id) => {
-    const response = await api.delete(`/supply-receipts/${id}`);
-    return response.data;
-};
-
 // Get supply receipt statistics
 export const getSupplyReceiptStats = async () => {
     const response = await api.get('/supply-receipts/stats');
