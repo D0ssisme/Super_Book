@@ -16,7 +16,7 @@ import { ReviewDetail } from "@/types/review.type";
 import { toast } from "sonner";
 import { ReviewFormDialog } from "@/components/review/ReviewFormDialog";
 
-const REVIEWABLE_PURCHASE_STATUS = new Set(["delivery", "completed"]);
+const REVIEWABLE_PURCHASE_STATUS = new Set(["completed"]);
 
 const OrderItemReviewAction = ({
   orderId,

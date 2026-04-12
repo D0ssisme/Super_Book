@@ -6,6 +6,14 @@ import Image from "next/image";
 import { Loader2, MessageSquareText, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { reviewServices } from "@/services/reviewServices";
@@ -37,7 +45,9 @@ export function MyReviewsTab() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<ReviewStatus | "all">("all");
   const [editingReview, setEditingReview] = useState<ReviewItem | null>(null);
+  const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { data, isLoading, mutate } = useSWR(
     ["my-reviews", page, statusFilter],
@@ -59,16 +69,18 @@ export function MyReviewsTab() {
     return "Không có đánh giá phù hợp với bộ lọc";
   }, [statusFilter]);
 
-  const handleDelete = async (reviewId: string) => {
-    const confirmed = window.confirm("Bạn có chắc muốn xóa đánh giá này?");
-    if (!confirmed) return;
-
+  const confirmDelete = async () => {
+    if (!reviewToDelete) return;
     try {
-      await reviewServices.deleteMyReview(reviewId);
+      setIsDeleting(true);
+      await reviewServices.deleteMyReview(reviewToDelete);
       toast.success("Đã xóa đánh giá");
       await mutate();
     } catch (error) {
       toast.error("Không thể xóa đánh giá");
+    } finally {
+      setIsDeleting(false);
+      setReviewToDelete(null);
     }
   };
 
@@ -187,8 +199,8 @@ export function MyReviewsTab() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="text-red-600 border-red-200 hover:bg-red-50"
-                          onClick={() => handleDelete(review._id)}
+                          className="text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
+                          onClick={() => setReviewToDelete(review._id)}
                         >
                           <Trash2 className="w-4 h-4 mr-1" />
                           Xóa
@@ -244,6 +256,35 @@ export function MyReviewsTab() {
         }}
         onSubmit={handleUpdate}
       />
+
+      <Dialog open={!!reviewToDelete} onOpenChange={(open) => !open && setReviewToDelete(null)}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-bold">Xác nhận xóa đánh giá</DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn xóa bài đánh giá này? Hành động này không thể hoàn tác.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4 flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setReviewToDelete(null)}
+              disabled={isDeleting}
+            >
+              Hủy
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Trash2 className="w-4 h-4 mr-2" />}
+              Xác nhận xóa
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }

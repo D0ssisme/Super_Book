@@ -5,8 +5,8 @@ import Order from '../models/Order.js';
 import OrderDetail from '../models/OrderDetail.js';
 //các trạng thái của review: pending (đang chờ duyệt), approved (đã được duyệt và hiển thị công khai), hidden (bị ẩn do không đạt yêu cầu)
 const ALLOWED_REVIEW_STATUSES = ['pending', 'approved', 'hidden'];
-// Các trạng thái đơn hàng đủ điều kiện để được phép đánh giá sách: delivery (đang giao) hoặc completed (hoàn thành)
-const ELIGIBLE_ORDER_STATUSES = ['delivery', 'completed'];
+// Các trạng thái đơn hàng đủ điều kiện để được phép đánh giá sách: completed (đã hoàn thành/nhận hàng)
+const ELIGIBLE_ORDER_STATUSES = ['completed'];
 
 function parsePositiveInt(value, fallback) {
   const parsed = Number.parseInt(value, 10);
@@ -115,7 +115,7 @@ export async function createMyReviewService(userId, payload) {
       throw new Error('Book does not belong to this order');
     }
   } else {
-    // TRƯỜNG HỢP  không truyền mã đơn hàng, hệ thống tự quét các đơn để tìm đơn tương ứng.
+    // TRƯỜNG HỢP fallback  không truyền mã đơn hàng, hệ thống tự quét các đơn để tìm đơn tương ứng.
     const eligibleOrderIds = await getEligibleOrderIdsForBook(bookId);
     if (eligibleOrderIds.length === 0) {
       throw new Error('You have not purchased this book');
@@ -177,7 +177,8 @@ export async function createMyReviewService(userId, payload) {
     .populate('orderId', 'purchaseDate')
     .lean();
 
-  return mapReviewToResponse(review);
+  return mapReviewToResponse(review); 
+ 
 }
 
 
@@ -395,12 +396,14 @@ export async function getPublicBookReviewsService(bookId, query = {}) {
 }
 
 // Lấy tổng quan thống kê (Điểm trung bình, số lượng đánh giá từng sao) của 1 cuốn sách
+// Chỉ tính các bài đã được Admin duyệt (status: 'approved') để hiển thị cho khách hàng
 export async function getPublicBookReviewStatsService(bookId) {
   const book = await Book.findById(bookId).select('_id').lean();
   if (!book) {
     throw new Error('Book not found');
   }
 
+  // Sử dụng Aggregate để gom nhóm và tính toán toán học ngay tại Database
   const [summary] = await Review.aggregate([
     {
       $match: {
@@ -411,8 +414,9 @@ export async function getPublicBookReviewStatsService(bookId) {
     {
       $group: {
         _id: null,
-        totalReviews: { $sum: 1 },
-        averageRating: { $avg: '$rating' },
+        totalReviews: { $sum: 1 }, // Tổng số lượt đánh giá
+        averageRating: { $avg: '$rating' }, // Điểm trung bình cộng
+        // Đếm số lượng từng loại sao từ 1 đến 5
         r1: { $sum: { $cond: [{ $eq: ['$rating', 1] }, 1, 0] } },
         r2: { $sum: { $cond: [{ $eq: ['$rating', 2] }, 1, 0] } },
         r3: { $sum: { $cond: [{ $eq: ['$rating', 3] }, 1, 0] } },
@@ -443,14 +447,17 @@ export async function getPublicBookReviewStatsService(bookId) {
   };
 }
 
-// Tạo bộ lọc filter theo các yêu cầu của quản trị viên: Text User/Email/BookName, Sao, trạng thái đã duyệt
+// Hàm hỗ trợ: Xây dựng bộ lọc (Filter) phức tạp cho trang quản lý của Admin
+// Cho phép tìm kiếm theo: Trạng thái, Số sao, Ngày tháng, và Tìm kiếm văn bản (Tên User, Email, Tên Sách)
 async function buildAdminReviewFilter(filters) {
   const filter = {};
 
+  // 1. Lọc theo trạng thái kiểm duyệt (pending, approved, hidden)
   if (filters.status && filters.status !== 'all') {
     filter.status = filters.status;
   }
 
+  // 2. Lọc theo số sao đánh giá
   if (filters.rating && filters.rating !== 'all') {
     const rating = Number.parseInt(filters.rating, 10);
     if (Number.isFinite(rating) && rating >= 1 && rating <= 5) {
@@ -458,6 +465,7 @@ async function buildAdminReviewFilter(filters) {
     }
   }
 
+  // 3. Lọc theo khoảng thời gian tạo (Từ ngày... Đến ngày...)
   if (filters.fromDate || filters.toDate) {
     const createdAt = {};
 
@@ -482,10 +490,12 @@ async function buildAdminReviewFilter(filters) {
     }
   }
 
+  // 4. Tìm kiếm thông minh: Nếu Admin nhập text vào ô Search
   const rawSearch = typeof filters.search === 'string' ? filters.search.trim() : '';
   if (rawSearch) {
-    const regex = new RegExp(escapeRegex(rawSearch), 'i');
+    const regex = new RegExp(escapeRegex(rawSearch), 'i'); // Tìm kiếm không phân biệt hoa thường
 
+    // Tìm xem có User hoặc Sách nào khớp với tên/email đã nhập không
     const [users, books] = await Promise.all([
       User.find({ $or: [{ fullName: regex }, { email: regex }] }).select('_id').lean(),
       Book.find({ name: regex }).select('_id').lean(),
@@ -494,6 +504,7 @@ async function buildAdminReviewFilter(filters) {
     const userIds = users.map((u) => u._id);
     const bookIds = books.map((b) => b._id);
 
+    // Gom tất cả lại: Tìm trong nội dung review OR Tìm theo list ID User vừa tìm được OR Tìm theo list ID Sách
     filter.$or = [{ content: regex }, { userId: { $in: userIds } }, { bookId: { $in: bookIds } }];
   }
 
@@ -582,12 +593,12 @@ export async function updateAdminReviewStatusService(reviewId, payload) {
 }
 
 // Admin xóa hẳn 1 đánh giá của người dùng ra khỏi cơ sở dữ liệu
-export async function deleteAdminReviewService(reviewId) {
-  const deleted = await Review.findByIdAndDelete(reviewId);
-  if (!deleted) {
-    throw new Error('Review not found');
-  }
-}
+// export async function deleteAdminReviewService(reviewId) {
+//   const deleted = await Review.findByIdAndDelete(reviewId);
+//   if (!deleted) {
+//     throw new Error('Review not found');
+//   }
+// }
 
 // Thống kê % sao, số lượng Review (Pending, Approved, Hidden) đưa vào Dashboard Admin
 export async function getAdminReviewStatsService() {
