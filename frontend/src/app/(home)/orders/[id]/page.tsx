@@ -122,11 +122,6 @@ const OrderItemReviewAction = ({
           <Loader2 className="w-4 h-4 mr-1 animate-spin" />
           Kiểm tra...
         </Button>
-      ) : reviewPermission?.canReview ? (
-        <Button variant="outline" size="sm" onClick={() => setOpenCreate(true)}>
-          <MessageSquare className="w-4 h-4 mr-1" />
-          Đánh giá
-        </Button>
       ) : reviewPermission?.reviewId ? (
         <Button
           variant="ghost"
@@ -137,7 +132,12 @@ const OrderItemReviewAction = ({
           <Eye className="w-4 h-4 mr-1" />
           Xem đánh giá
         </Button>
-      ) : null}
+      ) : (
+        <Button variant="outline" size="sm" onClick={() => setOpenCreate(true)}>
+          <MessageSquare className="w-4 h-4 mr-1" />
+          Đánh giá
+        </Button>
+      )}
 
       <ReviewFormDialog
         open={openCreate}
