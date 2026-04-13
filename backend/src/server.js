@@ -24,6 +24,7 @@ import { errorHandler } from "./middlewares/errorHandle.js";
 import addressRouter from "./routes/AddressRouters.js";
 import statisticsRouter from "./routes/StatisticsRouters.js";
 import couponRouter from "./routes/CouponRouters.js";
+import reviewRouter from "./routes/ReviewRouters.js";
 import { seedDefaultCoupon } from "./utils/seedCoupon.js";
 
 const app = express();
@@ -49,6 +50,7 @@ app.use(process.env.API_TAG + "/payment", paymentRouter);
 app.use(process.env.API_TAG + "/events", eventRouter);
 app.use(process.env.API_TAG + "/statistics", statisticsRouter);
 app.use(process.env.API_TAG + "/coupons", couponRouter);
+app.use(process.env.API_TAG + "/reviews", reviewRouter);
 app.listen(process.env.PORTBE, async () => {
   console.log("Server is running on port " + process.env.PORTBE);
 });
