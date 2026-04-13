@@ -6,7 +6,6 @@ import {
   getSupplyReceiptById,
   createSupplyReceipt,
   updateSupplyReceipt,
-  deleteSupplyReceipt,
   updateSupplyReceiptStatus,
   getSupplyReceiptStats
 } from '../controllers/SupplyReceiptController.js';
@@ -22,6 +21,5 @@ router.get("/:id", getSupplyReceiptById);                 // GET /api/v1/supply-
 router.post("/", createSupplyReceipt);                    // POST /api/v1/supply-receipts
 router.put("/:id", updateSupplyReceipt);                  // PUT /api/v1/supply-receipts/:id
 router.patch("/:id/status", updateSupplyReceiptStatus);   // PATCH /api/v1/supply-receipts/:id/status
-router.delete("/:id", deleteSupplyReceipt);               // DELETE /api/v1/supply-receipts/:id
 
 export default router;

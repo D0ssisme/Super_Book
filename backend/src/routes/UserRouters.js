@@ -9,9 +9,9 @@ const router = express.Router();
 
 router.get("/", getAllUsers);
 router.get("/:id", getUserById);
-router.put("/:id", updateUser)
+router.put("/:id", auth, updateUser)
 router.post("/", createUser)
-router.delete("/:id", deleteUser)
+router.delete("/:id", auth, deleteUser)
 
 
 export default router;

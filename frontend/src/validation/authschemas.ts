@@ -1,4 +1,4 @@
-import {z} from "zod";
+import { z } from "zod";
 export const LoginRequestSchema = z.object({
     username: z.string().min(1, "Tên đăng nhập không được để trống"),
     password: z.string().min(6, "Mật khẩu chứa ít nhất 6 ký tự"),
@@ -6,7 +6,9 @@ export const LoginRequestSchema = z.object({
 export const RegisterRequestSchema = z.object({
     fullName: z.string().min(1, "Họ và tên không được để trống"),
     username: z.string().min(1, "Tên đăng nhập không được để trống"),
-    phone: z.string().min(10, "Số điện thoại không hợp lệ"),
+    phone: z.string()
+        .regex(/^0\d{9}$/, "Số điện thoại phải bắt đầu bằng 0 và có 10 chữ số")
+        .min(10, "Số điện thoại không hợp lệ"),
     email: z.string().email("Email không hợp lệ"),
     password: z.string().min(6, "Mật khẩu chứa ít nhất 6 ký tự"),
     confirmPassword: z.string().min(1, "Nhập lại mật khẩu không được để trống"),

@@ -245,7 +245,10 @@ export default function AuthorsPage() {
             totalItems={filteredAuthors.length}
             itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
-            onItemsPerPageChange={setItemsPerPage}
+            onItemsPerPageChange={(items) => {
+              setItemsPerPage(items);
+              setCurrentPage(1);
+            }}
           />
         </div>
       </div>

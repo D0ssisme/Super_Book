@@ -37,6 +37,20 @@ import {
   getComparisonStats,
 } from "@/api/statisticsApi";
 
+// Helper function để format date từ input type="date"
+const formatDateToISO = (dateString: string): string => {
+  if (!dateString) return "";
+  // Input type="date" trả về YYYY-MM-DD
+  return dateString;
+};
+
+// Helper function để display date ở định dạng DD/MM/YYYY
+const formatDateDisplay = (dateString: string): string => {
+  if (!dateString) return "";
+  const [year, month, day] = dateString.split('-');
+  return `${day}/${month}/${year}`;
+};
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
     totalBooks: 0,

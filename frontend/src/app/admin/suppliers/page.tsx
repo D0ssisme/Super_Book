@@ -8,6 +8,9 @@ import Pagination from "../components/Pagination";
 import { getAllSuppliers, createSupplier, updateSupplier, deleteSupplier } from "@/api/supplierApi";
 
 export default function SuppliersPage() {
+  const phoneRegex = /^0\d{9}$/;
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [showModal, setShowModal] = useState<boolean>(false);
@@ -90,18 +93,43 @@ export default function SuppliersPage() {
 
   // Submit form
   const handleSubmit = async () => {
-    if (!formData.name || !formData.phone) {
+    const sanitizedData = {
+      name: formData.name.trim(),
+      phone: formData.phone.trim(),
+      email: formData.email.trim(),
+      address: formData.address.trim(),
+    };
+
+    if (!sanitizedData.name || !sanitizedData.phone || !sanitizedData.email || !sanitizedData.address) {
       Swal.fire({
         icon: 'error',
         title: 'Lỗi',
-        text: 'Vui lòng nhập ít nhất tên và số điện thoại!',
+        text: 'Vui lòng nhập đầy đủ tên, số điện thoại, email và địa chỉ!',
+      });
+      return;
+    }
+
+    if (!phoneRegex.test(sanitizedData.phone)) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: 'Số điện thoại phải bắt đầu bằng số 0 và gồm đúng 10 chữ số!',
+      });
+      return;
+    }
+
+    if (!emailRegex.test(sanitizedData.email)) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Lỗi',
+        text: 'Email không đúng định dạng!',
       });
       return;
     }
 
     try {
       if (editingSupplier) {
-        await updateSupplier(editingSupplier._id, formData);
+        await updateSupplier(editingSupplier._id, sanitizedData);
         Swal.fire({
           icon: 'success',
           title: 'Thành công',
@@ -110,7 +138,7 @@ export default function SuppliersPage() {
           showConfirmButton: false,
         });
       } else {
-        await createSupplier(formData);
+        await createSupplier(sanitizedData);
         Swal.fire({
           icon: 'success',
           title: 'Thành công',
@@ -224,7 +252,7 @@ export default function SuppliersPage() {
                 ) : paginatedSuppliers.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-4 py-12 text-center text-gray-400">
-                      Không tìm thấy nhà cung cấp nào 🚚
+                      Không tìm thấy nhà cung cấp nào
                     </td>
                   </tr>
                 ) : (
@@ -267,7 +295,10 @@ export default function SuppliersPage() {
             totalItems={filteredSuppliers.length}
             itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
-            onItemsPerPageChange={setItemsPerPage}
+            onItemsPerPageChange={(items) => {
+              setItemsPerPage(items);
+              setCurrentPage(1);
+            }}
           />
         </div>
       </div>
@@ -285,14 +316,14 @@ export default function SuppliersPage() {
                 [
                   ["Tên nhà cung cấp *", "name"],
                   ["Số điện thoại *", "phone"],
-                  ["Email", "email"],
-                  ["Địa chỉ", "address"],
+                  ["Email *", "email"],
+                  ["Địa chỉ *", "address"],
                 ] as const
               ).map(([label, field]) => (
                 <div key={field}>
                   <label className="block text-gray-700 mb-2 font-medium text-sm">{label}</label>
                   <input
-                    type="text"
+                    type={field === "email" ? "email" : "text"}
                     value={formData[field]}
                     onChange={(e) =>
                       setFormData({ ...formData, [field]: e.target.value })

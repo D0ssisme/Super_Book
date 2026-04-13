@@ -40,6 +40,11 @@
       "key": "address_id",
       "value": "",
       "type": "string"
+    },
+    {
+      "key": "review_id",
+      "value": "",
+      "type": "string"
     }
   ],
   "item": [
@@ -62,8 +67,13 @@
             },
             "url": {
               "raw": "{{base_url}}/auth/register",
-              "host": ["{{base_url}}"],
-              "path": ["auth", "register"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "register"
+              ]
             }
           }
         },
@@ -83,8 +93,13 @@
             },
             "url": {
               "raw": "{{base_url}}/auth/login",
-              "host": ["{{base_url}}"],
-              "path": ["auth", "login"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
             }
           }
         },
@@ -100,8 +115,13 @@
             ],
             "url": {
               "raw": "{{base_url}}/auth/profile",
-              "host": ["{{base_url}}"],
-              "path": ["auth", "profile"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "auth",
+                "profile"
+              ]
             }
           }
         }
@@ -116,8 +136,12 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/books?page=1&limit=10&search=&category=",
-              "host": ["{{base_url}}"],
-              "path": ["books"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "books"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -145,8 +169,13 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/books/{{book_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["books", "{{book_id}}"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "books",
+                "{{book_id}}"
+              ]
             }
           }
         },
@@ -156,8 +185,13 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/orders/best-selling",
-              "host": ["{{base_url}}"],
-              "path": ["orders", "best-selling"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "best-selling"
+              ]
             }
           }
         },
@@ -167,8 +201,13 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/orders/newest",
-              "host": ["{{base_url}}"],
-              "path": ["orders", "newest"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "newest"
+              ]
             }
           }
         }
@@ -183,8 +222,12 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/categories",
-              "host": ["{{base_url}}"],
-              "path": ["categories"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "categories"
+              ]
             }
           }
         },
@@ -194,8 +237,13 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/categories/programming",
-              "host": ["{{base_url}}"],
-              "path": ["categories", "programming"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "categories",
+                "programming"
+              ]
             }
           }
         }
@@ -216,8 +264,12 @@
             ],
             "url": {
               "raw": "{{base_url}}/cart",
-              "host": ["{{base_url}}"],
-              "path": ["cart"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cart"
+              ]
             }
           }
         },
@@ -241,8 +293,13 @@
             },
             "url": {
               "raw": "{{base_url}}/cart/add",
-              "host": ["{{base_url}}"],
-              "path": ["cart", "add"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cart",
+                "add"
+              ]
             }
           }
         },
@@ -258,8 +315,14 @@
             ],
             "url": {
               "raw": "{{base_url}}/cart/remove/{{book_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["cart", "remove", "{{book_id}}"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cart",
+                "remove",
+                "{{book_id}}"
+              ]
             }
           }
         },
@@ -275,8 +338,13 @@
             ],
             "url": {
               "raw": "{{base_url}}/cart/clear",
-              "host": ["{{base_url}}"],
-              "path": ["cart", "clear"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "cart",
+                "clear"
+              ]
             }
           }
         }
@@ -297,8 +365,12 @@
             ],
             "url": {
               "raw": "{{base_url}}/orders?page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["orders"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -324,8 +396,13 @@
             ],
             "url": {
               "raw": "{{base_url}}/orders/{{order_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["orders", "{{order_id}}"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "{{order_id}}"
+              ]
             }
           }
         },
@@ -349,8 +426,13 @@
             },
             "url": {
               "raw": "{{base_url}}/orders/create",
-              "host": ["{{base_url}}"],
-              "path": ["orders", "create"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "create"
+              ]
             }
           }
         },
@@ -366,8 +448,14 @@
             ],
             "url": {
               "raw": "{{base_url}}/orders/cancel/{{order_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["orders", "cancel", "{{order_id}}"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "orders",
+                "cancel",
+                "{{order_id}}"
+              ]
             }
           }
         }
@@ -382,8 +470,13 @@
             "method": "GET",
             "url": {
               "raw": "{{base_url}}/address/provinces",
-              "host": ["{{base_url}}"],
-              "path": ["address", "provinces"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "address",
+                "provinces"
+              ]
             }
           }
         },
@@ -399,8 +492,12 @@
             ],
             "url": {
               "raw": "{{base_url}}/address",
-              "host": ["{{base_url}}"],
-              "path": ["address"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "address"
+              ]
             }
           }
         },
@@ -424,8 +521,12 @@
             },
             "url": {
               "raw": "{{base_url}}/address",
-              "host": ["{{base_url}}"],
-              "path": ["address"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "address"
+              ]
             }
           }
         },
@@ -441,8 +542,13 @@
             ],
             "url": {
               "raw": "{{base_url}}/address/{{address_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["address", "{{address_id}}"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "address",
+                "{{address_id}}"
+              ]
             }
           }
         }
@@ -463,8 +569,12 @@
             ],
             "url": {
               "raw": "{{base_url}}/users?page=1&limit=10",
-              "host": ["{{base_url}}"],
-              "path": ["users"],
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users"
+              ],
               "query": [
                 {
                   "key": "page",
@@ -490,8 +600,375 @@
             ],
             "url": {
               "raw": "{{base_url}}/users/{{user_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["users", "{{user_id}}"]
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "users",
+                "{{user_id}}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reviews (User)",
+      "item": [
+        {
+          "name": "Can Review",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reviews/can-review?bookId={{book_id}}&orderId={{order_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reviews",
+                "can-review"
+              ],
+              "query": [
+                {
+                  "key": "bookId",
+                  "value": "{{book_id}}"
+                },
+                {
+                  "key": "orderId",
+                  "value": "{{order_id}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Create My Review",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"bookId\": \"{{book_id}}\",\n  \"orderId\": \"{{order_id}}\",\n  \"rating\": 5,\n  \"content\": \"Sách rất hay, giao nhanh.\",\n  \"images\": [\n    \"https://example.com/review-1.jpg\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reviews",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reviews"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get My Reviews",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reviews/me?page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reviews",
+                "me"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get My Review Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reviews/me/{{review_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reviews",
+                "me",
+                "{{review_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update My Review",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rating\": 4,\n  \"content\": \"Cập nhật đánh giá sau 1 tuần sử dụng.\",\n  \"images\": [\n    \"https://example.com/review-1-updated.jpg\"\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reviews/me/{{review_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reviews",
+                "me",
+                "{{review_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete My Review",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reviews/me/{{review_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reviews",
+                "me",
+                "{{review_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Public Book Reviews",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/reviews/books/{{book_id}}?page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reviews",
+                "books",
+                "{{book_id}}"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Public Book Review Stats",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/reviews/books/{{book_id}}/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reviews",
+                "books",
+                "{{book_id}}",
+                "stats"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Reviews (Admin)",
+      "item": [
+        {
+          "name": "Get Admin Reviews",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reviews/admin?page=1&limit=10&status=pending",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reviews",
+                "admin"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "status",
+                  "value": "pending"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Admin Review Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reviews/admin/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reviews",
+                "admin",
+                "stats"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Admin Review Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reviews/admin/{{review_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reviews",
+                "admin",
+                "{{review_id}}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Admin Review Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"approved\",\n  \"moderationNote\": \"Đã kiểm duyệt\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/reviews/admin/{{review_id}}/status",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reviews",
+                "admin",
+                "{{review_id}}",
+                "status"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Delete Admin Review",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/reviews/admin/{{review_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "reviews",
+                "admin",
+                "{{review_id}}"
+              ]
             }
           }
         }

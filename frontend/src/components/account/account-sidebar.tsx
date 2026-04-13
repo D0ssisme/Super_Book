@@ -1,7 +1,7 @@
 "use client";
 
 import { TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { User, MapPin, ShoppingBag, KeyRound } from "lucide-react";
+import { User, MapPin, ShoppingBag, KeyRound, Star } from "lucide-react";
 
 export function AccountSidebar() {
   return (
@@ -31,6 +31,14 @@ export function AccountSidebar() {
           >
             <ShoppingBag size={18} />
             <span>Đơn mua</span>
+          </TabsTrigger>
+
+          <TabsTrigger
+            value="reviews"
+            className="flex-shrink-0 lg:w-full justify-start gap-3 px-4 py-3 text-sm font-medium data-[state=active]:bg-primary/10 data-[state=active]:text-primary rounded-full lg:rounded-lg transition-all border border-transparent hover:bg-gray-100"
+          >
+            <Star size={18} />
+            <span>Đánh giá của tôi</span>
           </TabsTrigger>
 
           <TabsTrigger

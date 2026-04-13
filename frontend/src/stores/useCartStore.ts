@@ -55,7 +55,8 @@ export const useCartStore = create<CartStore>((set, get) => ({
       toast.success("Đã thêm sản phẩm vào giỏ hàng");
       await get().fetchCart();
     } catch (error) {
-      console.error("error when adding to cart");
+      console.error("error when adding to cart", error);
+      throw error;
     }
   },
 

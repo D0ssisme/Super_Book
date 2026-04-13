@@ -13,6 +13,7 @@ export async function createSupplyReceiptService(adminId, supplierId, details) {
   const receipt = await SupplyReceipt.create({
     adminId: adminId || null,
     supplierId: supplierId,
+    purchaseStatus: 'pending',
     totalAmount: totalAmount
   });
   if (details && details.length > 0) {
@@ -28,11 +29,6 @@ export async function createSupplyReceiptService(adminId, supplierId, details) {
           if (item.importPrice <= 0) {
             throw new Error('Import price must be greater than 0');
           }
-
-          // Cập nhật số lượng sách trong kho (tăng lên)
-          await Book.findByIdAndUpdate(item.bookId, {
-            $inc: { quantity: item.quantity }
-          });
 
           return await SupplyDetail.create({
             receiptId: receipt._id,
@@ -53,45 +49,88 @@ export async function createSupplyReceiptService(adminId, supplierId, details) {
 }
 
 export async function updateSupplyReceiptService(receiptId, adminId, supplierId, purchaseStatus, supplyDate, details) {
-  // Tính tổng tiền
-  let totalAmount = 0;
-  if (Array.isArray(details) && details.length > 0) {
-    totalAmount = details.reduce((sum, item) => sum + (item.importPrice * item.quantity), 0);
+  const existingReceipt = await SupplyReceipt.findById(receiptId);
+  if (!existingReceipt) {
+    throw new Error(`Supply Receipt with id ${receiptId} not found`);
   }
+
+  const oldStatus = existingReceipt.purchaseStatus?.toString() || 'pending';
+  const nextStatus = (purchaseStatus || oldStatus).toString();
+  const ALLOWED_STATUSES = ['pending', 'completed', 'canceled'];
+
+  if (!ALLOWED_STATUSES.includes(nextStatus)) {
+    throw new Error('Invalid purchase status');
+  }
+
+  // Khong cho doi trang thai trong API cap nhat chi tiet; chi doi status qua endpoint rieng.
+  if (purchaseStatus && nextStatus !== oldStatus) {
+    throw new Error('Status must be updated via status endpoint');
+  }
+
+  // Chỉ cho phép sửa phiếu khi phiếu còn pending để tránh sai lệch lịch sử nhập hàng.
+  if (oldStatus !== 'pending') {
+    throw new Error('Only pending receipts can be edited');
+  }
+
+  const oldDetailsDocs = await SupplyDetail.find({ receiptId: existingReceipt._id });
+  const oldDetails = oldDetailsDocs.map((item) => ({
+    bookId: item.bookId.toString(),
+    quantity: item.quantity,
+    importPrice: item.importPrice
+  }));
+
+  // details từ frontend modal luôn được truyền, fallback để an toàn với các client khác
+  const incomingDetails = Array.isArray(details) ? details : oldDetails;
+  if (Array.isArray(details) && details.length === 0) {
+    throw new Error('Receipt must have at least one item');
+  }
+
+  const normalizedNewDetails = [];
+  for (const item of incomingDetails) {
+    if (!item.bookId) {
+      throw new Error('Book is required for each receipt item');
+    }
+    if (item.quantity <= 0) {
+      throw new Error('Quantity must be greater than 0');
+    }
+    if (item.importPrice <= 0) {
+      throw new Error('Import price must be greater than 0');
+    }
+
+    const book = await Book.findById(item.bookId);
+    if (!book) {
+      throw new Error(`Book with id ${item.bookId} not found`);
+    }
+
+    normalizedNewDetails.push({
+      receiptId: existingReceipt._id,
+      bookId: book._id,
+      quantity: item.quantity,
+      importPrice: item.importPrice
+    });
+  }
+
+  const totalAmount = normalizedNewDetails.reduce((sum, item) => sum + (item.importPrice * item.quantity), 0);
 
   const receipt = await SupplyReceipt.findByIdAndUpdate(
     receiptId,
     {
       adminId: adminId || undefined,
-      supplierId: supplierId,
-      purchaseStatus: purchaseStatus,
-      supplyDate: supplyDate,
+      supplierId: supplierId || existingReceipt.supplierId,
+      purchaseStatus: nextStatus,
+      supplyDate: supplyDate || existingReceipt.supplyDate,
       totalAmount: totalAmount
     },
     { new: true }
   );
-  if (!receipt) {
-    throw new Error(`Supply Receipt with id ${receiptId} not found`);
-  }
+
   if (Array.isArray(details)) {
-    await SupplyDetail.deleteMany({ receiptId: receipt._id });
-    if (details.length > 0) {
-      const newDetails = [];
-      for (const item of details) {
-        const book = await Book.findById(item.bookId);
-        if (!book) {
-          throw new Error(`Book with id ${item.bookId} not found`);
-        }
-        newDetails.push({
-          receiptId: receipt._id,
-          bookId: book._id,
-          quantity: item.quantity,
-          importPrice: item.importPrice  // Lấy giá từ request, không phải từ book
-        });
-      }
-      await SupplyDetail.insertMany(newDetails);
+    await SupplyDetail.deleteMany({ receiptId: existingReceipt._id });
+    if (normalizedNewDetails.length > 0) {
+      await SupplyDetail.insertMany(normalizedNewDetails);
     }
   }
+
   const populatedReceipt = await SupplyReceipt.findById(receipt._id)
     .populate('adminId', 'fullName email')
     .populate('supplierId', 'name phone')
@@ -107,16 +146,6 @@ export async function getAllReceiptsByAdminId(adminId) {
     .lean();
   populatedReceipt.details = await SupplyDetail.find({ orderId: populatedReceipt._id });
   return populatedReceipt;
-}
-
-export async function deleteReceiptService(receiptId) {
-  const receipt = await SupplyReceipt.findById(receiptId);
-  if (!receipt) {
-    throw new Error(`Supply Receipt with id ${receiptId} not found`);
-  }
-  await SupplyDetail.deleteMany({ receiptId: receipt._id });
-  await SupplyReceipt.findByIdAndDelete(receipt._id);
-  return receipt;
 }
 
 export async function getReceiptByIdService(receiptId) {
@@ -136,24 +165,66 @@ export async function updatePurchaseStatusService(receiptId, adminId, purchaseSt
   if (!receipt) {
     throw new Error(`Supply Receipt with id ${receiptId} not found`);
   }
-  if (receipt.purchaseStatus.toString() === 'processing' && purchaseStatus.toString() === 'pending') {
-    throw new Error("Can't change purchase status");
+
+  const oldStatus = receipt.purchaseStatus?.toString() || 'pending';
+  const nextStatus = (purchaseStatus || oldStatus).toString();
+  const ALLOWED_TARGET_STATUSES = ['completed', 'canceled'];
+  if (!ALLOWED_TARGET_STATUSES.includes(nextStatus)) {
+    throw new Error('Invalid purchase status');
   }
-  if (receipt.purchaseStatus.toString() === 'delivery' && (purchaseStatus.toString() === 'processing' || purchaseStatus.toString() === 'pending')) {
-    throw new Error("Can't change purchase status");
+
+  // Luong hop le: pending -> completed/canceled, completed -> canceled; canceled la diem cuoi.
+  const canTransition =
+    (oldStatus === 'pending' && (nextStatus === 'completed' || nextStatus === 'canceled')) ||
+    (oldStatus === 'completed' && nextStatus === 'canceled');
+
+  if (!canTransition) {
+    throw new Error('Invalid status transition');
   }
-  if (receipt.purchaseStatus.toString() !== 'canceled' && purchaseStatus.toString() === 'completed') {
-    const supplyDetails = await SupplyDetail.find({ receiptId: receipt._id });
-    if (supplyDetails.length === 0) {
-      throw new Error(`Supply details not found`);
-    }
-    for (const item of supplyDetails) {
-      const book = await Book.findById(item.bookId);
-      book.quantity += item.quantity;
+
+  const supplyDetails = await SupplyDetail.find({ receiptId: receipt._id });
+  if (supplyDetails.length === 0) {
+    throw new Error(`Supply details not found`);
+  }
+
+  const qtyMap = new Map();
+  for (const item of supplyDetails) {
+    const key = item.bookId.toString();
+    qtyMap.set(key, (qtyMap.get(key) || 0) + Number(item.quantity || 0));
+  }
+
+  // Chỉ completed mới được coi là đã áp tồn kho.
+  const oldApplied = oldStatus === 'completed';
+  const nextApplied = nextStatus === 'completed';
+
+  if (oldApplied && !nextApplied) {
+    for (const [bookId, qty] of qtyMap.entries()) {
+      const book = await Book.findById(bookId);
+      if (!book) {
+        throw new Error(`Book with id ${bookId} not found`);
+      }
+      const nextQuantity = (book.quantity || 0) - qty;
+      if (nextQuantity < 0) {
+        throw new Error(`Not enough stock to cancel receipt for book ${bookId}`);
+      }
+      book.quantity = nextQuantity;
       await book.save();
     }
   }
-  receipt.purchaseStatus = purchaseStatus;
+
+  if (!oldApplied && nextApplied) {
+    for (const [bookId, qty] of qtyMap.entries()) {
+      const book = await Book.findById(bookId);
+      if (!book) {
+        throw new Error(`Book with id ${bookId} not found`);
+      }
+      book.quantity = (book.quantity || 0) + qty;
+      await book.save();
+    }
+  }
+
+  receipt.purchaseStatus = nextStatus;
+  receipt.adminId = adminId || receipt.adminId;
   await receipt.save();
   return receipt;
 }

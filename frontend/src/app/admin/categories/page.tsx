@@ -246,7 +246,10 @@ export default function CategoriesPage() {
             totalItems={filteredCategories.length}
             itemsPerPage={itemsPerPage}
             onPageChange={setCurrentPage}
-            onItemsPerPageChange={setItemsPerPage}
+            onItemsPerPageChange={(items) => {
+              setItemsPerPage(items);
+              setCurrentPage(1);
+            }}
           />
         </div>
       </div>

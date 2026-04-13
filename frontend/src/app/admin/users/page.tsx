@@ -17,11 +17,11 @@ export default function UsersPage() {
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
   const [showModal, setShowModal] = useState<boolean>(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [showPassword, setShowPassword] = useState<Record<string, boolean>>({});
   const [showFormPassword, setShowFormPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [emailError, setEmailError] = useState<string>("");
   const [phoneError, setPhoneError] = useState<string>("");
+  const [passwordError, setPasswordError] = useState<string>("");
   const [formData, setFormData] = useState({
     fullName: "",
     username: "",
@@ -48,7 +48,7 @@ export default function UsersPage() {
 
   // Phone validation (Vietnam phone number format)
   const validatePhone = (phone: string): boolean => {
-    const phoneRegex = /^(0|\+84)(\s?\.?\d){9,10}$/;
+    const phoneRegex = /^0\d{9}$/;
     if (!phone) {
       setPhoneError("S\u1ed1 \u0111i\u1ec7n tho\u1ea1i kh\u00f4ng \u0111\u01b0\u1ee3c \u0111\u1ec3 tr\u1ed1ng");
       return false;
@@ -131,9 +131,15 @@ export default function UsersPage() {
       return;
     }
 
+    // Validate password length when provided
+    if (formData.password && formData.password.length < 6) {
+      setPasswordError("Mật khẩu phải có ít nhất 6 ký tự!");
+      return;
+    }
+
     try {
       if (editingUser) {
-        // Update user - only send password if it's changed
+        // Update user - gửi role vì admin có quyền thay đổi
         const updateData = {
           fullName: formData.fullName,
           username: formData.username,
@@ -213,6 +219,7 @@ export default function UsersPage() {
     // Reset validation errors
     setEmailError("");
     setPhoneError("");
+    setPasswordError("");
 
     if (user) {
       setEditingUser(user);
@@ -244,6 +251,7 @@ export default function UsersPage() {
     setShowFormPassword(false);
     setEmailError("");
     setPhoneError("");
+    setPasswordError("");
     setFormData({
       fullName: "",
       username: "",
@@ -253,13 +261,6 @@ export default function UsersPage() {
       role: "user",
     });
     setShowModal(false);
-  };
-
-  const togglePasswordVisibility = (userId: string) => {
-    setShowPassword((prev) => ({
-      ...prev,
-      [userId]: !prev[userId],
-    }));
   };
 
   return (
@@ -310,7 +311,6 @@ export default function UsersPage() {
                   <th className="px-4 py-3 text-left text-gray-700 font-semibold text-sm">Username</th>
                   <th className="px-4 py-3 text-left text-gray-700 font-semibold text-sm">Email</th>
                   <th className="px-4 py-3 text-left text-gray-700 font-semibold text-sm">Số điện thoại</th>
-                  <th className="px-4 py-3 text-left text-gray-700 font-semibold text-sm">Mật khẩu</th>
                   <th className="px-4 py-3 text-left text-gray-700 font-semibold text-sm">Vai trò</th>
                   <th className="px-4 py-3 text-center text-gray-700 font-semibold text-sm">Thao tác</th>
                 </tr>
@@ -318,13 +318,13 @@ export default function UsersPage() {
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
+                    <td colSpan={6} className="px-4 py-12 text-center text-gray-400">
                       Đang tải dữ liệu...
                     </td>
                   </tr>
                 ) : paginatedUsers.length === 0 ? (
                   <tr>
-                    <td colSpan={7} className="px-4 py-12 text-center text-gray-400">
+                    <td colSpan={6} className="px-4 py-12 text-center text-gray-400">
                       Không tìm thấy người dùng nào 👥
                     </td>
                   </tr>
@@ -335,19 +335,6 @@ export default function UsersPage() {
                       <td className="px-4 py-4 text-gray-600">{user.username}</td>
                       <td className="px-4 py-4 text-gray-600">{user.email}</td>
                       <td className="px-4 py-4 text-gray-600">{user.phone}</td>
-                      <td className="px-4 py-4 text-gray-600">
-                        <div className="flex items-center gap-2">
-                          <span className="font-mono text-sm">
-                            {showPassword[user._id] ? user.password : "••••••••"}
-                          </span>
-                          <button
-                            onClick={() => togglePasswordVisibility(user._id)}
-                            className="text-gray-400 hover:text-teal-600 transition"
-                          >
-                            {showPassword[user._id] ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                          </button>
-                        </div>
-                      </td>
                       <td className="px-4 py-4">
                         <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${user.role === "admin"
                           ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
@@ -480,8 +467,14 @@ export default function UsersPage() {
                   <input
                     type={showFormPassword ? "text" : "password"}
                     value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent pr-12"
+                    onChange={(e) => {
+                      setFormData({ ...formData, password: e.target.value });
+                      setPasswordError("");
+                    }}
+                    className={`w-full border px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:border-transparent pr-12 ${passwordError
+                      ? 'border-red-500 focus:ring-red-500'
+                      : 'border-gray-300 focus:ring-emerald-500'
+                      }`}
                   />
                   <button
                     type="button"
@@ -491,6 +484,11 @@ export default function UsersPage() {
                     {showFormPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
                   </button>
                 </div>
+                {passwordError && (
+                  <p className="text-red-500 text-xs mt-1 flex items-center gap-1">
+                    <span>⚠️</span> {passwordError}
+                  </p>
+                )}
               </div>
 
               {/* Vai trò */}

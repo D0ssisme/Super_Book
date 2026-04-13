@@ -39,6 +39,7 @@ export async function addItemToCart(bookId, customerId, quantity) {
     // Update existing cart
     const index = cart.items.findIndex((i) => i.bookId.equals(bookId));
     if (index > -1) {
+      cart.items[index].price = effectivePrice;
       cart.items[index].quantity += qty;
       cart.items[index].price = effectivePrice;
     } else {
@@ -60,6 +61,8 @@ export async function addItemToCart(bookId, customerId, quantity) {
 export async function updateItemQuantity(cartDetailId, customerId, quantity) {
   const cart = await Cart.findOne({ customerId });
   if (!cart) throw new Error("Cart not found");
+
+  await syncCartPricing(cart);
 
   const index = cart.items.findIndex(
     (item) => item._id && item._id.toString() === cartDetailId,

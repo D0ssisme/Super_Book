@@ -85,6 +85,7 @@ const CartDetail = () => {
               isSelected={selectedItemIds.includes(item._id)}
               onSelectChange={() => toggleSelectItem(item._id)}
               bookId={item.bookId}
+              price={item.price}
               quantity={item.quantity}
               onIncrease={() => updateCartItem(item._id, item.quantity + 1)}
               onDecrease={() =>

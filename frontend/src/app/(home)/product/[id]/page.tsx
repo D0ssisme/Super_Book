@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import ImageSlider from "../components/ImageSlider";
 import PurchaseCard from "../components/PurchaseCard";
+import ProductReviewsSection from "../components/ProductReviewsSection";
 
 const ProductDetailPage = async ({
   params,
@@ -114,6 +115,8 @@ const ProductDetailPage = async ({
               </ul>
             </div>
           </div>
+
+          <ProductReviewsSection bookId={id} />
         </div>
 
         <PurchaseCard book={book} />

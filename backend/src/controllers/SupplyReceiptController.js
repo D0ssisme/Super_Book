@@ -1,7 +1,6 @@
 import {
   createSupplyReceiptService,
   updateSupplyReceiptService,
-  deleteReceiptService,
   getReceiptByIdService,
   updatePurchaseStatusService
 } from '../services/ReceiptService.js';
@@ -112,18 +111,6 @@ export async function updateSupplyReceipt(req, res) {
     );
 
     res.status(200).json(receipt);
-  } catch (err) {
-    res.status(400).json({ message: err.message });
-  }
-}
-
-// Xóa phiếu nhập
-export async function deleteSupplyReceipt(req, res) {
-  try {
-    const { id } = req.params;
-    
-    const receipt = await deleteReceiptService(id);
-    res.status(200).json({ message: 'Xóa phiếu nhập thành công', receipt });
   } catch (err) {
     res.status(400).json({ message: err.message });
   }

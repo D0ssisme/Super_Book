@@ -18,6 +18,7 @@ import {
   CreditCard,
   ChevronLeft,
   ChevronRight,
+  MessageSquare,
 } from "lucide-react";
 import { getAllOrderByToken } from "@/services/PaymentService";
 import { Order } from "@/types/order.type";
@@ -222,6 +223,17 @@ export function OrdersTab() {
                       >
                         <Eye className="w-4 h-4 mr-2" /> Xem chi tiết
                       </Button>
+
+                      {order.purchaseStatus === "completed" && (
+                        <Button
+                          size="sm"
+                          className="w-full sm:w-auto"
+                          onClick={() => router.push(`/orders/${order._id}`)}
+                        >
+                          <MessageSquare className="w-4 h-4 mr-2" /> Đánh giá
+                        </Button>
+                      )}
+
                     </div>
                   </div>
                 </CardContent>
