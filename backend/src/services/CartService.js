@@ -1,39 +1,6 @@
 import Book from "../models/Book.js";
 import Cart from "../models/Cart.js";
-import { getActiveEvents, getEffectiveBookPrice } from "../utils/eventPricing.js";
-
-async function syncCartPricing(cart) {
-  if (!cart || !Array.isArray(cart.items) || cart.items.length === 0) {
-    return false;
-  }
-
-  const activeEvents = await getActiveEvents();
-  const bookIds = [...new Set(cart.items.map((item) => item.bookId?.toString()).filter(Boolean))];
-
-  if (bookIds.length === 0) {
-    return false;
-  }
-
-  const books = await Book.find({ _id: { $in: bookIds } })
-    .select("_id price categoryId")
-    .lean();
-
-  const booksById = new Map(books.map((book) => [book._id.toString(), book]));
-  let changed = false;
-
-  for (const item of cart.items) {
-    const book = booksById.get(item.bookId?.toString());
-    if (!book) continue;
-
-    const { price: effectivePrice } = getEffectiveBookPrice(book, activeEvents);
-    if (item.price !== effectivePrice) {
-      item.price = effectivePrice;
-      changed = true;
-    }
-  }
-
-  return changed;
-}
+import { getActiveEvent, getEffectiveBookPrice } from "../utils/pricing.js";
 
 // chua cap nhat lai quantity book nhé
 export async function addItemToCart(bookId, customerId, quantity) {
@@ -41,11 +8,11 @@ export async function addItemToCart(bookId, customerId, quantity) {
   if (!bookId || !customerId) {
     throw new Error("bookId and customerId are required");
   }
-  
+
   if (quantity === undefined || quantity === null) {
     throw new Error("quantity is required");
   }
-  
+
   const qty = Number(quantity);
   if (isNaN(qty) || qty < 1) {
     throw new Error("quantity must be a positive number");
@@ -55,13 +22,12 @@ export async function addItemToCart(bookId, customerId, quantity) {
   if (!book) {
     throw new Error(`Book with id ${bookId} not found`);
   }
+  const activeEvent = await getActiveEvent();
+  const effectivePrice = getEffectiveBookPrice(book, activeEvent);
 
-  const activeEvents = await getActiveEvents();
-  const { price: effectivePrice } = getEffectiveBookPrice(book, activeEvents);
-  
   // Use findOneAndUpdate to avoid duplicate key errors
   let cart = await Cart.findOne({ customerId: customerId });
-  
+
   if (!cart) {
     // Create new cart if doesn't exist
     cart = new Cart({
@@ -75,12 +41,20 @@ export async function addItemToCart(bookId, customerId, quantity) {
     if (index > -1) {
       cart.items[index].price = effectivePrice;
       cart.items[index].quantity += qty;
+      cart.items[index].price = effectivePrice;
     } else {
       cart.items.push({ bookId, quantity: qty, price: effectivePrice });
     }
     await cart.save();
   }
-  
+
+  cart.totalQuantity = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+  cart.totalPrice = cart.items.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
+  await cart.save();
+
   return cart;
 }
 
@@ -91,7 +65,7 @@ export async function updateItemQuantity(cartDetailId, customerId, quantity) {
   await syncCartPricing(cart);
 
   const index = cart.items.findIndex(
-    (item) => item._id && item._id.toString() === cartDetailId
+    (item) => item._id && item._id.toString() === cartDetailId,
   );
 
   if (index === -1) {
@@ -102,12 +76,19 @@ export async function updateItemQuantity(cartDetailId, customerId, quantity) {
     throw new Error("Quantity must be at least 1");
   }
 
+  const book = await Book.findById(cart.items[index].bookId);
+  if (!book) {
+    throw new Error("Book not found");
+  }
+  const activeEvent = await getActiveEvent();
+
   cart.items[index].quantity = quantity;
+  cart.items[index].price = getEffectiveBookPrice(book, activeEvent);
 
   cart.totalQuantity = cart.items.reduce((sum, item) => sum + item.quantity, 0);
   cart.totalPrice = cart.items.reduce(
     (sum, item) => sum + item.price * item.quantity,
-    0
+    0,
   );
 
   await cart.save();
@@ -124,7 +105,7 @@ export async function removeItemFromCart(cartDetailId, customerId) {
   if (!cart) throw new Error("Cart not found");
 
   const itemIndex = cart.items.findIndex(
-    (item) => item._id && item._id.toString() === cartDetailId
+    (item) => item._id && item._id.toString() === cartDetailId,
   );
 
   if (itemIndex === -1) {
@@ -137,7 +118,7 @@ export async function removeItemFromCart(cartDetailId, customerId) {
   cart.totalQuantity = cart.items.reduce((sum, item) => sum + item.quantity, 0);
   cart.totalPrice = cart.items.reduce(
     (sum, item) => sum + item.price * item.quantity,
-    0
+    0,
   );
 
   await cart.save();
@@ -153,6 +134,8 @@ export async function clearCartService(customerId) {
   if (!cart) throw new Error("Cart not found");
 
   cart.items = [];
+  cart.totalQuantity = 0;
+  cart.totalPrice = 0;
   await cart.save();
   return { message: "Cart cleared successfully" };
 }
@@ -165,14 +148,47 @@ export async function getCartService(customerId) {
       customerId: customerId,
       items: [],
       totalQuantity: 0,
-      totalPrice: 0
+      totalPrice: 0,
     });
     await cart.save();
     return cart;
   }
 
-  const changed = await syncCartPricing(cart);
-  if (changed) {
+  const activeEvent = await getActiveEvent();
+  const bookIds = cart.items.map((item) => item.bookId);
+  const books = await Book.find({ _id: { $in: bookIds } }).select(
+    "price categoryId",
+  );
+  const bookPriceMap = new Map(
+    books.map((book) => [
+      String(book._id),
+      getEffectiveBookPrice(book, activeEvent),
+    ]),
+  );
+
+  cart.items = cart.items.map((item) => {
+    const effectivePrice = bookPriceMap.get(String(item.bookId));
+    if (typeof effectivePrice === "number" && item.price !== effectivePrice) {
+      item.price = effectivePrice;
+    }
+    return item;
+  });
+
+  const computedQuantity = cart.items.reduce(
+    (sum, item) => sum + item.quantity,
+    0,
+  );
+  const computedPrice = cart.items.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
+
+  if (
+    cart.totalQuantity !== computedQuantity ||
+    cart.totalPrice !== computedPrice
+  ) {
+    cart.totalQuantity = computedQuantity;
+    cart.totalPrice = computedPrice;
     await cart.save();
   }
 

@@ -1,11 +1,89 @@
 import Order from "../models/Order.js";
 import OrderDetail from "../models/OrderDetail.js";
 import Book from "../models/Book.js";
+import Address from "../models/Address.js";
 import mongoose from "mongoose";
-import { getActiveEvents, getEffectiveBookPrice } from "../utils/eventPricing.js";
+import { getActiveEvent, getEffectiveBookPrice } from "../utils/pricing.js";
+import {
+  applyCouponUsageService,
+  validateCouponService,
+} from "./CouponService.js";
+
+function parseReceiverAddress(rawAddress = "") {
+  const parts = String(rawAddress)
+    .split(",")
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (parts.length >= 3) {
+    const province = parts[parts.length - 1];
+    const district = parts[parts.length - 2];
+    const detail = parts.slice(0, parts.length - 2).join(", ");
+    return { detail, district, province };
+  }
+
+  if (parts.length === 2) {
+    return {
+      detail: parts[0],
+      district: parts[0],
+      province: parts[1],
+    };
+  }
+
+  return {
+    detail: String(rawAddress || "").trim(),
+    district: "Khac",
+    province: "Khac",
+  };
+}
+
+async function saveReceiverAddressIfNeeded(
+  customerId,
+  receiverName,
+  receiverPhone,
+  receiverAddress,
+) {
+  const parsed = parseReceiverAddress(receiverAddress);
+
+  const existing = await Address.findOne({
+    userId: customerId,
+    phone: receiverPhone,
+    detail: parsed.detail,
+    district: parsed.district,
+    province: parsed.province,
+  });
+
+  if (existing) {
+    return;
+  }
+
+  await Address.create({
+    userId: customerId,
+    name: receiverName,
+    phone: receiverPhone,
+    detail: parsed.detail,
+    district: parsed.district,
+    province: parsed.province,
+    isDefault: false,
+  });
+}
 
 //CREATE
-export async function createOrderService(customerId, paymentMethod, details, receiverName, receiverPhone, receiverAddress) {
+export async function createOrderService(
+  customerId,
+  paymentMethod,
+  details,
+  receiverName,
+  receiverPhone,
+  receiverAddress,
+  couponCode,
+) {
+  let subtotalAmount = 0;
+  let discountAmount = 0;
+  let appliedCouponCode = null;
+  let appliedCouponId = null;
+  const activeEvent = await getActiveEvent();
+
   const order = await Order.create({
     customerId: customerId,
     paymentMethod: paymentMethod,
@@ -13,10 +91,9 @@ export async function createOrderService(customerId, paymentMethod, details, rec
     receiverPhone: receiverPhone,
     receiverAddress: receiverAddress,
   });
-  if (details && details.length > 0) {
-    const activeEvents = await getActiveEvents();
 
-    await Promise.all(
+  if (details && details.length > 0) {
+    const subtotals = await Promise.all(
       details.map(async (item) => {
         const book = await Book.findById(item.bookId);
         if (!book) {
@@ -28,8 +105,7 @@ export async function createOrderService(customerId, paymentMethod, details, rec
         if (book.quantity < item.quantity) {
           throw new Error("Out of stock");
         }
-
-        const { price: effectivePrice } = getEffectiveBookPrice(book, activeEvents);
+        const effectivePrice = getEffectiveBookPrice(book, activeEvent);
 
         return await OrderDetail.create({
           orderId: order._id,
@@ -37,9 +113,42 @@ export async function createOrderService(customerId, paymentMethod, details, rec
           quantity: item.quantity,
           price: effectivePrice,
         });
-      })
+      }),
+    );
+
+    subtotalAmount = subtotals.reduce(
+      (sum, item) => sum + Number(item.price || 0) * Number(item.quantity || 0),
+      0,
     );
   }
+
+  if (couponCode) {
+    const validatedCoupon = await validateCouponService(
+      couponCode,
+      subtotalAmount,
+    );
+    discountAmount = validatedCoupon.discountAmount;
+    appliedCouponCode = validatedCoupon.code;
+    appliedCouponId = validatedCoupon.coupon._id;
+  }
+
+  order.subtotalAmount = subtotalAmount;
+  order.discountAmount = discountAmount;
+  order.couponCode = appliedCouponCode;
+  order.totalAmount = Math.max(0, subtotalAmount - discountAmount);
+  await order.save();
+
+  if (appliedCouponId) {
+    await applyCouponUsageService(appliedCouponId);
+  }
+
+  await saveReceiverAddressIfNeeded(
+    customerId,
+    receiverName,
+    receiverPhone,
+    receiverAddress,
+  );
+
   const populatedOrders = await Order.findById(order._id)
     .populate("customerId", "fullName email")
     .lean();
@@ -53,7 +162,7 @@ export async function deleteOrderService(orderId, customerId) {
   if (!order) {
     throw new Error(`Order with id ${orderId} not found`);
   }
-  if (order.customerId.toString() === customerId.toString()) {
+  if (order.customerId.toString() !== customerId.toString()) {
     throw new Error(`You are not authorize to delete this order`);
   }
   await OrderDetail.deleteMany({ orderId: order._id });
@@ -65,7 +174,7 @@ export async function updateOrderService(
   orderId,
   customerId,
   purchaseStatus,
-  paymentStatus
+  paymentStatus,
 ) {
   const session = await mongoose.startSession();
   session.startTransaction();
@@ -92,7 +201,7 @@ export async function updateOrderService(
 
       if (!validTransitions[oldStatus]?.includes(purchaseStatus)) {
         throw new Error(
-          `Không thể chuyển từ "${oldStatus}" sang "${purchaseStatus}"`
+          `Không thể chuyển từ "${oldStatus}" sang "${purchaseStatus}"`,
         );
       }
 
@@ -136,7 +245,7 @@ export async function updateOrderService(
     // 7. Trả về kết quả
     const updatedOrder = await Order.findById(orderId).populate(
       "customerId",
-      "fullName email"
+      "fullName email",
     );
 
     return {
@@ -160,8 +269,8 @@ export async function getOrderDetailByIdService(orderId) {
         path: "details",
         populate: {
           path: "bookId",
-          select: "name imageUrl"
-        }
+          select: "name imageUrl",
+        },
       })
       .lean();
 
@@ -177,16 +286,17 @@ export async function getOrderDetailByIdService(orderId) {
       receiverName: order.receiverName,
       receiverPhone: order.receiverPhone,
       receiverAddress: order.receiverAddress,
-      details: order.details?.map(detail => ({
-        ...detail,
-        _id: detail._id.toString(),
-        bookId: detail.bookId?._id.toString(),
-        bookName: detail.bookId?.name,
-        bookImage: detail.bookId?.imageUrl?.[0],
-        quantity: detail.quantity,
-        price: detail.price,
-        total: detail.price * detail.quantity
-      })) || []
+      details:
+        order.details?.map((detail) => ({
+          ...detail,
+          _id: detail._id.toString(),
+          bookId: detail.bookId?._id.toString(),
+          bookName: detail.bookId?.name,
+          bookImage: detail.bookId?.imageUrl?.[0],
+          quantity: detail.quantity,
+          price: detail.price,
+          total: detail.price * detail.quantity,
+        })) || [],
     };
 
     return result;
@@ -203,7 +313,7 @@ export async function getAllOrdersByCustomerIdService(customerId, query) {
   const status = query.status || "";
   const skip = (page - 1) * limit;
 
-  const filter = {customerId: customerId};
+  const filter = { customerId: customerId };
 
   if (status && status !== "ALL" && status !== "") {
     filter.paymentStatus = status.toLowerCase();
@@ -216,7 +326,7 @@ export async function getAllOrdersByCustomerIdService(customerId, query) {
       .skip(skip)
       .limit(limit)
       .lean(),
-    Order.countDocuments({ customerId: customerId }),
+    Order.countDocuments(filter),
   ]);
 
   return {
@@ -295,8 +405,10 @@ export async function getAllOrdersService(query) {
 
   // 4. Filter theo tên khách hàng (fullName) nếu có
   if (query.customerName) {
-    allOrders = allOrders.filter(order =>
-      order.customerId?.fullName?.toLowerCase().includes(query.customerName.toLowerCase())
+    allOrders = allOrders.filter((order) =>
+      order.customerId?.fullName
+        ?.toLowerCase()
+        .includes(query.customerName.toLowerCase()),
     );
   }
 
@@ -325,7 +437,7 @@ export async function getAllOrdersService(query) {
 // GET - GET order by status & customer ID
 export async function getOrderByStatusAndCustomerId(
   customerId,
-  purchaseStatus
+  purchaseStatus,
 ) {
   const orders = await Order.find({
     customerId: customerId,
@@ -338,16 +450,14 @@ export async function getOrderByStatusAndCustomerId(
     orders.map(async (order) => {
       const details = await OrderDetail.find({ orderId: order._id });
       return { ...order, details };
-    })
+    }),
   );
 
   return ordersWithDetails;
 }
-export async function getOrderByOrderCodeService(orderCode, customerId){
-  return Order.findOne({ customerId: customerId, payosOrderId: orderCode  });
+export async function getOrderByOrderCodeService(orderCode, customerId) {
+  return Order.findOne({ customerId: customerId, payosOrderId: orderCode });
 }
-export async function getTop10BookSoldService(){
-  const order = await Order.find().createdAt({})
-
-
+export async function getTop10BookSoldService() {
+  const order = await Order.find().createdAt({});
 }

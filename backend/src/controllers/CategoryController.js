@@ -26,7 +26,7 @@ export async function updateCategory(req, res) {
     if (!category) {
       return res.status(404).json({ message: "Category not found" });
     }
-    res.status(201).json(category);
+    res.status(200).json(category);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
@@ -37,7 +37,7 @@ export async function deleteCategory(req, res) {
     if (!category) {
       return res.status(404).json({ message: "Category not found" });
     }
-    res.status(201).json(category);
+    res.status(200).json(category);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }

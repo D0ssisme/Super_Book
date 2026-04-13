@@ -54,7 +54,7 @@ const OrderDetailDialog = ({
     {
       revalidateOnFocus: false,
       shouldRetryOnError: false,
-    }
+    },
   );
 
   const formatCurrency = (amount: number) => {
@@ -77,7 +77,7 @@ const OrderDetailDialog = ({
 
   // Map purchase status to Vietnamese text and badge variant
   const getPurchaseStatusInfo = (
-    status: OrderWithDetails["purchaseStatus"]
+    status: OrderWithDetails["purchaseStatus"],
   ) => {
     switch (status) {
       case "pending":
@@ -134,6 +134,8 @@ const OrderDetailDialog = ({
         return "Thẻ tín dụng";
       case "PAYOS":
         return "PayOS";
+      case "MOMO":
+        return "MoMo";
       default:
         return method;
     }
@@ -255,7 +257,7 @@ const OrderDetailDialog = ({
                         </p>
                         <p className="font-semibold text-gray-900">
                           {new Date(order.purchaseDate).toLocaleDateString(
-                            "vi-VN"
+                            "vi-VN",
                           )}
                         </p>
                       </div>
@@ -269,7 +271,7 @@ const OrderDetailDialog = ({
                         <Badge
                           className={cn(
                             "px-2.5 py-1 text-xs border w-fit",
-                            getPurchaseStatusInfo(order.purchaseStatus).color
+                            getPurchaseStatusInfo(order.purchaseStatus).color,
                           )}
                           variant={
                             getPurchaseStatusInfo(order.purchaseStatus).variant
@@ -307,7 +309,7 @@ const OrderDetailDialog = ({
                         <Badge
                           className={cn(
                             "px-2.5 py-1 text-xs border w-fit",
-                            getPaymentStatusInfo(order.paymentStatus).color
+                            getPaymentStatusInfo(order.paymentStatus).color,
                           )}
                           variant={
                             getPaymentStatusInfo(order.paymentStatus).variant
@@ -358,7 +360,7 @@ const OrderDetailDialog = ({
                   <Badge variant="outline" className="px-3 py-1 text-sm">
                     {order.details.reduce(
                       (sum, item) => sum + item.quantity,
-                      0
+                      0,
                     )}{" "}
                     sản phẩm
                   </Badge>

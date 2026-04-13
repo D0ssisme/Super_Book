@@ -15,6 +15,7 @@ import {
   Check,
   X,
   Undo,
+  Wallet,
 } from "lucide-react";
 import { Order } from "@/types/order.type";
 import {
@@ -59,7 +60,10 @@ const PurchaseStatusBadge = ({
 }: {
   status: Order["purchaseStatus"];
 }) => {
-  const config: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+  const config: Record<
+    string,
+    { label: string; color: string; icon: React.ReactNode }
+  > = {
     pending: {
       label: "Chờ xử lý",
       color: "bg-yellow-100 text-yellow-800",
@@ -90,7 +94,7 @@ const PurchaseStatusBadge = ({
   const { label, color, icon } = config[status] || {
     label: status || "Chưa rõ",
     color: "bg-gray-100 text-gray-700",
-    icon: null
+    icon: null,
   };
 
   return (
@@ -111,14 +115,17 @@ const PaymentStatusBadge = ({ status }: { status: Order["paymentStatus"] }) => {
 
   const { label, color } = config[status] || {
     label: status || "Chưa rõ",
-    color: "bg-gray-100 text-gray-700"
+    color: "bg-gray-100 text-gray-700",
   };
 
   return <Badge className={color}>{label}</Badge>;
 };
 
 const PaymentMethodBadge = ({ method }: { method: Order["paymentMethod"] }) => {
-  const config: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+  const config: Record<
+    string,
+    { label: string; color: string; icon: React.ReactNode }
+  > = {
     cash: {
       label: "Tiền mặt",
       color: "bg-blue-50 text-blue-700",
@@ -149,12 +156,17 @@ const PaymentMethodBadge = ({ method }: { method: Order["paymentMethod"] }) => {
       color: "bg-indigo-50 text-indigo-700",
       icon: <QrCode className="h-3 w-3" />,
     },
+    MOMO: {
+      label: "MoMo",
+      color: "bg-pink-50 text-pink-700",
+      icon: <Wallet className="h-3 w-3" />,
+    },
   };
 
   const { label, color, icon } = config[method] || {
     label: method || "Chưa rõ",
     color: "bg-gray-50 text-gray-700",
-    icon: null
+    icon: null,
   };
 
   return (
@@ -266,7 +278,7 @@ export const OrderTable = ({ orders, onViewOrder }: OrderTableProps) => {
 
   const handlePurchaseStatusChange = async (
     orderId: string,
-    purchaseStatus: Order["purchaseStatus"]
+    purchaseStatus: Order["purchaseStatus"],
   ) => {
     try {
       await orderServices.updateOrder(orderId, { purchaseStatus });
@@ -279,7 +291,7 @@ export const OrderTable = ({ orders, onViewOrder }: OrderTableProps) => {
 
   const handlePaymentStatusChange = async (
     orderId: string,
-    paymentStatus: Order["paymentStatus"]
+    paymentStatus: Order["paymentStatus"],
   ) => {
     try {
       await orderServices.updateOrder(orderId, { paymentStatus });
@@ -309,8 +321,12 @@ export const OrderTable = ({ orders, onViewOrder }: OrderTableProps) => {
             <TableHead className="font-semibold">Mã ĐH</TableHead>
             <TableHead className="font-semibold">Khách hàng</TableHead>
             <TableHead className="font-semibold">Người nhận</TableHead>
-            <TableHead className="font-semibold text-center">Ngày đặt</TableHead>
-            <TableHead className="font-semibold text-center">Tổng tiền</TableHead>
+            <TableHead className="font-semibold text-center">
+              Ngày đặt
+            </TableHead>
+            <TableHead className="font-semibold text-center">
+              Tổng tiền
+            </TableHead>
             <TableHead className="font-semibold">Trạng thái</TableHead>
             <TableHead className="font-semibold">Thanh toán</TableHead>
             <TableHead className="font-semibold">Phương thức</TableHead>
@@ -318,164 +334,177 @@ export const OrderTable = ({ orders, onViewOrder }: OrderTableProps) => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {orders.map((order) => (
-            console.log("Order: ", order),
-            <TableRow
-              key={order._id}
-              className="hover:bg-gray-50 transition-colors"
-            >
-              {/* Mã đơn hàng */}
-              <TableCell className="font-medium">
-                <div className="font-mono text-sm">
-                  #{order._id.slice(-8).toUpperCase()}
-                </div>
-              </TableCell>
-
-              {/* Thông tin khách hàng */}
-              <TableCell>
-                <div className="space-y-1">
-                  <div className="font-medium">{order.customerId?.fullName || "Khách hàng"}</div>
-                  <div className="text-sm text-gray-500">
-                    {order.customerId?._id ? `#${order.customerId._id.slice(-8).toUpperCase()}` : ""}
-                  </div>
-                </div>
-              </TableCell>
-
-              <TableCell>
-                <div className="space-y-1">
-                  <div className="font-medium">{order.receiverName}</div>
-                  <div className="text-sm text-gray-500">
-                    {order.receiverPhone}
-                  </div>
-                  {order.receiverAddress && (
-                    <div className="text-sm text-gray-500">
-                      {order.receiverAddress}
+          {orders.map(
+            (order) => (
+              console.log("Order: ", order),
+              (
+                <TableRow
+                  key={order._id}
+                  className="hover:bg-gray-50 transition-colors"
+                >
+                  {/* Mã đơn hàng */}
+                  <TableCell className="font-medium">
+                    <div className="font-mono text-sm">
+                      #{order._id.slice(-8).toUpperCase()}
                     </div>
-                  )}
-                </div>
-              </TableCell>
+                  </TableCell>
 
-              {/* Ngày đặt */}
-              <TableCell className="text-center">
-                <div className="space-y-1">
-                  <div>
-                    {new Date(order.purchaseDate).toLocaleDateString("vi-VN")}
-                  </div>
-                  <div className="text-xs text-emerald-500">
-                    {new Date(order.purchaseDate).toLocaleTimeString("vi-VN", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </div>
-                </div>
-              </TableCell>
+                  {/* Thông tin khách hàng */}
+                  <TableCell>
+                    <div className="space-y-1">
+                      <div className="font-medium">
+                        {order.customerId.fullName}
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        #{order.customerId._id.slice(-8).toUpperCase()}
+                      </div>
+                    </div>
+                  </TableCell>
 
-              {/* Tổng tiền */}
-              <TableCell className="font-semibold text-blue-600 text-center">
-                {formatPrice(order.totalAmount)}
-              </TableCell>
-
-              {/* Trạng thái đơn hàng */}
-              <TableCell>
-                <PurchaseStatusBadge status={order.purchaseStatus} />
-              </TableCell>
-
-              {/* Trạng thái thanh toán */}
-              <TableCell>
-                <PaymentStatusBadge status={order.paymentStatus} />
-              </TableCell>
-
-              {/* Phương thức thanh toán */}
-              <TableCell>
-                <PaymentMethodBadge method={order.paymentMethod} />
-              </TableCell>
-
-              {/* Actions */}
-              <TableCell className="text-right">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" className="h-8 w-8 p-0">
-                      <span className="sr-only">Mở menu</span>
-                      <MoreHorizontal className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
-
-                    <DropdownMenuItem onClick={() => handleViewOrder(order)}>
-                      <Eye className="mr-2 h-4 w-4" />
-                      Xem chi tiết
-                    </DropdownMenuItem>
-
-                    <DropdownMenuSeparator />
-
-                    {order.purchaseStatus !== "canceled" &&
-                      order.purchaseStatus !== "completed" && (
-                        <>
-                          <DropdownMenuLabel>
-                            Chuyển trạng thái
-                          </DropdownMenuLabel>
-                          {STATUS_WORKFLOW[order.purchaseStatus]?.map(
-                            (purchaseStatus) => {
-                              const option =
-                                STATUS_OPTIONS_MAP.get(purchaseStatus);
-                              if (!option) return null;
-
-                              return (
-                                <DropdownMenuItem
-                                  key={purchaseStatus}
-                                  onClick={() =>
-                                    handlePurchaseStatusChange(
-                                      order._id,
-                                      purchaseStatus
-                                    )
-                                  }
-                                  className={option.className}
-                                >
-                                  {option.icon}
-                                  {option.label}
-                                </DropdownMenuItem>
-                              );
-                            }
-                          )}
-                          <DropdownMenuSeparator />
-                        </>
+                  <TableCell>
+                    <div className="space-y-1">
+                      <div className="font-medium">{order.receiverName}</div>
+                      <div className="text-sm text-gray-500">
+                        {order.receiverPhone}
+                      </div>
+                      {order.customerId.phone && (
+                        <div className="text-sm text-gray-500">
+                          {order.receiverAddress}
+                        </div>
                       )}
+                    </div>
+                  </TableCell>
 
-                    {order.paymentStatus !== "failed" && (
-                      <>
-                        <DropdownMenuLabel>
-                          Cập nhật thanh toán
-                        </DropdownMenuLabel>
-                        {PAYMENT_WORKFLOW[order.paymentStatus]?.map(
-                          (paymentStatus) => {
-                            const option =
-                              PAYMENT_STATUS_MAP.get(paymentStatus);
-                            if (!option) return null;
-
-                            return (
-                              <DropdownMenuItem
-                                key={paymentStatus}
-                                onClick={() =>
-                                  handlePaymentStatusChange(
-                                    order._id,
-                                    paymentStatus
-                                  )
-                                }
-                              >
-                                {option.icon}
-                                {option.label}
-                              </DropdownMenuItem>
-                            );
-                          }
+                  {/* Ngày đặt */}
+                  <TableCell className="text-center">
+                    <div className="space-y-1">
+                      <div>
+                        {new Date(order.purchaseDate).toLocaleDateString(
+                          "vi-VN",
                         )}
-                      </>
-                    )}
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </TableCell>
-            </TableRow>
-          ))}
+                      </div>
+                      <div className="text-xs text-emerald-500">
+                        {new Date(order.purchaseDate).toLocaleTimeString(
+                          "vi-VN",
+                          {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          },
+                        )}
+                      </div>
+                    </div>
+                  </TableCell>
+
+                  {/* Tổng tiền */}
+                  <TableCell className="font-semibold text-blue-600 text-center">
+                    {formatPrice(order.totalAmount)}
+                  </TableCell>
+
+                  {/* Trạng thái đơn hàng */}
+                  <TableCell>
+                    <PurchaseStatusBadge status={order.purchaseStatus} />
+                  </TableCell>
+
+                  {/* Trạng thái thanh toán */}
+                  <TableCell>
+                    <PaymentStatusBadge status={order.paymentStatus} />
+                  </TableCell>
+
+                  {/* Phương thức thanh toán */}
+                  <TableCell>
+                    <PaymentMethodBadge method={order.paymentMethod} />
+                  </TableCell>
+
+                  {/* Actions */}
+                  <TableCell className="text-right">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" className="h-8 w-8 p-0">
+                          <span className="sr-only">Mở menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Thao tác</DropdownMenuLabel>
+
+                        <DropdownMenuItem
+                          onClick={() => handleViewOrder(order)}
+                        >
+                          <Eye className="mr-2 h-4 w-4" />
+                          Xem chi tiết
+                        </DropdownMenuItem>
+
+                        <DropdownMenuSeparator />
+
+                        {order.purchaseStatus !== "canceled" &&
+                          order.purchaseStatus !== "completed" && (
+                            <>
+                              <DropdownMenuLabel>
+                                Chuyển trạng thái
+                              </DropdownMenuLabel>
+                              {STATUS_WORKFLOW[order.purchaseStatus]?.map(
+                                (purchaseStatus) => {
+                                  const option =
+                                    STATUS_OPTIONS_MAP.get(purchaseStatus);
+                                  if (!option) return null;
+
+                                  return (
+                                    <DropdownMenuItem
+                                      key={purchaseStatus}
+                                      onClick={() =>
+                                        handlePurchaseStatusChange(
+                                          order._id,
+                                          purchaseStatus,
+                                        )
+                                      }
+                                      className={option.className}
+                                    >
+                                      {option.icon}
+                                      {option.label}
+                                    </DropdownMenuItem>
+                                  );
+                                },
+                              )}
+                              <DropdownMenuSeparator />
+                            </>
+                          )}
+
+                        {order.paymentStatus !== "failed" && (
+                          <>
+                            <DropdownMenuLabel>
+                              Cập nhật thanh toán
+                            </DropdownMenuLabel>
+                            {PAYMENT_WORKFLOW[order.paymentStatus]?.map(
+                              (paymentStatus) => {
+                                const option =
+                                  PAYMENT_STATUS_MAP.get(paymentStatus);
+                                if (!option) return null;
+
+                                return (
+                                  <DropdownMenuItem
+                                    key={paymentStatus}
+                                    onClick={() =>
+                                      handlePaymentStatusChange(
+                                        order._id,
+                                        paymentStatus,
+                                      )
+                                    }
+                                  >
+                                    {option.icon}
+                                    {option.label}
+                                  </DropdownMenuItem>
+                                );
+                              },
+                            )}
+                          </>
+                        )}
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </TableCell>
+                </TableRow>
+              )
+            ),
+          )}
         </TableBody>
       </Table>
     </div>

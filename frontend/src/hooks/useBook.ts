@@ -1,8 +1,21 @@
-import useSWR from 'swr';
+import useSWR from "swr";
+import api from "@/lib/axios";
+import { Book, BookBanner } from "@/types/book.type";
 
-export function getAllTop10BestSellingBooks() {
+const getBestSellingBooks = async (): Promise<BookBanner[]> => {
+  const response = await api.get<BookBanner[]>("/orders/best-selling");
+  return response.data;
+};
+
+const getNewestBooks = async (): Promise<Book[]> => {
+  const response = await api.get<Book[]>("/orders/newest");
+  return response.data;
+};
+
+export function useTop10BestSellingBooks() {
   const { data, error, isLoading, mutate } = useSWR(
-    `${process.env.NEXT_PUBLIC_API_URL}/orders/best-selling`,
+    "/orders/best-selling",
+    getBestSellingBooks,
   );
   return {
     bestSelling: data,
@@ -11,9 +24,10 @@ export function getAllTop10BestSellingBooks() {
     mutate,
   };
 }
-export function getAllTop10NewestBooks() {
+export function useTop10NewestBooks() {
   const { data, error, isLoading, mutate } = useSWR(
-    `${process.env.NEXT_PUBLIC_API_URL}/orders/newest`,
+    "/orders/newest",
+    getNewestBooks,
   );
   return {
     newest: data,
