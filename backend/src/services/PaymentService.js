@@ -145,7 +145,19 @@ async function createMomoPayment(order) {
   const requestId = `${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
   const orderId = getVnpTnxRef(order);
   const orderInfo = `Thanh toan don hang ${orderId}`;
-  const requestType = "captureWallet";
+  const requestType = String(
+    process.env.MOMO_REQUEST_TYPE || "captureWallet",
+  ).trim();
+  const supportedRequestTypes = [
+    "captureWallet",
+    "payWithMethod",
+    "payWithATM",
+  ];
+  if (!supportedRequestTypes.includes(requestType)) {
+    throw new Error(
+      `MOMO_REQUEST_TYPE khong hop le: ${requestType}. Ho tro: ${supportedRequestTypes.join(", ")}`,
+    );
+  }
   const amount = String(Math.round(Number(order.totalAmount || 0)));
   const extraData = "";
 
