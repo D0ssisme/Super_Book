@@ -262,7 +262,8 @@ async function handleMomoResult({ orderId, resultCode }) {
 }
 
 export async function createPaymentService(orderId, customerId, reqLike = {}) {
-  const order = await Order.findById(orderId);
+
+  const order= await Order.findById(orderId);
   if (!order) {
     throw new Error(`Order with id ${orderId} not found`);
   }
@@ -274,7 +275,7 @@ export async function createPaymentService(orderId, customerId, reqLike = {}) {
   if (!["PAYOS", "MOMO"].includes(order.paymentMethod)) {
     throw new Error("This order does not use online payment method");
   }
-
+ //  Nếu đã thanh toán rồi, trả về thông tin tương ứng
   if (order.paymentStatus === "paid") {
     return {
       orderId: order._id,
@@ -286,6 +287,19 @@ export async function createPaymentService(orderId, customerId, reqLike = {}) {
 
   if (order.paymentMethod === "MOMO") {
     const clientIp = getClientIp(reqLike);
+
+   // Nếu đơn đã có link thanh toán thì trả về link đó (tránh tạo giao dịch trùng trên MoMo)
+    if (order.paymentLink && order.paymentLinkId) {
+      return {
+        orderId: order._id,
+        orderCode: String(order.payosOrderId || order.paymentLinkId),
+        amount: order.totalAmount,
+        paymentUrl: order.paymentLink,
+        deeplink: undefined,
+        qrCodeUrl: undefined,
+      };
+    }
+//  Nếu chưa có, gọi createMomoPayment để tạo giao dịch với MoMo
     const { paymentUrl, orderId, requestId, deeplink, qrCodeUrl } =
       await createMomoPayment(order);
 
@@ -298,7 +312,7 @@ export async function createPaymentService(orderId, customerId, reqLike = {}) {
       returnUrl: process.env.MOMO_RETURN_URL,
       partnerCode: process.env.MOMO_PARTNER_CODE,
     });
-
+ //  Lưu thông tin link/giao dịch vào order để reuse sau này
     order.payosOrderId = Number(orderId);
     order.paymentLink = paymentUrl;
     order.paymentLinkId = requestId;
