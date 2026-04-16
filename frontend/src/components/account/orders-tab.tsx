@@ -71,16 +71,31 @@ export function OrdersTab() {
   const getOrderStyle = (status: string) => {
     if (status === "paid")
       return "border-green-500 bg-green-50/30 hover:bg-green-50/50";
+    if (status === "refunded")
+      return "border-orange-500 bg-orange-50/30 hover:bg-orange-50/50";
     return "border-red-500 bg-red-50/30 hover:bg-red-50/50";
   };
 
   const renderStatusBadge = (status: string, type: "payment" | "purchase") => {
     if (type === "payment") {
-      return status === "paid" ? (
-        <Badge className="bg-green-600 hover:bg-green-700">Đã thanh toán</Badge>
-      ) : (
-        <Badge variant="destructive">Chưa thanh toán</Badge>
-      );
+      if (status === "paid") {
+        return (
+          <Badge className="bg-green-600 hover:bg-green-700">
+            Đã thanh toán
+          </Badge>
+        );
+      }
+      if (status === "refunded") {
+        return (
+          <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">
+            Đã hoàn tiền
+          </Badge>
+        );
+      }
+      if (status === "failed") {
+        return <Badge variant="destructive">Thanh toán thất bại</Badge>;
+      }
+      return <Badge variant="destructive">Chưa thanh toán</Badge>; 
     }
     const map: Record<string, any> = {
       pending: { label: "Đang xử lý", color: "bg-yellow-500" },
