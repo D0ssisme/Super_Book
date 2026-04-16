@@ -66,8 +66,8 @@ function createQrTransferPayment(order) {
   };
 }
 
-function getVnpTnxRef(order) {
-  if (order.payosOrderId) return String(order.payosOrderId);
+function getVnpTnxRef(order, forceNew = false) {
+  if (!forceNew && order.payosOrderId) return String(order.payosOrderId);
   const raw = `${Date.now()}${Math.floor(Math.random() * 90) + 10}`;
   return raw.slice(-12);
 }
@@ -117,7 +117,8 @@ function buildMomoRawSignature(data) {
   ].join("&");
 }
 
-async function createMomoPayment(order) {
+async function createMomoPayment(order, options = {}) {
+  const { forceNewOrderId = false } = options;
   const endpoint =
     process.env.MOMO_ENDPOINT ||
     "https://test-payment.momo.vn/v2/gateway/api/create";
@@ -143,7 +144,7 @@ async function createMomoPayment(order) {
   }
 
   const requestId = `${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
-  const orderId = getVnpTnxRef(order);
+  const orderId = getVnpTnxRef(order, forceNewOrderId);
   const orderInfo = `Thanh toan don hang ${orderId}`;
   const requestType = String(
     process.env.MOMO_REQUEST_TYPE || "captureWallet",
@@ -288,8 +289,12 @@ export async function createPaymentService(orderId, customerId, reqLike = {}) {
   if (order.paymentMethod === "MOMO") {
     const clientIp = getClientIp(reqLike);
 
-   // Nếu đơn đã có link thanh toán thì trả về link đó (tránh tạo giao dịch trùng trên MoMo)
-    if (order.paymentLink && order.paymentLinkId) {
+    // Với đơn failed, luôn tạo giao dịch mới để tránh dùng lại link cũ đã hết hạn/thất bại.
+    const canReusePaymentLink =
+      order.paymentStatus !== "failed" && order.paymentLink && order.paymentLinkId;
+
+    // Nếu đơn đã có link thanh toán hợp lệ thì trả về link đó (tránh tạo giao dịch trùng trên MoMo)
+    if (canReusePaymentLink) {
       return {
         orderId: order._id,
         orderCode: String(order.payosOrderId || order.paymentLinkId),
@@ -300,8 +305,12 @@ export async function createPaymentService(orderId, customerId, reqLike = {}) {
       };
     }
 //  Nếu chưa có, gọi createMomoPayment để tạo giao dịch với MoMo
+    const shouldForceNewMomoOrderId = order.paymentStatus === "failed";
+
     const { paymentUrl, orderId, requestId, deeplink, qrCodeUrl } =
-      await createMomoPayment(order);
+      await createMomoPayment(order, {
+        forceNewOrderId: shouldForceNewMomoOrderId,
+      });
 
     console.log("[momo] create payment", {
       orderId: String(order._id),

@@ -2,6 +2,40 @@ import Book from "../models/Book.js";
 import Cart from "../models/Cart.js";
 import { getActiveEvent, getEffectiveBookPrice } from "../utils/pricing.js";
 
+async function syncCartPricing(cart) {
+  const activeEvent = await getActiveEvent();
+  const bookIds = cart.items.map((item) => item.bookId);
+  if (bookIds.length === 0) {
+    cart.totalQuantity = 0;
+    cart.totalPrice = 0;
+    return;
+  }
+
+  const books = await Book.find({ _id: { $in: bookIds } }).select(
+    "price categoryId",
+  );
+  const bookPriceMap = new Map(
+    books.map((book) => [
+      String(book._id),
+      getEffectiveBookPrice(book, activeEvent),
+    ]),
+  );
+
+  cart.items = cart.items.map((item) => {
+    const effectivePrice = bookPriceMap.get(String(item.bookId));
+    if (typeof effectivePrice === "number") {
+      item.price = effectivePrice;
+    }
+    return item;
+  });
+
+  cart.totalQuantity = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+  cart.totalPrice = cart.items.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
+}
+
 // chua cap nhat lai quantity book nhé
 export async function addItemToCart(bookId, customerId, quantity) {
   // Validate inputs
