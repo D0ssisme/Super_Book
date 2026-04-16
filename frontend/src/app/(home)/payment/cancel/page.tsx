@@ -10,38 +10,19 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { AlertCircle, ArrowLeft, RefreshCcw, Loader2 } from "lucide-react";
-import { cancelPayment } from "@/services/PaymentService";
-import { toast } from "sonner";
+import { AlertCircle, ArrowLeft, Loader2 } from "lucide-react";
 
 const PaymentCancelContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const [isSubmitting, setIsSubmitting] = React.useState(false);
 
   const orderCode = searchParams.get("orderCode");
   const orderId = searchParams.get("orderId");
-  const cancelTarget = orderId || orderCode;
+  const hasOrderCode = Boolean(orderCode || orderId);
 
-  if (!cancelTarget) {
+  if (!hasOrderCode) {
     return null;
   }
-
-  React.useEffect(() => {
-    const doCancel = async () => {
-      try {
-        setIsSubmitting(true);
-        await cancelPayment(cancelTarget);
-      } catch (error: any) {
-        toast.error(
-          error?.response?.data?.message || "Hủy thanh toán thất bại",
-        );
-      } finally {
-        setIsSubmitting(false);
-      }
-    };
-    doCancel();
-  }, [cancelTarget]);
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -55,7 +36,7 @@ const PaymentCancelContent = () => {
             Thanh toán bị hủy
           </CardTitle>
           <p className="text-gray-500 text-sm text-center max-w-xs">
-            Giao dịch đã bị hủy hoặc xảy ra lỗi trong quá trình thanh toán.
+            Giao dịch chưa hoàn tất. Bạn có thể quay lại đơn hàng để thanh toán lại.
           </p>
         </CardHeader>
 
@@ -69,7 +50,7 @@ const PaymentCancelContent = () => {
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Trạng thái:</span>
-              <span className="font-bold text-red-600">Đã hủy giao dịch</span>
+              <span className="font-bold text-red-600">Thanh toán thất bại</span>
             </div>
             <div className="text-xs text-red-500 mt-2 italic">
               *Bạn chưa bị trừ tiền cho giao dịch này.
@@ -78,10 +59,17 @@ const PaymentCancelContent = () => {
         </CardContent>
 
         <CardFooter className="flex flex-col sm:flex-row gap-3 pt-2">
+          {orderId ? (
+            <Button
+              className="w-full"
+              onClick={() => router.push(`/orders/${orderId}`)}
+            >
+              Thanh toán lại
+            </Button>
+          ) : null}
           <Button
             variant="outline"
             className="w-full border-gray-300"
-            disabled={isSubmitting}
             onClick={() => router.push("/")}
           >
             <ArrowLeft className="w-4 h-4 mr-2" /> Về trang chủ
