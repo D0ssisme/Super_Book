@@ -2,6 +2,42 @@ import Book from "../models/Book.js";
 import Cart from "../models/Cart.js";
 import { getActiveEvent, getEffectiveBookPrice } from "../utils/pricing.js";
 
+async function syncCartPricing(cart) {
+  // Đồng bộ lại giá item theo event hiện tại trước khi cập nhật số lượng.
+  const activeEvent = await getActiveEvent();
+  const bookIds = cart.items.map((item) => item.bookId);
+
+  if (bookIds.length === 0) {
+    cart.totalQuantity = 0;
+    cart.totalPrice = 0;
+    return;
+  }
+
+  const books = await Book.find({ _id: { $in: bookIds } }).select(
+    "price categoryId",
+  );
+  const bookPriceMap = new Map(
+    books.map((book) => [
+      String(book._id),
+      getEffectiveBookPrice(book, activeEvent),
+    ]),
+  );
+
+  cart.items = cart.items.map((item) => {
+    const effectivePrice = bookPriceMap.get(String(item.bookId));
+    if (typeof effectivePrice === "number") {
+      item.price = effectivePrice;
+    }
+    return item;
+  });
+
+  cart.totalQuantity = cart.items.reduce((sum, item) => sum + item.quantity, 0);
+  cart.totalPrice = cart.items.reduce(
+    (sum, item) => sum + item.price * item.quantity,
+    0,
+  );
+}
+
 // chua cap nhat lai quantity book nhé
 export async function addItemToCart(bookId, customerId, quantity) {
   // Validate inputs
@@ -62,7 +98,11 @@ export async function updateItemQuantity(cartDetailId, customerId, quantity) {
   const cart = await Cart.findOne({ customerId });
   if (!cart) throw new Error("Cart not found");
 
+  // Tránh lệch tổng tiền khi giá khuyến mãi thay đổi theo thời điểm.
   await syncCartPricing(cart);
+
+  // Chuẩn hóa dữ liệu từ request (có thể lên dạng string).
+  const qty = Number(quantity);
 
   const index = cart.items.findIndex(
     (item) => item._id && item._id.toString() === cartDetailId,
@@ -72,7 +112,7 @@ export async function updateItemQuantity(cartDetailId, customerId, quantity) {
     throw new Error("Item not found in cart");
   }
 
-  if (quantity < 1) {
+  if (Number.isNaN(qty) || qty < 1) {
     throw new Error("Quantity must be at least 1");
   }
 
@@ -82,7 +122,7 @@ export async function updateItemQuantity(cartDetailId, customerId, quantity) {
   }
   const activeEvent = await getActiveEvent();
 
-  cart.items[index].quantity = quantity;
+  cart.items[index].quantity = qty;
   cart.items[index].price = getEffectiveBookPrice(book, activeEvent);
 
   cart.totalQuantity = cart.items.reduce((sum, item) => sum + item.quantity, 0);
