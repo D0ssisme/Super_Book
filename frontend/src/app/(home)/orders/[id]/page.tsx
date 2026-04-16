@@ -459,13 +459,21 @@ export default function OrderOrderDetailPage() {
                     <span className="text-gray-600">Trạng thái:</span>
                     {order.paymentStatus === "paid" ? (
                       <Badge className="bg-green-600">Đã thanh toán</Badge>
+                    ) : order.paymentStatus === "refunded" ? ( 
+
+                      <Badge className="bg-orange-100 text-orange-800 hover:bg-orange-100">
+                        Đã hoàn tiền
+                        
+                      </Badge>
+                    ) : order.paymentStatus === "failed" ? (
+                      <Badge variant="destructive">Thanh toán thất bại</Badge>
                     ) : (
                       <Badge variant="destructive">Chưa thanh toán</Badge>
                     )}
                   </div>
 
                   {/* Nếu chưa thanh toán và không phải COD -> Hiện nút thanh toán */}
-                  {order.paymentStatus === "unpaid" &&
+                  {["unpaid", "failed"].includes(order.paymentStatus) &&
                     ["PAYOS", "MOMO"].includes(order.paymentMethod) &&
                     order.purchaseStatus !== "canceled" && (
                       <div className="pt-2">
@@ -479,7 +487,9 @@ export default function OrderOrderDetailPage() {
                           ) : (
                             <CreditCard className="mr-2 w-4 h-4" />
                           )}
-                          Thanh toán ngay
+                          {order.paymentStatus === "failed"
+                            ? "Thanh toán lại"
+                            : "Thanh toán ngay"}
                         </Button>
                         <p className="text-xs text-center text-gray-500 mt-2">
                           Thanh toán để hoàn tất đơn hàng

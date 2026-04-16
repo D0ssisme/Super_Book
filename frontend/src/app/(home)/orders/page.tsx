@@ -189,7 +189,11 @@ const OrderPage = () => {
       if (res.paymentMethod === "MOMO") {
         const paymentRes = await createPayment(res._id);
         if (!paymentRes?.ok) {
-          toast.error(paymentRes?.message || "Không thể tạo thanh toán MoMo");
+          const errorMessage =
+            paymentRes && "message" in paymentRes
+              ? paymentRes.message
+              : "Không thể tạo thanh toán MoMo";
+          toast.error(errorMessage);
           return;
         }
         const isMobile =
@@ -216,7 +220,11 @@ const OrderPage = () => {
       } else if (res.paymentMethod === "PAYOS") {
         const paymentRes = await createPayment(res._id);
         if (!paymentRes?.ok) {
-          toast.error(paymentRes?.message || "Không thể tạo thanh toán");
+          const errorMessage =
+            paymentRes && "message" in paymentRes
+              ? paymentRes.message
+              : "Không thể tạo thanh toán";
+          toast.error(errorMessage);
           return;
         }
         toast.success("Vui lòng quét mã QR để thanh toán.");
