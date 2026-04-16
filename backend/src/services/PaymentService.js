@@ -27,6 +27,10 @@ function buildTransferContent(orderCode) {
   return `SUPERBOOK-${orderCode}`;
 }
 
+function isMongoObjectId(value) {
+  return /^[a-fA-F0-9]{24}$/.test(String(value || ""));
+}
+
 function buildVietQrUrl({
   bankBin,
   accountNumber,
@@ -66,8 +70,8 @@ function createQrTransferPayment(order) {
   };
 }
 
-function getVnpTnxRef(order) {
-  if (order.payosOrderId) return String(order.payosOrderId);
+function getVnpTnxRef(order, forceNew = false) {
+  if (!forceNew && order.payosOrderId) return String(order.payosOrderId);
   const raw = `${Date.now()}${Math.floor(Math.random() * 90) + 10}`;
   return raw.slice(-12);
 }
@@ -117,7 +121,30 @@ function buildMomoRawSignature(data) {
   ].join("&");
 }
 
-async function createMomoPayment(order) {
+function resolveMomoRequestType(reqLike = {}) {
+  const reqRequestType =
+    reqLike?.query?.requestType || reqLike?.body?.requestType;
+  const requestType = String(
+    reqRequestType || process.env.MOMO_REQUEST_TYPE || "captureWallet",
+  ).trim();
+
+  const supportedRequestTypes = [
+    "captureWallet",
+    "payWithMethod",
+    "payWithATM",
+  ];
+
+  if (!supportedRequestTypes.includes(requestType)) {
+    throw new Error(
+      `MOMO_REQUEST_TYPE khong hop le: ${requestType}. Ho tro: ${supportedRequestTypes.join(", ")}`,
+    );
+  }
+
+  return requestType;
+}
+
+async function createMomoPayment(order, reqLike = {}, options = {}) {
+  const { forceNewOrderId = false } = options;
   const endpoint =
     process.env.MOMO_ENDPOINT ||
     "https://test-payment.momo.vn/v2/gateway/api/create";
@@ -143,9 +170,9 @@ async function createMomoPayment(order) {
   }
 
   const requestId = `${Date.now()}-${Math.floor(Math.random() * 1000000)}`;
-  const orderId = getVnpTnxRef(order);
+  const orderId = getVnpTnxRef(order, forceNewOrderId);
   const orderInfo = `Thanh toan don hang ${orderId}`;
-  const requestType = "captureWallet";
+  const requestType = resolveMomoRequestType(reqLike);
   const amount = String(Math.round(Number(order.totalAmount || 0)));
   const extraData = "";
 
@@ -274,8 +301,30 @@ export async function createPaymentService(orderId, customerId, reqLike = {}) {
 
   if (order.paymentMethod === "MOMO") {
     const clientIp = getClientIp(reqLike);
+
+    // Nếu đơn chưa failed và đã có link, reuse link cũ để tránh tạo giao dịch trùng.
+    const canReusePaymentLink =
+      order.paymentStatus !== "failed" &&
+      order.paymentStatus !== "paid" &&
+      Boolean(order.paymentLink && order.paymentLinkId);
+
+    if (canReusePaymentLink) {
+      return {
+        orderId: order._id,
+        orderCode: String(order.payosOrderId || order.paymentLinkId),
+        amount: order.totalAmount,
+        paymentUrl: order.paymentLink,
+        deeplink: undefined,
+        qrCodeUrl: undefined,
+      };
+    }
+
+    // Đơn failed thì tạo orderId gateway mới để thanh toán lại.
+    const shouldForceNewMomoOrderId = order.paymentStatus === "failed";
     const { paymentUrl, orderId, requestId, deeplink, qrCodeUrl } =
-      await createMomoPayment(order);
+      await createMomoPayment(order, reqLike, {
+        forceNewOrderId: shouldForceNewMomoOrderId,
+      });
 
     console.log("[momo] create payment", {
       orderId: String(order._id),
@@ -283,6 +332,7 @@ export async function createPaymentService(orderId, customerId, reqLike = {}) {
       requestId,
       amount: order.totalAmount,
       clientIp,
+      requestType: resolveMomoRequestType(reqLike),
       returnUrl: process.env.MOMO_RETURN_URL,
       partnerCode: process.env.MOMO_PARTNER_CODE,
     });
@@ -347,16 +397,45 @@ export async function confirmPaymentService(orderId, customerId) {
 }
 
 export async function cancelPaymentService(orderId, customerId) {
-  let order = await Order.findById(orderId);
-  if (!order) {
-    order = await Order.findOne({ payosOrderId: Number(orderId) });
+  let order = null;
+
+  // Avoid CastError when orderId is actually orderCode (number string).
+  if (isMongoObjectId(orderId)) {
+    order = await Order.findById(orderId);
   }
+
+  if (!order) {
+    const numericOrderCode = Number(orderId);
+    if (Number.isFinite(numericOrderCode)) {
+      order = await Order.findOne({ payosOrderId: numericOrderCode });
+    }
+  }
+
+  if (!order) {
+    // Fallback for cases where caller passes MoMo requestId.
+    order = await Order.findOne({ paymentLinkId: String(orderId) });
+  }
+
   if (!order) {
     throw new Error(`Order ${orderId} not found`);
   }
   if (order.customerId.toString() !== customerId.toString()) {
     throw new Error(`You are not authorize to cancel this order`);
   }
+
+  // MoMo/PayOS trả về cancel chỉ nên đánh dấu thanh toán thất bại,
+  // không khóa đơn để khách còn có thể thanh toán lại.
+  const isOnlinePayment = ["MOMO", "PAYOS"].includes(order.paymentMethod);
+  const isUnpaid = order.paymentStatus !== "paid";
+  if (isOnlinePayment && isUnpaid) {
+    order.paymentStatus = "failed";
+    if (order.purchaseStatus === "canceled") {
+      order.purchaseStatus = "pending";
+    }
+    await order.save();
+    return order;
+  }
+
   if (order.purchaseStatus === "canceled") {
     return order;
   }
