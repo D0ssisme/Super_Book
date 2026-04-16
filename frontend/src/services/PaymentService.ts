@@ -33,8 +33,10 @@ export async function createPayment(id: string) {
       message: string;
       payment?: QrPaymentInfo;
     };
-  }
-}
+  } 
+  
+} 
+
 export async function cancelPayment(id: string) {
   return await api.put(`/payment/cancel/${id}`).then((res) => res.data);
 }
