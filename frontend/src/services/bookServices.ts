@@ -11,7 +11,8 @@ export const bookServices = {
     search?: string,
     minPrice?: number,
     maxPrice?: number,
-    sortBy?: string
+    sortBy?: string,
+    eventId?: string
   ): Promise<ApiResponse<Book[]>> => {
     try {
       const queryParams: Record<string, any> = {
@@ -26,6 +27,7 @@ export const bookServices = {
       if (maxPrice !== undefined && maxPrice >= 0)
         queryParams.maxPrice = maxPrice;
       if (sortBy) queryParams.sortBy = sortBy;
+      if (eventId?.trim()) queryParams.event = eventId.trim();
       if (publishers && publishers.length > 0) {
         queryParams.publishers = publishers.join(",");
       }

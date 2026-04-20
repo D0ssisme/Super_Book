@@ -117,6 +117,7 @@ const ProductGrid = ({
               price={product.price}
               imgSrc={product.imageUrl[0]}
               stock={product.quantity}
+              event={product.event}
             />
           </div>
         ))}

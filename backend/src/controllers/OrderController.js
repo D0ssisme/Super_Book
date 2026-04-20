@@ -10,6 +10,46 @@ import {
 import OrderDetail from "../models/OrderDetail.js";
 import Book from "../models/Book.js";
 import Cart from "../models/Cart.js";
+import Event from "../models/Event.js";
+
+function selectBestActiveEventForBook(book, activeEvents) {
+  let bestEvent = null;
+  let maxDiscount = -1;
+
+  for (const activeEvent of activeEvents) {
+    let applies = false;
+
+    if (activeEvent.applyType === "all") {
+      applies = true;
+    } else if (
+      activeEvent.applyType === "products" &&
+      activeEvent.bookIds?.length > 0
+    ) {
+      applies = activeEvent.bookIds.some(
+        (id) => id.toString() === book._id.toString(),
+      );
+    } else if (
+      activeEvent.applyType === "categories" &&
+      activeEvent.categoryIds?.length > 0
+    ) {
+      const bookCategoryId =
+        typeof book.categoryId === "object" && book.categoryId?._id
+          ? book.categoryId._id
+          : book.categoryId;
+
+      applies = activeEvent.categoryIds.some(
+        (id) => id.toString() === String(bookCategoryId),
+      );
+    }
+
+    if (applies && activeEvent.discountPercent > maxDiscount) {
+      maxDiscount = activeEvent.discountPercent;
+      bestEvent = activeEvent;
+    }
+  }
+
+  return bestEvent;
+}
 
 //Get orders by customerId
 export async function getOrdersByCustomerId(req, res) {
@@ -87,7 +127,22 @@ export async function getTop10BestSellingBooks(req, res) {
       },
     ]);
 
-    return res.status(200).json(result);
+    const now = new Date();
+    const activeEvents = await Event.find({
+      status: "active",
+      startDate: { $lte: now },
+      endDate: { $gte: now },
+    }).lean();
+
+    const resultWithEvents = result.map((item) => ({
+      ...item,
+      book: {
+        ...item.book,
+        event: selectBestActiveEventForBook(item.book, activeEvents),
+      },
+    }));
+
+    return res.status(200).json(resultWithEvents);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -99,9 +154,22 @@ export async function getTop10NewestBooks(req, res) {
       .limit(10)
       .populate("authors") // nếu muốn lấy authors luôn
       .populate("categoryId") // lấy category info
-      .populate("publisherId"); // lấy publisher info
+      .populate("publisherId") // lấy publisher info
+      .lean();
 
-    return res.status(200).json(books);
+    const now = new Date();
+    const activeEvents = await Event.find({
+      status: "active",
+      startDate: { $lte: now },
+      endDate: { $gte: now },
+    }).lean();
+
+    const booksWithEvents = books.map((book) => ({
+      ...book,
+      event: selectBestActiveEventForBook(book, activeEvents),
+    }));
+
+    return res.status(200).json(booksWithEvents);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
