@@ -1,6 +1,6 @@
 
 import React from 'react'
-import ProductCard, { ProductCardProps } from '../collections/components/ProductCard'
+import ProductCard from '../collections/components/ProductCard'
 import { Book } from '@/types/book.type';
 
 interface BookShowCaseProps {
@@ -38,6 +38,7 @@ const BookNewest = ({title, books = []}: BookShowCaseProps) => {
             name={book.name}
             price={book.price}
             stock={book.quantity}
+            event={book.event}
           />
         ))}
       </div>

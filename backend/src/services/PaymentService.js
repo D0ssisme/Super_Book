@@ -120,7 +120,7 @@ function buildMomoRawSignature(data) {
     `requestType=${data.requestType}`,
   ].join("&");
 }
-
+//loai requestType: captureWallet, payWithMethod, payWithATM
 function resolveMomoRequestType(reqLike = {}) {
   const reqRequestType =
     reqLike?.query?.requestType || reqLike?.body?.requestType;

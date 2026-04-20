@@ -289,7 +289,6 @@ export async function getAllBooksService(query) {
         event: null
       }));
 
-      // Get all active events
       const now = new Date();
       const activeEvents = await Event.find({
         status: 'active',
@@ -297,7 +296,6 @@ export async function getAllBooksService(query) {
         endDate: { $gte: now }
       }).lean();
 
-      // Attach best matching event to each book (highest discount)
       const booksWithEvents = booksWithAuthors.map((book) => {
         let bestEvent = null;
         let maxDiscount = -1;

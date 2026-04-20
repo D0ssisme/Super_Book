@@ -4,6 +4,7 @@ import { formatPrice } from "@/lib/utils";
 import { bookServices } from "@/services/bookServices";
 import Image from "next/image";
 import useSWR from "swr";
+import { Badge } from "@/components/ui/badge";
 
 interface OrderItemProps {
   bookId: string;
@@ -32,15 +33,31 @@ const OrderItem = ({ bookId, quantity, price }: OrderItemProps) => {
         />
       </div>
       <div className="flex-1">
-        <h4 className="font-medium text-gray-800 line-clamp-1">{book.name}</h4>
+        <div className="flex items-center gap-3">
+          <h4 className="font-medium text-gray-800 line-clamp-1">{book.name}</h4>
+          {book.event && book.event.discountPercent > 0 && (
+            <Badge className="bg-red-50 text-red-600 border-red-100 text-xs font-semibold">
+              -{book.event.discountPercent}%
+            </Badge>
+          )}
+        </div>
+
         <div className="text-sm text-gray-500 mt-1">
           Số lượng: <span className="font-medium text-gray-900">{quantity}</span>
         </div>
-        <div className="text-sm font-medium text-red-600 mt-1">
-          {formatPrice(price)}
-          <span className="text-gray-400 font-normal text-xs ml-2">
-                (Tổng: {formatPrice(price * quantity)})
-            </span>
+
+        <div className="mt-1">
+          {book.event && Number(book.price) > Number(price) ? (
+            <div className="flex items-baseline gap-3">
+              <span className="text-sm text-gray-400 line-through">{formatPrice(Number(book.price))}</span>
+              <span className="text-lg font-semibold text-red-600">{formatPrice(price)}</span>
+              <span className="text-xs text-green-600">Tiết kiệm {formatPrice(Math.max(0, (Number(book.price) - Number(price)) * quantity))}</span>
+            </div>
+          ) : (
+            <div className="text-sm font-medium text-red-600">{formatPrice(price)}</div>
+          )}
+
+          <div className="text-gray-400 text-xs mt-1">(Tổng: {formatPrice(price * quantity)})</div>
         </div>
       </div>
     </div>
