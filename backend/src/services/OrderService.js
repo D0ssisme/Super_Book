@@ -3,7 +3,7 @@ import OrderDetail from "../models/OrderDetail.js";
 import Book from "../models/Book.js";
 import Address from "../models/Address.js";
 import mongoose from "mongoose";
-import { getActiveEvent, getEffectiveBookPrice } from "../utils/pricing.js";
+import { getActiveEvents, getEffectiveBookPrice } from "../utils/eventPricing.js";
 import {
   applyCouponUsageService,
   validateCouponService,
@@ -82,7 +82,7 @@ export async function createOrderService(
   let discountAmount = 0;
   let appliedCouponCode = null;
   let appliedCouponId = null;
-  const activeEvent = await getActiveEvent();
+  const activeEvents = await getActiveEvents();
 
   const order = await Order.create({
     customerId: customerId,
@@ -105,7 +105,7 @@ export async function createOrderService(
         if (book.quantity < item.quantity) {
           throw new Error("Out of stock");
         }
-        const effectivePrice = getEffectiveBookPrice(book, activeEvent);
+        const effectivePrice = getEffectiveBookPrice(book, activeEvents).price;
 
         return await OrderDetail.create({
           orderId: order._id,

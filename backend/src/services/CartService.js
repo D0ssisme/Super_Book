@@ -1,10 +1,10 @@
 import Book from "../models/Book.js";
 import Cart from "../models/Cart.js";
-import { getActiveEvent, getEffectiveBookPrice } from "../utils/pricing.js";
+import { getActiveEvents, getEffectiveBookPrice } from "../utils/eventPricing.js";
 
 async function syncCartPricing(cart) {
   // Đồng bộ lại giá item theo event hiện tại trước khi cập nhật số lượng.
-  const activeEvent = await getActiveEvent();
+  const activeEvents = await getActiveEvents();
   const bookIds = cart.items.map((item) => item.bookId);
 
   if (bookIds.length === 0) {
@@ -19,7 +19,7 @@ async function syncCartPricing(cart) {
   const bookPriceMap = new Map(
     books.map((book) => [
       String(book._id),
-      getEffectiveBookPrice(book, activeEvent),
+      getEffectiveBookPrice(book, activeEvents).price,
     ]),
   );
 
@@ -58,8 +58,8 @@ export async function addItemToCart(bookId, customerId, quantity) {
   if (!book) {
     throw new Error(`Book with id ${bookId} not found`);
   }
-  const activeEvent = await getActiveEvent();
-  const effectivePrice = getEffectiveBookPrice(book, activeEvent);
+  const activeEvents = await getActiveEvents();
+  const effectivePrice = getEffectiveBookPrice(book, activeEvents).price;
 
   // Use findOneAndUpdate to avoid duplicate key errors
   let cart = await Cart.findOne({ customerId: customerId });
@@ -120,10 +120,10 @@ export async function updateItemQuantity(cartDetailId, customerId, quantity) {
   if (!book) {
     throw new Error("Book not found");
   }
-  const activeEvent = await getActiveEvent();
+  const activeEvents = await getActiveEvents();
 
   cart.items[index].quantity = qty;
-  cart.items[index].price = getEffectiveBookPrice(book, activeEvent);
+  cart.items[index].price = getEffectiveBookPrice(book, activeEvents).price;
 
   cart.totalQuantity = cart.items.reduce((sum, item) => sum + item.quantity, 0);
   cart.totalPrice = cart.items.reduce(
@@ -194,7 +194,7 @@ export async function getCartService(customerId) {
     return cart;
   }
 
-  const activeEvent = await getActiveEvent();
+  const activeEvents = await getActiveEvents();
   const bookIds = cart.items.map((item) => item.bookId);
   const books = await Book.find({ _id: { $in: bookIds } }).select(
     "price categoryId",
@@ -202,7 +202,7 @@ export async function getCartService(customerId) {
   const bookPriceMap = new Map(
     books.map((book) => [
       String(book._id),
-      getEffectiveBookPrice(book, activeEvent),
+      getEffectiveBookPrice(book, activeEvents).price,
     ]),
   );
 
