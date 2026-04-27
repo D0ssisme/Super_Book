@@ -12,6 +12,15 @@ api.interceptors.request.use(
       if (token) {
           config.headers.Authorization = `Bearer ${token}`;
       }
+      
+      // Add guest session ID for cart operations (if not already authenticated)
+      if (!token && typeof window !== 'undefined') {
+          const guestSessionId = localStorage.getItem('guest_session_id');
+          if (guestSessionId) {
+              config.headers["X-Guest-Session-Id"] = guestSessionId;
+          }
+      }
+      
       return config;
   },
   (error) => Promise.reject(error)

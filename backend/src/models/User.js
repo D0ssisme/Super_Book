@@ -2,10 +2,10 @@ import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
 
 const userSchema = new mongoose.Schema({
-  fullName: { type: String },
-  username: { type: String, required: true, unique: true },
-  email: { type: String, required: true, unique: true },
-  phone: { type: String, unique: true, sparse: true },
+  fullName: { type: String, required: true, maxlength: 100 },
+  username: { type: String, required: true, unique: true, maxlength: 50 },
+  email: { type: String, required: true, unique: true, maxlength: 100 },
+  phone: { type: String, required: true, unique: true, maxlength: 20 },
   password: { type: String },
   role: { type: String, enum: ['user', 'admin'], default: 'user' },
   isVerified: { type: Boolean, default: false },

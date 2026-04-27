@@ -14,6 +14,23 @@ import { useState, useRef, useEffect } from 'react'; // Thêm useRef
 import { ForgotPasswordForm } from '@/components/forgot-password-form';
 import gsap from 'gsap'; // Import GSAP
 import { useGSAP } from '@gsap/react'; // Import hook useGSAP
+import { useCartStore } from '@/stores/useCartStore';
+
+/**
+ * CART SYSTEM FLOW:
+ * 
+ * === WHEN LOGIN ===
+ * 1. Get guest cart from localStorage
+ * 2. Get user cart from DB
+ * 3. Merge: same book → add quantities, new items → add
+ * 4. Save merged cart to DB, delete guest session from localStorage
+ * 
+ * === WHEN LOGOUT ===
+ * - Clear token
+ * - Clear localStorage (guest session from merge is gone)
+ * - DONT restore old guest cart (it was merged & deleted)
+ * - Next visit = brand new guest session
+ */
 
 type Mode = 'login' | 'register' | 'reset-password';
 
@@ -21,6 +38,7 @@ export function AuthDialog({ children }: { children: React.ReactNode }) {
   const [mode, setMode] = useState<Mode>('login');
   const [open, setOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const { onLoginSuccess } = useCartStore();
 
   useEffect(() => {
     setMounted(true);
@@ -63,7 +81,20 @@ export function AuthDialog({ children }: { children: React.ReactNode }) {
 
   }, { scope: containerRef, dependencies: [mode, open] }); // Chạy lại khi mode hoặc open thay đổi
 
-  const handleSuccess = () => {
+  /**
+   * Login flow:
+   * 1. User authenticates (backend validates credentials)
+   * 2. Call onLoginSuccess():
+   *    - Get guest session ID from localStorage
+   *    - Call merge API (backend merges guest cart + user cart)
+   *    - Delete localStorage guest session (merged & persisted in DB)
+   * 3. Now user cart is the "official" cart in DB
+   * 4. Close dialog
+   */
+  const handleSuccess = async () => {
+    // Execute cart merge & clear guest session
+    await onLoginSuccess();
+    // Close dialog after merge completes
     setOpen(false);
   };
 
@@ -127,11 +158,9 @@ export function AuthDialog({ children }: { children: React.ReactNode }) {
               <DialogTitle className="anim-element text-2xl font-bold tracking-tight">
                 {getTitle()}
               </DialogTitle>
-              <DialogDescription>
-                Vui lòng chọn lựa chọn của bạn
-              </DialogDescription>
+           
               <div className="anim-element text-sm text-muted-foreground mt-1">
-                {mode === 'login' && "Chào mừng bạn quay trở lại!"}
+            
                 {mode === 'register' && "Tạo tài khoản để bắt đầu trải nghiệm."}
                 {mode === 'reset-password' && "Nhập email để lấy lại mật khẩu."}
               </div>

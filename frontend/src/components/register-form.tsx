@@ -5,9 +5,12 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { RegisterRequestSchema } from "@/validation/authschemas";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { registerUser, useUser } from "@/services/authservices";
 import { setJWTtoCookie } from "@/lib/cookies";
 import { toast } from "sonner";
+import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 type RegisterRequest = {
   fullName: string;
@@ -32,6 +35,8 @@ export function RegisterForm({
   onSuccess?: () => void;
 }) {
   const { mutate } = useUser();
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const {
     register,
     handleSubmit,
@@ -79,11 +84,14 @@ export function RegisterForm({
       onSubmit={handleSubmit(onSubmit)}
     >
       <div className="grid gap-2">
+        <Label htmlFor="fullname" className={cn(errors.fullName && "text-red-500")}>
+          Họ và tên *
+        </Label>
         <Input
           id="fullname"
           type="text"
           {...register("fullName")}
-          placeholder="Họ và tên"
+          placeholder="Nhập họ tên đầy đủ"
           className={cn(
             errors.fullName && "border-red-500 focus-visible:ring-red-500",
           )}
@@ -92,11 +100,14 @@ export function RegisterForm({
       </div>
 
       <div className="grid gap-2">
+        <Label htmlFor="username" className={cn(errors.username && "text-red-500")}>
+          Tên đăng nhập *
+        </Label>
         <Input
           id="username"
           type="text"
           {...register("username")}
-          placeholder="Tên đăng nhập"
+          placeholder="Tên đăng nhập duy nhất"
           className={cn(
             errors.username && "border-red-500 focus-visible:ring-red-500",
           )}
@@ -105,11 +116,14 @@ export function RegisterForm({
       </div>
 
       <div className="grid gap-2">
+        <Label htmlFor="phone" className={cn(errors.phone && "text-red-500")}>
+          Số điện thoại * <span className="text-xs text-muted-foreground">(10 chữ số, bắt đầu 0)</span>
+        </Label>
         <Input
           id="phone"
           type="text"
           {...register("phone")}
-          placeholder="Số điện thoại"
+          placeholder="0912345678"
           className={cn(
             errors.phone && "border-red-500 focus-visible:ring-red-500",
           )}
@@ -118,11 +132,14 @@ export function RegisterForm({
       </div>
 
       <div className="grid gap-2">
+        <Label htmlFor="email" className={cn(errors.email && "text-red-500")}>
+          Email *
+        </Label>
         <Input
           id="email"
           type="email"
           {...register("email")}
-          placeholder="Email"
+          placeholder="your@email.com"
           className={cn(
             errors.email && "border-red-500 focus-visible:ring-red-500",
           )}
@@ -131,29 +148,55 @@ export function RegisterForm({
       </div>
 
       <div className="grid gap-2">
-        <Input
-          id="password"
-          type="password"
-          {...register("password")}
-          placeholder="Mật khẩu"
-          className={cn(
-            errors.password && "border-red-500 focus-visible:ring-red-500",
-          )}
-        />
+        <Label htmlFor="password" className={cn(errors.password && "text-red-500")}>
+          Mật khẩu * <span className="text-xs text-muted-foreground">(tối thiểu 6 ký tự)</span>
+        </Label>
+        <div className="relative">
+          <Input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            {...register("password")}
+            placeholder="••••••••"
+            className={cn(
+              "pr-10",
+              errors.password && "border-red-500 focus-visible:ring-red-500",
+            )}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword(!showPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
         <ErrorMessage message={errors.password?.message} />
       </div>
 
       <div className="grid gap-2">
-        <Input
-          id="confirmPassword"
-          type="password"
-          {...register("confirmPassword")}
-          placeholder="Nhập lại mật khẩu"
-          className={cn(
-            errors.confirmPassword &&
-              "border-red-500 focus-visible:ring-red-500",
-          )}
-        />
+        <Label htmlFor="confirmPassword" className={cn(errors.confirmPassword && "text-red-500")}>
+          Nhập lại mật khẩu *
+        </Label>
+        <div className="relative">
+          <Input
+            id="confirmPassword"
+            type={showConfirmPassword ? "text" : "password"}
+            {...register("confirmPassword")}
+            placeholder="••••••••"
+            className={cn(
+              "pr-10",
+              errors.confirmPassword &&
+                "border-red-500 focus-visible:ring-red-500",
+            )}
+          />
+          <button
+            type="button"
+            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+          >
+            {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+          </button>
+        </div>
         <ErrorMessage message={errors.confirmPassword?.message} />
       </div>
 

@@ -9,10 +9,14 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { LoginRequestSchema } from '@/validation/authschemas';
 import { setJWTtoCookie } from '@/lib/cookies';
 import { login, useUser } from '@/services/authservices';
-import { Checkbox } from '@/components/ui/checkbox';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { ButtonLoginGoogle } from '@/components/button/button-google-login';
 import { toast } from 'sonner';
+import { useCartStore } from '@/stores/useCartStore';
+import { useState, useEffect } from 'react';
+import { Eye, EyeOff } from 'lucide-react';
+
+const REMEMBER_LOGIN_KEY = 'remember_login_username';
 
 type LoginRequest = {
   username: string;
@@ -28,17 +32,32 @@ export function LoginForm({
   setMode?: (mode: 'login' | 'register' | 'reset-password') => void
   onSuccess?: () => void
 }) {
-  const {mutate} = useUser();
+  const { mutate } = useUser();
+  const { onLoginSuccess } = useCartStore();
+  const [showPassword, setShowPassword] = useState(false);
+  const [rememberPassword, setRememberPassword] = useState(false);
   const {
     register,
     handleSubmit,
     formState: {errors, isSubmitting},
     setError,
+    setValue,
   } = useForm<LoginRequest>({
     defaultValues: {username: "", password: ""},
     resolver: zodResolver(LoginRequestSchema),
     mode: 'onChange'
   });
+
+  // Load saved username on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    const savedUsername = localStorage.getItem(REMEMBER_LOGIN_KEY);
+    if (savedUsername) {
+      setValue('username', savedUsername);
+      setRememberPassword(true);
+    }
+  }, [setValue]);
 
   const onSubmit = async (data: LoginRequest) => {
     const res = await login(data);
@@ -51,12 +70,38 @@ export function LoginForm({
       return;
     }
     if ("token" in res.data) {
+      // Save username if "remember password" is checked
+      if (rememberPassword) {
+        localStorage.setItem(REMEMBER_LOGIN_KEY, data.username);
+      }
+      
+      // Step 1: Save JWT token
       await setJWTtoCookie(res.data.token);
+      
+      // Step 2: Update user state
       await mutate();
+      
+      // Step 3: Auto-merge guest cart with user cart
+      // (if guest has items, merge them; otherwise fetch user cart)
+      try {
+        await onLoginSuccess();
+      } catch (error) {
+        console.error("Cart merge error during login:", error);
+        // Don't block login if cart merge fails
+      }
+      
       toast.success("Đăng nhập thành công");
       onSuccess?.();
       return;
     }
+  };
+
+  const handleClearCredentials = () => {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(REMEMBER_LOGIN_KEY);
+    setValue('username', '');
+    setRememberPassword(false);
+    toast.success("Đã xóa thông tin lưu trữ");
   };
 
   return (
@@ -81,11 +126,11 @@ export function LoginForm({
         onSubmit={handleSubmit(onSubmit)}
       >
         <div className="grid gap-2">
-          <Label htmlFor="username" className={cn(errors.username && "text-red-500")}>
+          <Label htmlFor="emailOrUsername" className={cn(errors.username && "text-red-500")}>
             Email hoặc tên đăng nhập
           </Label>
           <Input
-            id="username"
+            id="emailOrUsername"
             type="text"
             {...register("username")}
             className={cn(errors.username && "border-red-500 focus-visible:ring-red-500")}
@@ -104,13 +149,25 @@ export function LoginForm({
               Mật khẩu
             </Label>
           </div>
-          <Input
-            id="password"
-            type="password"
-            {...register("password")}
-            className={cn(errors.password && "border-red-500 focus-visible:ring-red-500")}
-            placeholder="Mật khẩu"
-          />
+          <div className="relative">
+            <Input
+              id="password"
+              type={showPassword ? "text" : "password"}
+              {...register("password")}
+              className={cn(
+                "pr-10",
+                errors.password && "border-red-500 focus-visible:ring-red-500"
+              )}
+              placeholder="••••••••"
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword(!showPassword)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            >
+              {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+            </button>
+          </div>
           {errors.password && (
             <p className="text-red-500 text-xs font-medium animate-in fade-in-50 slide-in-from-top-1">
               {errors.password.message}
@@ -118,11 +175,34 @@ export function LoginForm({
           )}
         </div>
 
-        <div className="flex gap-3 items-center justify-between mt-1">
-          <div className="flex items-center gap-2 cursor-pointer">
-            <Checkbox id="remember"/>
-            <Label htmlFor="remember" className="cursor-pointer font-normal">Ghi nhớ đăng nhập</Label>
+        <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              id="rememberPassword"
+              checked={rememberPassword}
+              onChange={(e) => setRememberPassword(e.target.checked)}
+              className="h-4 w-4 rounded border border-input cursor-pointer"
+            />
+            <Label 
+              htmlFor="rememberPassword" 
+              className="text-sm font-normal cursor-pointer"
+            >
+              Nhớ mật khẩu
+            </Label>
           </div>
+          {rememberPassword && (
+            <button
+              type="button"
+              onClick={handleClearCredentials}
+              className="text-xs font-medium text-muted-foreground hover:text-foreground underline underline-offset-2"
+            >
+              Xóa
+            </button>
+          )}
+        </div>
+
+        <div className="flex items-center justify-end">
           <a
             onClick={() => setMode?.('reset-password')}
             className="text-sm font-medium underline underline-offset-4 text-sky-600 cursor-pointer hover:text-sky-700"

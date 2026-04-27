@@ -20,6 +20,7 @@ import {
   MessageSquare,
 } from "lucide-react";
 import { removeJWTfromCookie } from "@/lib/cookies";
+import { clearGuestSession } from "@/services/cartServices";
 
 export default function Sidebar({ isOpen }: { isOpen: boolean }) {
   const pathname = usePathname();
@@ -71,7 +72,13 @@ export default function Sidebar({ isOpen }: { isOpen: boolean }) {
 
     if (result.isConfirmed) {
       try {
+        // Step 1: Clear session/token
         await removeJWTfromCookie();
+        
+        // Step 2: Clear guest session (no restore of merged guest cart)
+        clearGuestSession();
+        
+        // Step 3: Redirect
         toast.success("Đăng xuất thành công");
         window.location.href = "/";
       } catch (error) {

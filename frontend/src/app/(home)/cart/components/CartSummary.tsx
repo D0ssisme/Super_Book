@@ -2,12 +2,19 @@
 
 import { formatPrice } from "@/lib/utils";
 import { useCartStore } from "@/stores/useCartStore";
+import { useAuthDialog } from "@/components/auth-dialog-context";
+import { useUser } from "@/services/authservices";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { useState } from "react";
 
+const PENDING_CHECKOUT_REDIRECT_KEY = "pending_checkout_redirect";
+const PENDING_CHECKOUT_BOOK_IDS_KEY = "pending_checkout_book_ids";
+
 const CartSummary = () => {
   const router = useRouter();
+  const { user, isLoading: userLoading } = useUser();
+  const { setOpen: setAuthDialogOpen, setMode: setAuthDialogMode } = useAuthDialog();
   const cart = useCartStore((s) => s.cart);
   const selectedItemIds = useCartStore((s) => s.selectedItemIds);
   const setCheckoutItems = useCartStore((s) => s.setCheckoutItems);
@@ -34,9 +41,29 @@ const CartSummary = () => {
       return;
     }
 
-    setLoading(true);
     // Store selected items before navigation
     setCheckoutItems(selectedItemIds);
+
+    if (userLoading) {
+      return;
+    }
+
+    if (!user) {
+      const selectedBookIds = cart.items
+        .filter((item) => selectedItemIds.includes(item._id))
+        .map((item) => item.bookId);
+
+      window.localStorage.setItem(
+        PENDING_CHECKOUT_BOOK_IDS_KEY,
+        JSON.stringify(selectedBookIds),
+      );
+      window.localStorage.setItem(PENDING_CHECKOUT_REDIRECT_KEY, "/cart");
+      setAuthDialogMode("login");
+      setAuthDialogOpen(true);
+      return;
+    }
+
+    setLoading(true);
     router.push("/orders");
   };
 
