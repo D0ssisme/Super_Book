@@ -31,7 +31,11 @@ const app = express();
 connectDB(process.env.MONGODB_URL);
 // setup(app) // TODO: Uncomment khi deploy production
 
-app.use(cors());
+// CORS - chỉ cho phép frontend URL
+app.use(cors({
+  origin: process.env.FRONTEND_URL || "http://localhost:3000",
+  credentials: true
+}));
 app.use(express.json()); // To parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // To parse URL-encoded bodies
 app.use(process.env.API_TAG + "/auth", authRoute);

@@ -10,6 +10,14 @@ import OrderItem from "@/components/order/OrderItem";
 import { AddressSelectionDialog } from "@/components/order/AddressSelectionDialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+
+
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   ArrowLeft,
   Banknote,
@@ -38,19 +46,22 @@ import { orderServices } from "@/services/orderServices";
 import { createPayment } from "@/services/PaymentService";
 import { useUser } from "@/services/authservices";
 import { validateCoupon } from "@/services/couponService";
+import { useAuthDialog } from "@/components/auth-dialog-context";
+
 
 const getLastAddressStorageKey = (userId?: string) =>
   userId ? `last_checkout_address_${userId}` : "last_checkout_address_guest";
 
 const OrderPage = () => {
   const router = useRouter();
+  const { setOpen: setAuthDialogOpen, setMode: setAuthDialogMode } = useAuthDialog();
 
   const { addresses, isLoading: addressLoading, mutate } = getAllAddress();
   const cart = useCartStore((s) => s.cart);
   const checkoutItems = useCartStore((s) => s.checkoutItems);
   const fetchCart = useCartStore((s) => s.fetchCart);
   const cartLoading = useCartStore((s) => s.loading);
-  const { user } = useUser();
+  const { user, isLoading: userLoading } = useUser();
 
   const [openCancel, setOpenCancel] = useState(false);
   const [openAddressDialog, setOpenAddressDialog] = useState(false);
@@ -60,6 +71,15 @@ const OrderPage = () => {
   const [appliedCouponCode, setAppliedCouponCode] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+
+  // Auto-open auth dialog when user tries to checkout without login
+  useEffect(() => {
+    if (!userLoading && !user) {
+      setAuthDialogMode('login');
+      setAuthDialogOpen(true);
+    }
+  }, [user, userLoading, setAuthDialogOpen, setAuthDialogMode]);
+
   useEffect(() => {
     fetchCart();
   }, [fetchCart]);
@@ -245,6 +265,13 @@ const OrderPage = () => {
 
   if ((!cart && cartLoading) || addressLoading)
     return <div className="text-center p-10">Loading...</div>;
+  
+  // If not authenticated, auth dialog will open globally via useEffect
+  // No need to show anything here
+  if (!user) {
+    return null;
+  }
+
   if (!cart) return null;
 
   // Filter items to only show selected ones for checkout

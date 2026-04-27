@@ -14,31 +14,72 @@ import { client } from '../config/clientgoogle.config.js';
 import { v4 as uuidv4 } from 'uuid';
 
 export const registerService = async (userData) => {
+  // Input validation - kiểm tra dữ liệu đầu vào
+  const errors = [];
+  
+  // Trim all inputs
+  const fullName = userData.fullName?.trim() || "";
+  const username = userData.username?.trim() || "";
+  const email = userData.email?.trim().toLowerCase() || "";
+  const phone = userData.phone?.trim() || "";
+  const password = userData.password || "";
+  const confirmPassword = userData.confirmPassword || "";
+
+  // Check required fields
+  if (!fullName) errors.push({ field: "fullName", code: "REQUIRED", message: "Họ và tên không được để trống" });
+  if (!username) errors.push({ field: "username", code: "REQUIRED", message: "Tên đăng nhập không được để trống" });
+  if (!email) errors.push({ field: "email", code: "REQUIRED", message: "Email không được để trống" });
+  if (!phone) errors.push({ field: "phone", code: "REQUIRED", message: "Số điện thoại không được để trống" });
+  if (!password) errors.push({ field: "password", code: "REQUIRED", message: "Mật khẩu không được để trống" });
+  if (!confirmPassword) errors.push({ field: "confirmPassword", code: "REQUIRED", message: "Nhập lại mật khẩu không được để trống" });
+
+  // Check password match
+  if (password !== confirmPassword) {
+    errors.push({ field: "confirmPassword", code: "MISMATCH", message: "Mật khẩu không khớp" });
+  }
+
+  // Block admin username
+  if (username.toLowerCase() === "admin") {
+    errors.push({ field: "username", code: "RESERVED", message: "Tên đăng nhập không được phép" });
+  }
+
+  // Return all validation errors if any
+  if (errors.length > 0) {
+    throw new ErrorResponse("Validation failed", 400, undefined, errors);
+  }
+
+  // Use sanitized data
   const existing = await User.find({
     $or: [
-      { username: userData.username },
-      { email: userData.email },
-      { phone: userData.phone }
+      { username: username },
+      { email: email },
+      { phone: phone }
     ]
   });
   if (existing) {
-    const errors = [];
+    const duplicateErrors = [];
     existing.forEach(user => {
-      if (user.username === userData.username)
-        errors.push({ field: "username", code: "USERNAME_EXISTS", message: "Tài khoản đã tồn tại" });
-      if (user.email === userData.email.toLowerCase())
-        errors.push({ field: "email", code: "EMAIL_EXISTS", message: "Email đã tồn tại" });
-      if (user.phone === userData.phone)
-        errors.push({ field: "phone", code: "PHONE_EXISTS", message: "Số điện thoại đã tồn tại" });
+      if (user.username === username)
+        duplicateErrors.push({ field: "username", code: "USERNAME_EXISTS", message: "Tài khoản đã tồn tại" });
+      if (user.email === email)
+        duplicateErrors.push({ field: "email", code: "EMAIL_EXISTS", message: "Email đã tồn tại" });
+      if (user.phone === phone)
+        duplicateErrors.push({ field: "phone", code: "PHONE_EXISTS", message: "Số điện thoại đã tồn tại" });
     });
 
-    if (errors.length > 0) {
-      throw new ErrorResponse("Validation failed", 400, undefined, errors);
+    if (duplicateErrors.length > 0) {
+      throw new ErrorResponse("Validation failed", 400, undefined, duplicateErrors);
     }
   }
 
-  const user = new User(userData);
-  user.password = await hashPassword(userData.password);
+  const user = new User({
+    fullName: fullName,
+    username: username,
+    email: email,
+    phone: phone,
+    password: password
+  });
+  user.password = await hashPassword(password);
   await user.save();
 
   const UserResponse = toUserResponse(user);
@@ -47,13 +88,24 @@ export const registerService = async (userData) => {
 };
 
 export const loginService = async (username, password) => {
+  // Input validation - kiểm tra dữ liệu đầu vào
+  const sanitizedUsername = username?.trim() || "";
+  const sanitizedPassword = password || "";
+
+  if (!sanitizedUsername) {
+    throw new ErrorResponse('Tên đăng nhập không được để trống', 400, 'EMPTY_USERNAME');
+  }
+  if (!sanitizedPassword) {
+    throw new ErrorResponse('Mật khẩu không được để trống', 400, 'EMPTY_PASSWORD');
+  }
+
   const user = await User.findOne({
-    $or: [{ username: username }, { email: username }, { phone: username}]
+    $or: [{ username: sanitizedUsername }, { email: sanitizedUsername.toLowerCase() }, { phone: sanitizedUsername}]
   });
   if (!user) {
     throw new ErrorResponse('Tài khoản không tồn tại', 401, 'USER_NOT_FOUND');
   }
-  const isMatch = await comparePassword(password, user.password);
+  const isMatch = await comparePassword(sanitizedPassword, user.password);
   if (!isMatch) {
     throw new ErrorResponse('Mật khẩu không đúng', 401, 'INVALID_PASSWORD');
   }

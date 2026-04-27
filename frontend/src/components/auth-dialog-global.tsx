@@ -16,9 +16,13 @@ import { ForgotPasswordForm } from "@/components/forgot-password-form";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import { useRef } from "react";
+import { useRouter } from "next/navigation";
+
+const PENDING_CHECKOUT_REDIRECT_KEY = "pending_checkout_redirect";
 
 export function AuthDialogGlobal() {
   const { open, setOpen, mode, setMode } = useAuthDialog();
+  const router = useRouter();
 
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
@@ -49,6 +53,17 @@ export function AuthDialogGlobal() {
 
   const handleSuccess = () => {
     setOpen(false);
+
+    if (typeof window === "undefined") return;
+
+    const pendingRedirect = window.localStorage.getItem(
+      PENDING_CHECKOUT_REDIRECT_KEY,
+    );
+
+    if (pendingRedirect) {
+      window.localStorage.removeItem(PENDING_CHECKOUT_REDIRECT_KEY);
+      router.push(pendingRedirect);
+    }
   };
 
   const renderForm = () => {
@@ -92,7 +107,9 @@ export function AuthDialogGlobal() {
               </DialogTitle>
 
               <DialogDescription className="anim-element">
-                Vui lòng chọn lựa chọn của bạn
+                {mode === "login" && "Đăng nhập tài khoản của bạn để tiếp tục mua sách"}
+                {mode === "register" && "Tạo tài khoản mới để khám phá kho sách phong phú"}
+                {mode === "reset-password" && "Nhập email để nhận link đặt lại mật khẩu"}
               </DialogDescription>
 
               <p className="anim-element text-sm text-muted-foreground mt-1">

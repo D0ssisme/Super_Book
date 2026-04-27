@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import UserDropdown from './UserDropdown';
 import CartPreviewDropdown from './CartPreviewDropdown';
 import { useCartStore } from '@/stores/useCartStore';
+import { clearGuestSession } from '@/services/cartServices';
 
 export default function UserNavbar() {
   const { user, mutate } = useUser();
@@ -27,10 +28,28 @@ export default function UserNavbar() {
     fetchCart();
   }, [fetchCart]);
 
+  /**
+   * Logout flow:
+   * 1. Clear JWT token (session)
+   * 2. Clear guest session from localStorage (no restore of old guest cart)
+   * 3. Update user state (fetcher)
+   * 4. Redirect to home
+   * 
+   * Note: Guest cart was already merged & deleted during login,
+   * so we don't restore it on logout. Next guest session will be new.
+   */
   const handleLogout = async () => {
-    router.push("/")
+    // Step 1: Clear session/token
     await removeJWTfromCookie();
+    
+    // Step 2: Clear guest session (no restore of merged guest cart)
+    clearGuestSession();
+    
+    // Step 3: Update user state
     await mutate(null, false);
+    
+    // Step 4: Redirect
+    router.push("/")
     toast.success("Đăng xuất thành công");
   };
 

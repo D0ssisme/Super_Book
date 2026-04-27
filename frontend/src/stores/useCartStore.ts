@@ -1,7 +1,7 @@
 // stores/cartStore.ts (Simple version)
 import { create } from "zustand";
 import { CartStore } from "@/types/cart.type";
-import { cartServices } from "@/services/cartServices";
+import { cartServices, getOrCreateGuestSessionId, clearGuestSession } from "@/services/cartServices";
 import { toast } from "sonner";
 
 export const useCartStore = create<CartStore>((set, get) => ({
@@ -10,6 +10,11 @@ export const useCartStore = create<CartStore>((set, get) => ({
   error: null,
   selectedItemIds: [],
   checkoutItems: [],
+
+  initializeGuestSession: () => {
+    // Ensure guest session exists on app load
+    getOrCreateGuestSessionId();
+  },
 
   fetchCart: async () => {
     set({ loading: true, error: null });
@@ -43,6 +48,10 @@ export const useCartStore = create<CartStore>((set, get) => ({
 
   deselectAllItems: () => {
     set({ selectedItemIds: [] });
+  },
+
+  setSelectedItemIds: (itemIds: string[]) => {
+    set({ selectedItemIds: itemIds });
   },
 
   setCheckoutItems: (itemIds: string[]) => {
@@ -180,6 +189,34 @@ export const useCartStore = create<CartStore>((set, get) => ({
         loading: false,
       });
       throw error;
+    }
+  },
+
+  onLoginSuccess: async () => {
+    // Called after successful login to merge guest cart with user cart
+    console.log("Login successful, merging guest cart with user cart");
+    
+    const guestSessionId = localStorage.getItem('guest_session_id');
+    
+    if (guestSessionId) {
+      try {
+        // Merge guest cart to user cart on backend
+        const mergedCart = await cartServices.mergeGuestCart(guestSessionId);
+        set({ cart: mergedCart });
+        
+        // Clear guest session ID after successful merge
+        clearGuestSession();
+        console.log("Guest cart merged successfully");
+      } catch (error) {
+        console.error("Failed to merge guest cart:", error);
+        // Still clear guest session even if merge fails
+        clearGuestSession();
+        // Fetch fresh cart from server
+        await get().fetchCart();
+      }
+    } else {
+      // No guest session, just fetch the user's cart
+      await get().fetchCart();
     }
   },
 }));
