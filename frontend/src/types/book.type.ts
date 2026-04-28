@@ -10,6 +10,7 @@ export interface BookDetail {
   imageUrl: [string];
   quantity: number;
   price: number;
+  isDeleted?: boolean;
   event?: {
     discountPercent: number;
   };

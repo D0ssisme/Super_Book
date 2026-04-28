@@ -21,6 +21,7 @@ export default function EventShowcase() {
 
       const books = Array.isArray(response?.data) ? response.data : [];
       const onlyDiscountBooks = books
+        .filter((book) => !book.isDeleted)
         .filter((book) => book.event?.discountPercent && book.event.discountPercent > 0)
         .sort((a, b) => (b.event?.discountPercent || 0) - (a.event?.discountPercent || 0));
 

@@ -141,150 +141,151 @@ const AboutPage = () => {
   );
 
   const coreValues = [
-    {
-      icon: <BookOpen className="w-8 h-8" />,
-      title: "Tri thức cho mọi người",
-      description:
-        "Chúng tôi tin rằng sách là cánh cửa mở ra thế giới tri thức vô tận cho tất cả mọi người.",
-    },
-    {
-      icon: <Users className="w-8 h-8" />,
-      title: "Cộng đồng yêu sách",
-      description:
-        "Xây dựng một cộng đồng độc giả gắn kết, chia sẻ và lan tỏa văn hóa đọc.",
-    },
-    {
-      icon: <Heart className="w-8 h-8" />,
-      title: "Đam mê văn học",
-      description:
-        "Nuôi dưỡng tình yêu với văn chương và nghệ thuật qua từng trang sách.",
-    },
-    {
-      icon: <Award className="w-8 h-8" />,
-      title: "Chất lượng hàng đầu",
-      description:
-        "Cam kết mang đến những cuốn sách chất lượng với nội dung giá trị.",
-    },
-    {
-      icon: <Target className="w-8 h-8" />,
-      title: "Định hướng phát triển",
-      description:
-        "Không ngừng đổi mới để phù hợp với nhu cầu đọc sách trong thời đại số.",
-    },
-    {
-      icon: <Globe className="w-8 h-8" />,
-      title: "Kết nối văn hóa",
-      description:
-        "Giới thiệu và kết nối những tác phẩm văn học từ nhiều nền văn hóa khác nhau.",
-    },
-  ];
+  {
+    icon: <BookOpen className="w-8 h-8" />,
+    title: "Phổ cập tri thức",
+    description:
+      "Cung cấp nguồn tài nguyên kiến thức không giới hạn, giúp mọi độc giả tiếp cận tinh hoa nhân loại.",
+  },
+  {
+    icon: <Users className="w-8 h-8" />,
+    title: "Gắn kết cộng đồng",
+    description:
+      "Xây dựng mạng lưới độc giả văn minh, cùng chia sẻ và lan tỏa những giá trị tốt đẹp của văn hóa đọc.",
+  },
+  {
+    icon: <Heart className="w-8 h-8" />,
+    title: "Tận tâm phục vụ",
+    description:
+      "Lấy sự hài lòng và trải nghiệm trí tuệ của khách hàng làm kim chỉ nam cho mọi hoạt động.",
+  },
+  {
+    icon: <Award className="w-8 h-8" />,
+    title: "Chất lượng tuyển chọn",
+    description:
+      "Cam kết cung cấp những tác phẩm có giá trị nội dung cao, được biên tập và chọn lọc kỹ lưỡng.",
+  },
+  {
+    icon: <Target className="w-8 h-8" />,
+    title: "Đổi mới sáng tạo",
+    description:
+      "Liên tục cải tiến công nghệ và dịch vụ để tối ưu hóa trải nghiệm đọc trong kỷ nguyên số.",
+  },
+  {
+    icon: <Globe className="w-8 h-8" />,
+    title: "Giao thoa văn hóa",
+    description:
+      "Cầu nối giới thiệu các tác phẩm văn học kinh điển và hiện đại từ khắp nơi trên thế giới.",
+  },
+];
 
-  const teamMembers = [
-    {
-      name: "Mộ xum xuê",
-      role: "Founder & CEO",
-      bio: "Với 15 năm kinh nghiệm trong ngành xuất bản, luôn đam mê lan tỏa văn hóa đọc.",
-      image: "/images/team/ceo.jpg",
-    },
-    {
-      name: "Nộm kim chi",
-      role: "Quản lý cửa hàng",
-      bio: "Chuyên gia tư vấn sách với khả năng kết nối độc giả với những tác phẩm phù hợp.",
-      image: "/images/team/manager.jpg",
-    },
-    {
-      name: "Độ ngô cao bằng chó",
-      role: "Chuyên gia văn học",
-      bio: "Nhà phê bình văn học với nhiều năm nghiên cứu và giảng dạy về văn chương.",
-      image: "/images/team/expert.jpg",
-    },
+const teamMembers = [
+  {
+    name: "Trần Minh Hoàng",
+    role: "Founder & CEO",
+    bio: "Hơn 15 năm kinh nghiệm điều hành trong ngành xuất bản và phân phối ấn phẩm văn hóa.",
+    image: "/images/team/ceo.jpg",
+  },
+  {
+    name: "Lê Mai Phương",
+    role: "Giám đốc vận hành",
+    bio: "Chuyên gia quản trị hệ thống bán lẻ với khả năng tối ưu hóa trải nghiệm khách hàng.",
+    image: "/images/team/manager.jpg",
+  },
+  {
+    name: "Phạm Thành Nam",
+    role: "Giám đốc nội dung",
+    bio: "Cố vấn văn học cấp cao, chịu trách nhiệm thẩm định và tuyển chọn danh mục ấn phẩm.",
+    image: "/images/team/expert.jpg",
+  },
+  {
+    name: "Nguyễn Thu Thủy",
+    role: "Trưởng bộ phận quan hệ đối tác",
+    bio: "Chuyên gia kết nối tác giả và các nhà xuất bản uy tín trong và ngoài nước.",
+    image: "/images/team/partnership.jpg",
+  },
+];
 
-    {
-      name: "Độ tày",
-      role: "Chuyên gia văn học",
-      bio: "Nhà phê bình văn học với nhiều năm nghiên cứu và giảng dạy về văn chương.",
-      image: "/images/team/expert.jpg",
-    },
-  ];
+const timelineData = [
+  {
+    year: "2015",
+    title: "Thành lập thương hiệu",
+    description:
+      "SuperBook chính thức ra mắt thị trường với cửa hàng đầu tiên tại TP.HCM.",
+  },
+  {
+    year: "2018",
+    title: "Mở rộng quy mô",
+    description:
+      "Nâng tổng số chi nhánh lên con số 5 và triển khai nền tảng thương mại điện tử chuyên nghiệp.",
+  },
+  {
+    year: "2020",
+    title: "Chuyển đổi số",
+    description:
+      "Hoàn thiện hệ sinh thái đọc sách trực tuyến và tích hợp hệ thống quản lý vận hành thông minh.",
+  },
+  {
+    year: "2023",
+    title: "Vươn tầm cộng đồng",
+    description:
+      "Đạt cột mốc 100.000 khách hàng thân thiết và khẳng định vị thế trong ngành bán lẻ sách.",
+  },
+];
 
-  const timelineData = [
-    {
-      year: "2015",
-      title: "Khởi nghiệp",
-      description:
-        "REBO được thành lập với một không gian nhỏ tại trung tâm thành phố.",
-    },
-    {
-      year: "2018",
-      title: "Mở rộng",
-      description:
-        "Mở thêm 2 chi nhánh và phát triển hệ thống đặt hàng trực tuyến.",
-    },
-    {
-      year: "2020",
-      title: "Chuyển đổi số",
-      description:
-        "Ứng dụng công nghệ vào quản lý và trải nghiệm mua sắm của khách hàng.",
-    },
-    {
-      year: "2023",
-      title: "Cộng đồng",
-      description:
-        "Xây dựng cộng đồng 10.000+ độc giả thường xuyên tham gia các sự kiện.",
-    },
-  ];
-
-  const stats = [
-    { number: 50000, label: "Đầu sách", suffix: "+" },
-    { number: 10000, label: "Thành viên", suffix: "+" },
-    { number: 5, label: "Chi nhánh", suffix: "" },
-    { number: 8, label: "Năm kinh nghiệm", suffix: "" },
-  ];
+const stats = [
+  { number: 50000, label: "Đầu sách lưu hành", suffix: "+" },
+  { number: 10000, label: "Độc giả tin dùng", suffix: "+" },
+  { number: 5, label: "Hệ thống chi nhánh", suffix: "" },
+  { number: 8, label: "Năm hình thành", suffix: "" },
+];
 
   return (
     <div ref={containerRef} className="min-h-screen">
       {/* Hero Section */}
-      <section
-        ref={heroRef}
-        className="relative overflow-hidden py-20 md:py-28"
-      >
-        <div className="absolute inset-0" />
-        <div className="container mx-auto px-4 relative z-10">
-          <div className="grid md:grid-cols-2 gap-12 items-center">
-            <div>
-              <div className="relative">
-                <Sparkles className="hero-sparkles w-12 h-12 text-teal-500 mb-6" />
-                <h1 className="hero-title text-5xl md:text-6xl font-bold mb-6">
-                  <span className="bg-gradient-to-r from-teal-600 to-green-700 bg-clip-text text-transparent">
-                    Câu chuyện REBO
-                  </span>
-                </h1>
-                <p className="hero-subtitle text-xl text-gray-600 mb-8 leading-relaxed">
-                  Từ một không gian nhỏ bé đến một cộng đồng yêu sách rộng lớn,
-                  chúng tôi không ngừng lan tỏa tình yêu với tri thức và văn
-                  chương.
-                </p>
-                <blockquote className="hero-quote border-l-4 border-teal-500 pl-6 py-3 italic text-gray-700">
-                  <Quote className="inline-block w-5 h-5 mr-2 text-teal-500" />
-                  "Mỗi cuốn sách là một cuộc phiêu lưu, mỗi trang giấy là một
-                  chân trời mới."
-                </blockquote>
-              </div>
-            </div>
-            <div className="hero-image relative">
-              <div className="relative h-[400px] md:h-[500px] rounded-2xl overflow-hidden shadow-2xl">
-                <div className="absolute inset-0 bg-gradient-to-t from-teal-900/50 to-transparent" />
-                <div className="w-full h-full bg-gradient-to-br from-teal-400 to-green-600 flex items-center justify-center">
-                  <BookOpen className="w-32 h-32 text-white opacity-80" />
-                </div>
-              </div>
-              <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-teal-500 rounded-2xl -z-10" />
-              <div className="absolute -top-6 -right-6 w-24 h-24 bg-green-500 rounded-full -z-10" />
-            </div>
+   <section
+  ref={heroRef}
+  className="relative overflow-hidden py-20 md:py-28"
+>
+  <div className="absolute inset-0 bg-red-50/30" /> {/* Nền đỏ cực nhạt để làm dịu layout */}
+  <div className="container mx-auto px-4 relative z-10">
+    <div className="grid md:grid-cols-2 gap-12 items-center">
+      <div>
+        <div className="relative">
+          <Sparkles className="hero-sparkles w-12 h-12 text-red-500 mb-6" />
+          <h1 className="hero-title text-5xl md:text-6xl font-bold mb-6">
+            <span className="bg-gradient-to-r from-red-600 to-red-800 bg-clip-text text-transparent">
+              Câu chuyện SuperBook
+            </span>
+          </h1>
+          <p className="hero-subtitle text-xl text-gray-600 mb-8 leading-relaxed">
+            Từ những viên gạch đầu tiên đến một hệ sinh thái tri thức toàn diện, 
+            SuperBook không ngừng nỗ lực để nâng tầm văn hóa đọc trong kỷ nguyên mới.
+          </p>
+          <blockquote className="hero-quote border-l-4 border-red-600 pl-6 py-3 italic text-gray-700">
+            <Quote className="inline-block w-5 h-5 mr-2 text-red-600" />
+            "Tại SuperBook, chúng tôi tin rằng mỗi cuốn sách là một nguồn lực 
+            vô tận để kiến tạo nên tương lai."
+          </blockquote>
+        </div>
+      </div>
+      
+      <div className="hero-image relative">
+        <div className="relative h-[400px] md:h-[500px] rounded-2xl overflow-hidden shadow-2xl">
+          <div className="absolute inset-0 bg-gradient-to-t from-red-900/40 to-transparent" />
+          {/* Background image placeholder với tông đỏ nhạt phối đỏ đậm */}
+          <div className="w-full h-full bg-gradient-to-br from-red-400 to-red-700 flex items-center justify-center">
+            <BookOpen className="w-32 h-32 text-white opacity-90" />
           </div>
         </div>
-      </section>
-
+        
+        {/* Các khối trang trí được chỉnh thành đỏ nhạt để nhìn thuận mắt hơn */}
+        <div className="absolute -bottom-6 -left-6 w-32 h-32 bg-red-100 rounded-2xl -z-10 shadow-sm" />
+        <div className="absolute -top-6 -right-6 w-24 h-24 bg-red-600/20 rounded-full -z-10 blur-sm" />
+      </div>
+    </div>
+  </div>
+</section>
       {/* Stats Section */}
       <section ref={statsRef} className="py-16 bg-white">
         <div className="container mx-auto px-4">
@@ -310,7 +311,7 @@ const AboutPage = () => {
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Giá trị cốt lõi</h2>
             <p className="text-gray-600 text-lg max-w-2xl mx-auto">
-              Những nguyên tắc định hướng cho mọi hoạt động của REBO
+              Những nguyên tắc định hướng cho mọi hoạt động của SuperBook
             </p>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -338,7 +339,7 @@ const AboutPage = () => {
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Hành trình phát triển</h2>
             <p className="text-gray-600 text-lg">
-              Những cột mốc đáng nhớ trên chặng đường của REBO
+              Những cột mốc đáng nhớ trên chặng đường của SuperBook
             </p>
           </div>
           <div className="relative max-w-4xl mx-auto">
@@ -374,7 +375,7 @@ const AboutPage = () => {
       {/* Team Section */}
       <div className="py-12">
         <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold mb-4">Đội ngũ REBO</h2>
+          <h2 className="text-4xl font-bold mb-4">Đội ngũ SuperBook</h2>
           <p className="text-gray-600 text-lg max-w-2xl mx-auto">
             Những người đam mê sách và tận tâm với sứ mệnh lan tỏa văn hóa đọc
           </p>

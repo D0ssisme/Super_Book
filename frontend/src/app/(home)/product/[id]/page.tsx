@@ -61,7 +61,7 @@ const ProductDetailPage = async ({
           <div className="bg-white rounded-xl shadow-md p-6 border border-green-100">
             <h3 className="text-xl font-bold text-gray-800 mb-3 flex items-center gap-2">
               <Shield className="text-green-600" size={24} />
-              REBO đảm bảo
+              SuperBook đảm bảo
             </h3>
             <ul className="space-y-3 text-gray-700">
               <li className="flex items-start gap-3">
