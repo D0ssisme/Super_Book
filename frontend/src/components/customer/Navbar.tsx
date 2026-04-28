@@ -65,7 +65,7 @@ export default function UserNavbar() {
             <SidebarTrigger className="size-9" />
             <Link href="/" className="flex-shrink-0">
               <Image
-                src="/images/logo.webp"
+                src="/images/logosuperbook.webp"
                 alt="Logo"
                 width={100}
                 height={100}

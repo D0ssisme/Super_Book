@@ -125,6 +125,9 @@ export async function getTop10BestSellingBooks(req, res) {
       {
         $unwind: "$book",
       },
+      {
+        $match: { "book.isDeleted": false },
+      },
     ]);
 
     const now = new Date();

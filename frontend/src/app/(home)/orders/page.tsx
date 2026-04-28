@@ -470,14 +470,7 @@ const OrderPage = () => {
                           icon={<QrCode className="text-green-600 w-5 h-5" />}
                           selected={field.value}
                         />
-                        <PaymentOption
-                          value="CARD"
-                          label="Thẻ tín dụng / Ghi nợ"
-                          icon={
-                            <CreditCard className="text-indigo-600 w-5 h-5" />
-                          }
-                          selected={field.value}
-                        />
+                  
                       </RadioGroup>
                     )}
                   />
@@ -498,46 +491,9 @@ const OrderPage = () => {
                       <span>{formatPrice(displayTotal)}</span>
                     </div>
                     <div className="space-y-2 pt-2">
-                      <div className="flex items-center gap-2">
-                        <input
-                          value={couponCode}
-                          onChange={(e) =>
-                            setCouponCode(e.target.value.toUpperCase())
-                          }
-                          placeholder="Nhập mã giảm giá"
-                          className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm outline-none focus:border-blue-500"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-10"
-                          onClick={handleApplyCoupon}
-                          disabled={isApplyingCoupon}
-                        >
-                          {isApplyingCoupon ? "Đang áp..." : "Áp mã"}
-                        </Button>
-                      </div>
-                      {appliedCouponCode && (
-                        <div className="flex items-center justify-between rounded-md bg-green-50 px-3 py-2 text-xs text-green-700">
-                          <span>
-                            Đã áp mã <strong>{appliedCouponCode}</strong>
-                          </span>
-                          <button
-                            type="button"
-                            className="font-semibold underline"
-                            onClick={handleRemoveCoupon}
-                          >
-                            Bỏ mã
-                          </button>
-                        </div>
-                      )}
+                    
                     </div>
-                    <div className="flex justify-between text-gray-600">
-                      <span>Giảm giá:</span>
-                      <span className="text-green-600 font-medium">
-                        -{formatPrice(discountAmount)}
-                      </span>
-                    </div>
+                    
                     <div className="flex justify-between text-gray-600">
                       <span>Vận chuyển:</span>
                       <span className="text-green-600 font-medium">
