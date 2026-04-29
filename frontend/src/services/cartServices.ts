@@ -8,7 +8,7 @@ const GUEST_SESSION_KEY = "guest_session_id";
  */
 export function getOrCreateGuestSessionId(): string {
   if (typeof window === 'undefined') return '';
-  
+
   let sessionId = localStorage.getItem(GUEST_SESSION_KEY);
   if (!sessionId) {
     sessionId = `guest_${Date.now()}_${Math.random().toString(36).substring(7)}`;

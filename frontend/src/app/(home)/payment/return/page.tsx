@@ -14,11 +14,15 @@ import { CheckCircle, Eye, Home, Loader2 } from "lucide-react";
 import { useCartStore } from "@/stores/useCartStore";
 import { confirmPayment, getOrderByOrderCode } from "@/services/PaymentService";
 import { Order } from "@/types/order.type";
+import { useProductDeletionMonitor } from "@/hooks/useProductDeletionMonitor";
 
 const PaymentReturnContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
   const clearCart = useCartStore((state) => state.clearCart);
+
+  // Monitor for deleted products during payment
+  useProductDeletionMonitor();
 
   const status = searchParams.get("status");
   const orderCode = searchParams.get("orderCode");
