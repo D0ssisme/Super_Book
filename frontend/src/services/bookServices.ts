@@ -57,7 +57,14 @@ export const bookServices = {
     try {
       const response = await api.get<Book>(`/books/${productId}`);
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
+      // Check if product was deleted (404) or doesn't exist (400)
+      if (error.response?.status === 404 || error.response?.status === 400) {
+        const errorWithStatus = new Error(`Sản phẩm không tồn tại`) as any;
+        errorWithStatus.status = error.response?.status;
+        errorWithStatus.productId = productId;
+        throw errorWithStatus;
+      }
       console.error(error);
       throw error;
     }
