@@ -28,6 +28,7 @@ export function clearGuestSession(): void {
 
 export const cartServices = {
   fetchCart: async (): Promise<Cart> => {
+    getOrCreateGuestSessionId();
     console.log("fetching cart...");
     try {
       const response = await api.get<Cart>("/cart");
@@ -48,6 +49,7 @@ export const cartServices = {
 
   addToCart: async (bookId: string, quantity: number = 1): Promise<Cart> => {
     try {
+      getOrCreateGuestSessionId();
       console.log("Adding to cart - bookId:", bookId, "quantity:", quantity);
       const response = await api.post<Cart>("/cart", {
         bookId,
@@ -63,6 +65,7 @@ export const cartServices = {
 
   updateCart: async (cartDetailId: string, quantity: number): Promise<Cart> => {
     try {
+      getOrCreateGuestSessionId();
       const response = await api.put<Cart>(`/cart/${cartDetailId}`, {
         quantity,
       });
@@ -75,6 +78,7 @@ export const cartServices = {
 
   removeCartItem: async (cartDetailId: string): Promise<Cart> => {
     try {
+      getOrCreateGuestSessionId();
       const response = await api.delete<Cart>(`/cart/${cartDetailId}`);
       return response.data;
     } catch (error) {
@@ -85,6 +89,7 @@ export const cartServices = {
 
   clearCart: async () => {
     try {
+      getOrCreateGuestSessionId();
       const response = await api.delete("/cart");
       return response.status;
     } catch (error) {
