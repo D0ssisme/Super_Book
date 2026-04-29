@@ -139,7 +139,9 @@ export const useCartStore = create<CartStore>((set, get) => ({
     );
 
     if (!itemToRemove) {
-      throw new Error("Item not found in cart");
+      // Item already removed (by backend or another process), just refetch cart and exit
+      await get().fetchCart();
+      return;
     }
 
     const removedItemInfo = {

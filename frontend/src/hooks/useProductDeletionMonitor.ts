@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { toast } from "sonner";
 import { bookServices } from "@/services/bookServices";
 import { useCartStore } from "@/stores/useCartStore";
@@ -36,13 +36,14 @@ function saveDeletedProductsToSession(products: Set<string>) {
  * Polls every 5 seconds and handles deletion based on current page
  */
 export function useProductDeletionMonitor() {
-    const router = useRouter();
     const pathname = usePathname();
     const cart = useCartStore((s) => s.cart);
     const fetchCart = useCartStore((s) => s.fetchCart);
+    const removeCartItem = useCartStore((s) => s.removeCartItem);
     const intervalRef = useRef<NodeJS.Timeout | null>(null);
     const hasShownErrorRef = useRef(false);
     const deletedProductsRef = useRef<Set<string>>(getDeletedProductsFromSession());
+    const isCheckingRef = useRef(false);
 
     useEffect(() => {
         // Only start monitoring if there are items in the cart
@@ -51,8 +52,11 @@ export function useProductDeletionMonitor() {
         }
 
         const checkProductsDeletion = async () => {
+            if (isCheckingRef.current) return;
+            isCheckingRef.current = true;
             try {
-                let newDeletedProducts: string[] = [];
+            let newDeletedProducts: string[] = [];
+            const removedCartItemIds: string[] = [];
 
                 // Check all products in cart
                 for (const item of cart.items) {
@@ -68,6 +72,7 @@ export function useProductDeletionMonitor() {
                         if (error.status === 404 || error.status === 400) {
                             newDeletedProducts.push(item.bookId);
                             deletedProductsRef.current.add(item.bookId);
+                            removedCartItemIds.push(item._id);
                         }
                     }
                 }
@@ -79,60 +84,59 @@ export function useProductDeletionMonitor() {
                     // Save to session storage
                     saveDeletedProductsToSession(deletedProductsRef.current);
 
+                    // Remove deleted items from cart first
+                    for (const cartItemId of removedCartItemIds) {
+                        try {
+                            await removeCartItem(cartItemId);
+                        } catch (removeError) {
+                            console.error("Failed to remove deleted item:", removeError);
+                        }
+                    }
+
                     // Refetch cart to update with remaining items
                     await fetchCart();
 
                     const productNames = newDeletedProducts.join(", ");
                     const message = `Sản phẩm "${productNames}" đã bị xóa khỏi kho.`;
 
-                    // Stop interval to prevent re-checking
-                    if (intervalRef.current) {
-                        clearInterval(intervalRef.current);
-                        intervalRef.current = null;
-                    }
-
-                    // Different handling based on current page
-                    if (pathname === "/orders") {
-                        // On checkout page - reload immediately
-                        toast.error(message + " Trang sẽ được tải lại...", {
-                            duration: 2000,
-                        });
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1500);
-                    } else if (pathname === "/cart") {
-                        // On cart page - reload to update display
-                        toast.error(message + " Trang sẽ được tải lại...", {
-                            duration: 2000,
-                        });
-                        setTimeout(() => {
-                            window.location.reload();
-                        }, 1500);
-                    } else {
-                        // On other pages - show notification and update cart
-                        toast.error(message, {
-                            duration: 4000,
-                        });
-                        // Refetch cart data in background (already done above)
-                    }
+                    // Always show toast regardless of page
+                    toast.error(message, { duration: 3000 });
 
                     return;
                 }
             } catch (error) {
                 console.error("Error checking product deletion:", error);
+            } finally {
+                isCheckingRef.current = false;
             }
         };
 
-        // Start polling every 5 seconds
+        // Run once quickly then poll every 5 seconds
+        checkProductsDeletion();
         intervalRef.current = setInterval(checkProductsDeletion, 5000);
+
+        const handleFocus = () => {
+            checkProductsDeletion();
+        };
+
+        const handleVisibility = () => {
+            if (document.visibilityState === "visible") {
+                checkProductsDeletion();
+            }
+        };
+
+        window.addEventListener("focus", handleFocus);
+        document.addEventListener("visibilitychange", handleVisibility);
 
         // Cleanup
         return () => {
             if (intervalRef.current) {
                 clearInterval(intervalRef.current);
             }
+            window.removeEventListener("focus", handleFocus);
+            document.removeEventListener("visibilitychange", handleVisibility);
         };
-    }, [cart, pathname, fetchCart]);
+    }, [cart, pathname, fetchCart, removeCartItem]);
 }
 
 

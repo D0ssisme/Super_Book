@@ -209,7 +209,7 @@ export async function clearCartService(customerId, guestSessionId) {
 export async function getCartService(customerId, guestSessionId) {
   const cartQuery = buildCartQuery(customerId, guestSessionId);
   let cart = await Cart.findOne(cartQuery);
-  
+
   if (!cart) {
     // Create an empty cart if it doesn't exist
     const cartData = buildCartData(customerId, guestSessionId);
@@ -225,9 +225,18 @@ export async function getCartService(customerId, guestSessionId) {
 
   const activeEvents = await getActiveEvents();
   const bookIds = cart.items.map((item) => item.bookId);
-  const books = await Book.find({ _id: { $in: bookIds } }).select(
-    "price categoryId",
-  );
+  // Fetch all books, including isDeleted field
+  const books = await Book.find({ _id: { $in: bookIds } }).select("price categoryId isDeleted");
+  // Build a map of bookId to book object
+  const bookMap = new Map(books.map((book) => [String(book._id), book]));
+
+  // Remove items whose book is deleted
+  const filteredItems = cart.items.filter((item) => {
+    const book = bookMap.get(String(item.bookId));
+    return book && !book.isDeleted;
+  });
+
+  // Update prices for remaining items
   const bookPriceMap = new Map(
     books.map((book) => [
       String(book._id),
@@ -235,7 +244,7 @@ export async function getCartService(customerId, guestSessionId) {
     ]),
   );
 
-  cart.items = cart.items.map((item) => {
+  cart.items = filteredItems.map((item) => {
     const effectivePrice = bookPriceMap.get(String(item.bookId));
     if (typeof effectivePrice === "number" && item.price !== effectivePrice) {
       item.price = effectivePrice;
@@ -243,6 +252,7 @@ export async function getCartService(customerId, guestSessionId) {
     return item;
   });
 
+  // Update totals
   const computedQuantity = cart.items.reduce(
     (sum, item) => sum + item.quantity,
     0,
@@ -254,10 +264,12 @@ export async function getCartService(customerId, guestSessionId) {
 
   if (
     cart.totalQuantity !== computedQuantity ||
-    cart.totalPrice !== computedPrice
+    cart.totalPrice !== computedPrice ||
+    cart.items.length !== filteredItems.length
   ) {
     cart.totalQuantity = computedQuantity;
     cart.totalPrice = computedPrice;
+    cart.markModified("items");
     await cart.save();
   }
 
