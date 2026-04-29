@@ -25,6 +25,7 @@ const Page = async ({ params, searchParams }: ProductsPageProps) => {
   const maxPrice = parser.getNumber("maxPrice");
   const sortBy = parser.getString("sortBy") || "newest";
   const publishers = parser.getStringArray("publishers");
+  const eventId = parser.getString("event");
 
   const data = await bookServices.getBooks(
     currentPage,
@@ -34,7 +35,8 @@ const Page = async ({ params, searchParams }: ProductsPageProps) => {
     search,
     minPrice,
     maxPrice,
-    sortBy
+    sortBy,
+    eventId
   );
 
   return (

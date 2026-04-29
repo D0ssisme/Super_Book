@@ -23,6 +23,7 @@ export interface CartStore {
   checkoutItems: string[];
 
   // Actions
+  initializeGuestSession: () => void;
   fetchCart: () => Promise<void>;
   addToCart: (bookId: string, quantity: number) => Promise<void>;
   updateCartItem: (bookId: string, quantity: number) => Promise<void>;
@@ -31,6 +32,7 @@ export interface CartStore {
   toggleSelectItem: (itemId: string) => void;
   selectAllItems: () => void;
   deselectAllItems: () => void;
+  setSelectedItemIds: (itemIds: string[]) => void;
   setCheckoutItems: (itemIds: string[]) => void;
-
+  onLoginSuccess: () => Promise<void>;
 }

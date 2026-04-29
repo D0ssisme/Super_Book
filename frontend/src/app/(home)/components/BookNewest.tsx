@@ -1,6 +1,6 @@
 
 import React from 'react'
-import ProductCard, { ProductCardProps } from '../collections/components/ProductCard'
+import ProductCard from '../collections/components/ProductCard'
 import { Book } from '@/types/book.type';
 
 interface BookShowCaseProps {
@@ -30,7 +30,7 @@ const BookNewest = ({title, books = []}: BookShowCaseProps) => {
 
       {/* Book Grid */}
       <div className='grid lg:grid-cols-5 grid-cols-2 md:grid-cols-4 gap-1 px-2'>
-        {books?.map((book) =>(
+        {books?.filter((book) => !book.isDeleted).map((book) =>(
           <ProductCard
             key={book._id}
             _id={book._id}
@@ -38,6 +38,7 @@ const BookNewest = ({title, books = []}: BookShowCaseProps) => {
             name={book.name}
             price={book.price}
             stock={book.quantity}
+            event={book.event}
           />
         ))}
       </div>

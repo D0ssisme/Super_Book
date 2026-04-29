@@ -1,22 +1,25 @@
-"use client"
+"use client";
 import BannerSlider from "./components/Banner";
 import CategorySidebar from "./components/CategorySidebar";
 import BrandCarousel from "./components/BrandCarousel";
-import BookShowCase from '@/app/(home)/components/BookShowCase';
-import BookNewest from '@/app/(home)/components/BookNewest';
-import EventShowcase from '@/app/(home)/components/EventShowcase';
-import { getAllTop10BestSellingBooks, getAllTop10NewestBooks } from '@/hooks/useBook';
+import BookShowCase from "@/app/(home)/components/BookShowCase";
+import BookNewest from "@/app/(home)/components/BookNewest";
+import EventShowcase from "@/app/(home)/components/EventShowcase";
+import { useTop10BestSellingBooks, useTop10NewestBooks } from "@/hooks/useBook";
 
 export default function HomePage() {
+  const { bestSelling, isLoading: Selling } = useTop10BestSellingBooks();
+  const { newest, isLoading: Newest } = useTop10NewestBooks();
 
-  const { bestSelling, isLoading: Selling } = getAllTop10BestSellingBooks()
-  const { newest, isLoading: Newest } = getAllTop10NewestBooks()
-
-  if (Selling || Newest) return <div className="text-center py-4 text-sm text-gray-500">Đang tải thông tin sách...</div>;
+  if (Selling || Newest)
+    return (
+      <div className="text-center py-4 text-sm text-gray-500">
+        Đang tải thông tin sách...
+      </div>
+    );
 
   return (
     <div className="w-full max-w-[1200px] p-2 mt-4 mx-auto">
-
       {/* KHU VỰC TRÊN: Sidebar và Banner nằm ngang */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_2fr] gap-1 mb-8">
         <CategorySidebar />

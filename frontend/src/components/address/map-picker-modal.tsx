@@ -17,7 +17,7 @@ interface MapPickerModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (data: AddressComponent[]) => void;
-  setDistricts: Dispatch<Province[]>
+  setDistricts: Dispatch<Province[]>;
 }
 
 export interface AddressComponent {
@@ -32,9 +32,10 @@ export const MapPickerModal = ({
   setDistricts,
 }: MapPickerModalProps) => {
   const [addresstName, setAddressName] = useState<AddressComponent[]>([]);
+  const hasSelectedAddress = addresstName.length > 0;
 
   const handleConfirm = () => {
-    if (addresstName) {
+    if (hasSelectedAddress) {
       onConfirm(addresstName);
       onClose();
     }
@@ -58,7 +59,10 @@ export const MapPickerModal = ({
         </DialogHeader>
 
         <div className="flex-1 relative bg-gray-100 overflow-hidden">
-          <Map4DAutoSuggest setAddressName={setAddressName} setDistricts={setDistricts} />
+          <Map4DAutoSuggest
+            setAddressName={setAddressName}
+            setDistricts={setDistricts}
+          />
         </div>
 
         <div className="p-4 bg-white border-t z-10 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]">
@@ -68,14 +72,14 @@ export const MapPickerModal = ({
                 Vị trí đã chọn:
               </p>
               <p className="text-sm font-medium text-gray-900 truncate">
-                {addresstName
+                {hasSelectedAddress
                   ? addresstName.map((a) => a.name).join(", ")
                   : "Vui lòng kéo bản đồ..."}
               </p>
             </div>
             <Button
               onClick={handleConfirm}
-              disabled={!addresstName}
+              disabled={!hasSelectedAddress}
               className="w-full md:w-auto"
             >
               Xác nhận vị trí

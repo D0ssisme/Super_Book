@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Eye, MoreHorizontal, Star, CheckCircle, EyeOff, Trash2 } from "lucide-react";
+import { Eye, MoreHorizontal, Star, CheckCircle, EyeOff } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,7 +27,6 @@ interface ReviewTableProps {
   reviews: ReviewItem[];
   onView: (review: ReviewItem) => void;
   onStatusChange: (review: ReviewItem, status: ReviewStatus) => void;
-  onDelete: (review: ReviewItem) => void;
 }
 
 function renderRating(rating: number) {
@@ -60,7 +59,6 @@ export default function ReviewTable({
   reviews,
   onView,
   onStatusChange,
-  onDelete,
 }: ReviewTableProps) {
   if (reviews.length === 0) {
     return (
@@ -148,14 +146,6 @@ export default function ReviewTable({
                     >
                       <Eye className="w-4 h-4 mr-2" />
                       Chuyển chờ duyệt
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      onClick={() => onDelete(review)}
-                      className="text-red-600 focus:text-red-600"
-                    >
-                      <Trash2 className="w-4 h-4 mr-2" />
-                      Xóa
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>

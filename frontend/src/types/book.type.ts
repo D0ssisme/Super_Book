@@ -7,16 +7,19 @@ export interface BookDetail {
   name: string;
   categoryId: Category;
   publisherId: Publisher;
-  imageUrl: [string]
+  imageUrl: [string];
   quantity: number;
   price: number;
+  isDeleted?: boolean;
+  event?: {
+    discountPercent: number;
+  };
 }
 export interface BookBanner {
   _id: string;
   totalSold: string;
   book: BookDetail;
 }
-
 
 export interface Book {
   _id: string;
@@ -37,6 +40,9 @@ export interface Book {
   mainImage: string;
   quantity: number;
   price: number;
+  event?: {
+    discountPercent: number;
+  };
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;

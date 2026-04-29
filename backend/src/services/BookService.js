@@ -108,7 +108,7 @@ export async function updateBookService(id, data, files) {
   populatedBook.authors = authorsRel.map(rel => rel.authorId);
   return populatedBook;
 }
-export async function findBookService(_id) {
+export async function findBookService(_id, includeDeleted = false) {
   const book = await Book.findById(_id)
     .populate("categoryId", "name")
     .populate("publisherId", "name")
@@ -116,6 +116,12 @@ export async function findBookService(_id) {
   if (!book) {
     throw new Error(`Book with id ${_id} not found`);
   }
+  
+  // Check if book is deleted - nếu không cho phép deleted
+  if (!includeDeleted && book.isDeleted) {
+    throw new Error(`Book with id ${_id} not found`);
+  }
+  
   const authors = await BookAuthor.find({ bookId: book._id }).populate(
     "authorId",
     "name"
@@ -165,11 +171,17 @@ export async function findBookService(_id) {
 export async function deleteBookService(id) {
   const book = await Book.findById(id);
   if (!book) {
-    throw new Error(`Book with id ${_id} not found`);
+    throw new Error(`Book with id ${id} not found`);
   }
-  await BookAuthor.deleteMany({ bookId: book._id });
-  await Book.findByIdAndDelete(book._id);
-  return book;
+  // Soft delete - chỉ đánh dấu, không xóa thực
+  // Không xóa BookAuthor để tránh mất thông tin
+  // Hóa đơn cũ vẫn lấy được thông tin sách
+  const deletedBook = await Book.findByIdAndUpdate(
+    id,
+    { isDeleted: true },
+    { new: true }
+  );
+  return deletedBook;
 }
 
 export async function getAllBooksService(query) {
@@ -289,7 +301,6 @@ export async function getAllBooksService(query) {
         event: null
       }));
 
-      // Get all active events
       const now = new Date();
       const activeEvents = await Event.find({
         status: 'active',
@@ -297,7 +308,6 @@ export async function getAllBooksService(query) {
         endDate: { $gte: now }
       }).lean();
 
-      // Attach best matching event to each book (highest discount)
       const booksWithEvents = booksWithAuthors.map((book) => {
         let bestEvent = null;
         let maxDiscount = -1;

@@ -2,10 +2,10 @@ import express from 'express';
 import { auth } from '../middlewares/auth.js';
 import { authorizeRoles } from '../middlewares/authorize.js';
 import { checkEmptyBody } from '../middlewares/checkEmptyBody.js';
+import { uploadImage } from '../middlewares/uploadImage.js';
 import {
   canReview,
   createMyReview,
-  deleteAdminReview,
   deleteMyReview,
   getMyReviewDetail,
   getMyReviews,
@@ -16,6 +16,7 @@ import {
   getAdminReviewStats,
   updateMyReview,
   updateAdminReviewStatus,
+  uploadReviewImages,
 } from '../controllers/ReviewController.js';
 
 const router = express.Router();
@@ -29,6 +30,7 @@ router.use(auth);
 
 // API DÀNH CHO khách hàng  
 router.get('/can-review', canReview); // Kiểm tra xem user có được phép đánh giá sách này không
+router.post('/upload-images', uploadImage.array('images', 6), uploadReviewImages);
 router.post('/', checkEmptyBody, createMyReview); 
 router.get('/me', getMyReviews); // Xem lịch sử các bài đánh giá của chính mình
 router.get('/me/:id', getMyReviewDetail); 
@@ -43,6 +45,5 @@ router.get('/admin', getAdminReviews);
 router.get('/admin/stats', getAdminReviewStats); // Quản lý: Xem thống kê tổng quan (tổng review, bao nhiêu chờ duyệt...)
 router.get('/admin/:id', getAdminReviewDetail); 
 router.put('/admin/:id/status', checkEmptyBody, updateAdminReviewStatus); // Quản lý: Duyệt/Ẩn bài đánh giá (thay đổi status)
-router.delete('/admin/:id', deleteAdminReview);
 
 export default router;

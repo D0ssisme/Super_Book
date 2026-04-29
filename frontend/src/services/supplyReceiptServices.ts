@@ -87,17 +87,4 @@ export const supplyReceiptServices = {
       throw error;
     }
   },
-
-  // Delete supply receipt
-  deleteSupplyReceipt: async (id: string): Promise<ApiResponse<null>> => {
-    try {
-      const response = await api.delete<ApiResponse<null>>(
-        `/supply-receipts/${id}`
-      );
-      return response.data;
-    } catch (error) {
-      console.error("Error deleting supply receipt:", error);
-      throw error;
-    }
-  },
 };

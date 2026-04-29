@@ -1,22 +1,28 @@
-'use client';
+"use client";
 
-import React, { Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { AlertCircle, ArrowLeft, RefreshCcw, Loader2 } from 'lucide-react';
-import { cancelPayment } from '@/services/PaymentService';
+import React, { Suspense } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { AlertCircle, ArrowLeft, Loader2 } from "lucide-react";
 
 const PaymentCancelContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  const orderCode = searchParams.get('orderCode');
+  const orderCode = searchParams.get("orderCode");
+  const orderId = searchParams.get("orderId");
+  const hasOrderCode = Boolean(orderCode || orderId);
 
-  if (!orderCode) {
+  if (!hasOrderCode) {
     return null;
   }
-  const res = cancelPayment(orderCode)
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
@@ -30,7 +36,7 @@ const PaymentCancelContent = () => {
             Thanh toán bị hủy
           </CardTitle>
           <p className="text-gray-500 text-sm text-center max-w-xs">
-            Giao dịch đã bị hủy hoặc xảy ra lỗi trong quá trình thanh toán.
+            Giao dịch chưa hoàn tất. Bạn có thể quay lại đơn hàng để thanh toán lại.
           </p>
         </CardHeader>
 
@@ -38,11 +44,13 @@ const PaymentCancelContent = () => {
           <div className="bg-red-50 p-4 rounded-lg border border-red-100 space-y-3">
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Mã đơn hàng:</span>
-              <span className="font-bold text-gray-900">#{orderCode}</span>
+              <span className="font-bold text-gray-900">
+                #{orderCode || orderId}
+              </span>
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Trạng thái:</span>
-              <span className="font-bold text-red-600">Đã hủy giao dịch</span>
+              <span className="font-bold text-red-600">Thanh toán thất bại</span>
             </div>
             <div className="text-xs text-red-500 mt-2 italic">
               *Bạn chưa bị trừ tiền cho giao dịch này.
@@ -51,10 +59,18 @@ const PaymentCancelContent = () => {
         </CardContent>
 
         <CardFooter className="flex flex-col sm:flex-row gap-3 pt-2">
+          {orderId ? (
+            <Button
+              className="w-full"
+              onClick={() => router.push(`/orders/${orderId}`)}
+            >
+              Thanh toán lại
+            </Button>
+          ) : null}
           <Button
             variant="outline"
             className="w-full border-gray-300"
-            onClick={() => router.push('/')}
+            onClick={() => router.push("/")}
           >
             <ArrowLeft className="w-4 h-4 mr-2" /> Về trang chủ
           </Button>
@@ -65,7 +81,13 @@ const PaymentCancelContent = () => {
 };
 
 const PaymentCancelPage = () => (
-  <Suspense fallback={<div className="flex justify-center items-center h-screen"><Loader2 className="animate-spin w-8 h-8 text-gray-500" /></div>}>
+  <Suspense
+    fallback={
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="animate-spin w-8 h-8 text-gray-500" />
+      </div>
+    }
+  >
     <PaymentCancelContent />
   </Suspense>
 );

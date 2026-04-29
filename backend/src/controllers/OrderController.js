@@ -5,19 +5,60 @@ import {
   getAllOrdersService,
   getOrderDetailByIdService,
   updateOrderService,
-  getOrderByOrderCodeService
+  getOrderByOrderCodeService,
 } from "../services/OrderService.js";
-import OrderDetail from '../models/OrderDetail.js';
-import Book from '../models/Book.js';
-import Cart from '../models/Cart.js';
+import OrderDetail from "../models/OrderDetail.js";
+import Book from "../models/Book.js";
+import Cart from "../models/Cart.js";
+import Event from "../models/Event.js";
 
+function selectBestActiveEventForBook(book, activeEvents) {
+  let bestEvent = null;
+  let maxDiscount = -1;
+
+  for (const activeEvent of activeEvents) {
+    let applies = false;
+
+    if (activeEvent.applyType === "all") {
+      applies = true;
+    } else if (
+      activeEvent.applyType === "products" &&
+      activeEvent.bookIds?.length > 0
+    ) {
+      applies = activeEvent.bookIds.some(
+        (id) => id.toString() === book._id.toString(),
+      );
+    } else if (
+      activeEvent.applyType === "categories" &&
+      activeEvent.categoryIds?.length > 0
+    ) {
+      const bookCategoryId =
+        typeof book.categoryId === "object" && book.categoryId?._id
+          ? book.categoryId._id
+          : book.categoryId;
+
+      applies = activeEvent.categoryIds.some(
+        (id) => id.toString() === String(bookCategoryId),
+      );
+    }
+
+    if (applies && activeEvent.discountPercent > maxDiscount) {
+      maxDiscount = activeEvent.discountPercent;
+      bestEvent = activeEvent;
+    }
+  }
+
+  return bestEvent;
+}
 
 //Get orders by customerId
 export async function getOrdersByCustomerId(req, res) {
   try {
     // TODO: Khi deploy production, check req.user exists
     if (!req.user || !req.user.id) {
-      return res.status(401).send({ message: "Unauthorized: User not authenticated" });
+      return res
+        .status(401)
+        .send({ message: "Unauthorized: User not authenticated" });
     }
     const order = await getAllOrdersByCustomerIdService(req.user.id, req.query);
     if (!order) {
@@ -64,29 +105,47 @@ export async function getTop10BestSellingBooks(req, res) {
       {
         $group: {
           _id: "$bookId",
-          totalSold: { $sum: "$quantity" }
-        }
+          totalSold: { $sum: "$quantity" },
+        },
       },
       {
-        $sort: { totalSold: -1 }
+        $sort: { totalSold: -1 },
       },
       {
-        $limit: 11
+        $limit: 11,
       },
       {
         $lookup: {
           from: "books",
           localField: "_id",
           foreignField: "_id",
-          as: "book"
-        }
+          as: "book",
+        },
       },
       {
-        $unwind: "$book"
-      }
+        $unwind: "$book",
+      },
+      {
+        $match: { "book.isDeleted": false },
+      },
     ]);
 
-    return res.status(200).json(result);
+    const now = new Date();
+    const activeEvents = await Event.find({
+      status: "active",
+      startDate: { $lte: now },
+      endDate: { $gte: now },
+    }).lean();
+
+    const resultWithEvents = result.map((item) => ({
+      ...item,
+      book: {
+        ...item.book,
+        event: selectBestActiveEventForBook(item.book, activeEvents),
+      },
+    }));
+
+    return res.status(200).json(resultWithEvents);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -94,24 +153,51 @@ export async function getTop10BestSellingBooks(req, res) {
 export async function getTop10NewestBooks(req, res) {
   try {
     const books = await Book.find({ isDeleted: false })
-      .sort({ createdAt: -1 })   // mới nhất → cũ nhất
+      .sort({ createdAt: -1 }) // mới nhất → cũ nhất
       .limit(10)
-      .populate("authors")       // nếu muốn lấy authors luôn
-      .populate("categoryId")    // lấy category info
-      .populate("publisherId");  // lấy publisher info
+      .populate("authors") // nếu muốn lấy authors luôn
+      .populate("categoryId") // lấy category info
+      .populate("publisherId") // lấy publisher info
+      .lean();
 
-    return res.status(200).json(books);
+    const now = new Date();
+    const activeEvents = await Event.find({
+      status: "active",
+      startDate: { $lte: now },
+      endDate: { $gte: now },
+    }).lean();
+
+    const booksWithEvents = books.map((book) => ({
+      ...book,
+      event: selectBestActiveEventForBook(book, activeEvents),
+    }));
+
+    return res.status(200).json(booksWithEvents);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 }
 
-
 //Create order(customer purchase)
 export async function createOrder(req, res) {
   try {
-    const { details, paymentMethod, receiverName, receiverPhone, receiverAddress } = req.body;
-    const order = await createOrderService(req.user.id, paymentMethod, details, receiverName, receiverPhone, receiverAddress);
+    const {
+      details,
+      paymentMethod,
+      receiverName,
+      receiverPhone,
+      receiverAddress,
+      couponCode,
+    } = req.body;
+    const order = await createOrderService(
+      req.user.id,
+      paymentMethod,
+      details,
+      receiverName,
+      receiverPhone,
+      receiverAddress,
+      couponCode,
+    );
     if (!order) {
       return res.status(400).send({ message: "Error creating Order" });
     }
@@ -121,26 +207,41 @@ export async function createOrder(req, res) {
       const cart = await Cart.findOne({ customerId: req.user.id });
       if (cart && cart.items.length > 0) {
         // Get all bookIds from order details
-        const orderedBookIds = details.map(d => d.bookId);
-        
+        const orderedBookIds = details.map((d) => d.bookId);
+
         // Filter cart items to keep only those NOT in the order
-        cart.items = cart.items.filter(item => {
-          const itemBookId = typeof item.bookId === 'string' ? item.bookId : item.bookId.toString();
-          return !orderedBookIds.some(obId => {
-            const orderedId = typeof obId === 'string' ? obId : obId.toString();
+        cart.items = cart.items.filter((item) => {
+          const itemBookId =
+            typeof item.bookId === "string"
+              ? item.bookId
+              : item.bookId.toString();
+          return !orderedBookIds.some((obId) => {
+            const orderedId = typeof obId === "string" ? obId : obId.toString();
             return itemBookId === orderedId;
           });
         });
 
         // Recalculate totals
-        cart.totalQuantity = cart.items.reduce((sum, item) => sum + item.quantity, 0);
-        cart.totalPrice = cart.items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+        cart.totalQuantity = cart.items.reduce(
+          (sum, item) => sum + item.quantity,
+          0,
+        );
+        cart.totalPrice = cart.items.reduce(
+          (sum, item) => sum + item.price * item.quantity,
+          0,
+        );
 
         await cart.save();
-        console.log("[createOrder] Removed items from cart. Remaining:", cart.items.length);
+        console.log(
+          "[createOrder] Removed items from cart. Remaining:",
+          cart.items.length,
+        );
       }
     } catch (cartError) {
-      console.error("[createOrder] Error removing items from cart:", cartError.message);
+      console.error(
+        "[createOrder] Error removing items from cart:",
+        cartError.message,
+      );
       // Don't fail the order if cart removal fails
     }
 
@@ -184,15 +285,18 @@ export async function deleteOrder(req, res) {
     res.status(400).send({ message: err.message });
   }
 }
-export async function getOrderByOrderCode(req, res){
+export async function getOrderByOrderCode(req, res) {
   try {
-    const order = await getOrderByOrderCodeService(req.query.orderCode, req.user.id)
+    const order = await getOrderByOrderCodeService(
+      req.query.orderCode,
+      req.user.id,
+    );
     if (!order) {
       return res.status(400).send({ message: "Error getting order" });
     }
     return res.status(200).json(order);
-  }catch (err){
-    res.status(400).send({message: err.message});
+  } catch (err) {
+    res.status(400).send({ message: err.message });
   }
 }
 

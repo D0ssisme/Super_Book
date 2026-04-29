@@ -8,6 +8,7 @@ import { ProfileTab } from "@/components/account/profile-tab";
 import AddressTab from "@/components/account/address-tab";
 import { OrdersTab } from "@/components/account/orders-tab";
 import { PasswordTab } from "@/components/account/password-tab";
+import { MyReviewsTab } from "@/components/account/my-reviews-tab";
 import NotFound from 'next/dist/client/components/builtin/not-found';
 
 export default function AccountPage() {
@@ -48,6 +49,10 @@ export default function AccountPage() {
 
               <TabsContent value="orders" className="mt-0">
                 <OrdersTab />
+              </TabsContent>
+
+              <TabsContent value="reviews" className="mt-0">
+                <MyReviewsTab />
               </TabsContent>
 
               <TabsContent value="password" className="mt-0">
