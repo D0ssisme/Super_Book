@@ -41,6 +41,7 @@ import { Badge } from "@/components/ui/badge";
 import { CreateAddressModal } from "@/components/address/create-address-modal";
 import { useCartStore } from "@/stores/useCartStore";
 import { useProductDeletionMonitor } from "@/hooks/useProductDeletionMonitor";
+import { bookServices } from "@/services/bookServices";
 import { toast } from "sonner";
 import { Order } from "@/types/order.type";
 import { orderServices } from "@/services/orderServices";
@@ -75,6 +76,46 @@ const OrderPage = () => {
 
   // Monitor for deleted products during checkout
   useProductDeletionMonitor();
+
+  // Validate cart items on page load (checkout-specific)
+  useEffect(() => {
+    const validateCheckoutItems = async () => {
+      if (!cart || cart.items.length === 0 || !checkoutItems || checkoutItems.length === 0) {
+        return;
+      }
+
+      let hasDeletedItems = false;
+      const deletedProducts: string[] = [];
+      const itemsToCheckout = cart.items.filter((item) =>
+        checkoutItems.includes(item._id)
+      );
+
+      // Check if all products in checkout still exist
+      for (const item of itemsToCheckout) {
+        try {
+          await bookServices.getBookById(item.bookId);
+        } catch (error: any) {
+          if (error.status === 404 || error.status === 400) {
+            hasDeletedItems = true;
+            deletedProducts.push(item.bookId);
+          }
+        }
+      }
+
+      if (hasDeletedItems) {
+        const productNames = deletedProducts.join(", ");
+        toast.error(`Sản phẩm "${productNames}" đã bị xóa khỏi kho. Vui lòng kiểm tra lại giỏ hàng.`);
+
+        // Refetch cart and redirect back to cart
+        await fetchCart();
+        setTimeout(() => {
+          router.push("/cart");
+        }, 2000);
+      }
+    };
+
+    validateCheckoutItems();
+  }, [cart, checkoutItems, fetchCart, router]);
 
   // Auto-open auth dialog when user tries to checkout without login
   useEffect(() => {
@@ -205,6 +246,33 @@ const OrderPage = () => {
         );
         return;
       }
+
+      // Validate that all items in the order still exist in cart
+      if (!data.details || data.details.length === 0) {
+        toast.error("Giỏ hàng của bạn trống. Vui lòng quay lại trang giỏ hàng.");
+        router.push("/cart");
+        return;
+      }
+
+      // Verify each item still exists in the current cart
+      for (const orderItem of data.details) {
+        const cartItem = cart?.items.find(item => item.bookId === orderItem.bookId);
+        if (!cartItem) {
+          toast.error(
+            `Sản phẩm không còn tồn tại trong giỏ hàng. Vui lòng kiểm tra lại.`,
+          );
+          await fetchCart();
+          return;
+        }
+        if (cartItem.quantity < orderItem.quantity) {
+          toast.error(
+            `Số lượng sản phẩm "${orderItem.bookId}" không đủ. Vui lòng kiểm tra lại.`,
+          );
+          await fetchCart();
+          return;
+        }
+      }
+
       const payload: OrderPayload = {
         ...data,
         couponCode: appliedCouponCode || undefined,
