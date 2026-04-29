@@ -1,5 +1,5 @@
 import User from '../models/User.js';
-import { comparePassword, hashPassword } from '../helper/hashPassword.js';
+import { comparePassword } from '../helper/hashPassword.js';
 import {
   generateEmailVerificationToken,
   generatePasswordResetToken,
@@ -79,7 +79,6 @@ export const registerService = async (userData) => {
     phone: phone,
     password: password
   });
-  user.password = await hashPassword(password);
   await user.save();
 
   const UserResponse = toUserResponse(user);
@@ -138,7 +137,7 @@ export const verifyEmailService = async (token) => {
 export const forgotPasswordService = async (email) => {
   const user = await User.findOne({ email: email });
   if(!user){
-    return {  success: true } // luôn trả true để tăng bảo mật tránh cho hacker biết email có tồn tại k
+    return {  success: true } // luôn trả true để tăng bảo mật tránh cho hacker biết email có tồn tại không
   }
   const now = new Date()
   const lastSent = user.lastPasswordResetSent;
@@ -163,7 +162,7 @@ export const resetPasswordService = async (token, newPassword) => {
   if (user.email !== decoded.email){
     throw new ErrorResponse('Token email mismatch', 401);
   }
-  user.password = await hashPassword(newPassword);
+  user.password = newPassword;
   await user.save();
   await sendPasswordResetSuccessEmail(user)
   return {  success: true}
@@ -197,7 +196,7 @@ export const changePasswordService = async (userId, oldPassword, newPassword) =>
   if (!isMatch) {
     throw new ErrorResponse('Mật khẩu cũ không đúng', 401);
   }
-  user.password = await hashPassword(newPassword);
+  user.password = newPassword;
   await user.save();
   return {  success: true}
 }
@@ -262,7 +261,7 @@ export const googleLoginService = async (code) => {
   const payload = await ticket.getPayload();
   let user = await User.findOne({ email: payload.email });
   const username = await uuidv4();
-  const password = await hashPassword(uuidv4());
+  const password = uuidv4();
   if (!user) {
     user = new User({
       fullName: payload.name,
