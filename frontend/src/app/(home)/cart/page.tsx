@@ -2,8 +2,6 @@
 import React, { useEffect, useRef } from "react";
 import CartDetail from "./components/CartDetail";
 import CartSummary from "./components/CartSummary";
-import useSWR from "swr";
-import { cartServices } from "@/services/cartServices";
 import { useCartStore } from "@/stores/useCartStore";
 import { useProductDeletionMonitor } from "@/hooks/useProductDeletionMonitor";
 
@@ -54,3 +52,4 @@ const CartPage = () => {
 };
 
 export default CartPage;
+
