@@ -127,6 +127,8 @@ export const useCartStore = create<CartStore>((set, get) => ({
 
   removeCartItem: async (cartDetailId: string) => {
     const prevCart = get().cart;
+    const prevSelectedItemIds = get().selectedItemIds;
+    const prevCheckoutItems = get().checkoutItems;
 
     if (!prevCart) {
       throw new Error("Cart not loaded");
@@ -156,12 +158,22 @@ export const useCartStore = create<CartStore>((set, get) => ({
       updatedAt: new Date().toISOString(),
     };
 
-    set({ cart: optimisticCart, loading: true });
+    // Also deselect this item from selected items and checkout items
+    const newSelectedItemIds = prevSelectedItemIds.filter(id => id !== cartDetailId);
+    const newCheckoutItems = prevCheckoutItems.filter(id => id !== cartDetailId);
+
+    set({
+      cart: optimisticCart,
+      loading: true,
+      selectedItemIds: newSelectedItemIds,
+      checkoutItems: newCheckoutItems,
+    });
 
     try {
       await cartServices.removeCartItem(cartDetailId);
 
-      set({ loading: false });
+      // Refetch cart from server to ensure sync
+      await get().fetchCart();
 
       toast.success("Đã xóa sản phẩm khỏi giỏ hàng");
     } catch (error) {
@@ -171,15 +183,18 @@ export const useCartStore = create<CartStore>((set, get) => ({
       set({
         cart: prevCart,
         loading: false,
+        selectedItemIds: prevSelectedItemIds,
+        checkoutItems: prevCheckoutItems,
         error: error instanceof Error ? error.message : "Failed to remove item",
       });
 
+      toast.error("Không thể xóa sản phẩm. Vui lòng thử lại.");
       throw error;
     }
   },
 
   clearCart: async () => {
-    set({ loading: true, error: null });
+    set({ loading: true, error: null, selectedItemIds: [], checkoutItems: [] });
     try {
       await cartServices.clearCart();
       await get().fetchCart();
