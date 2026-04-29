@@ -15,6 +15,7 @@ import {
   QrPaymentInfo,
 } from "@/services/PaymentService";
 import { formatPrice } from "@/lib/utils";
+import { useProductDeletionMonitor } from "@/hooks/useProductDeletionMonitor";
 
 export default function TransferPaymentPage() {
   const params = useParams();
@@ -24,6 +25,9 @@ export default function TransferPaymentPage() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [payment, setPayment] = useState<QrPaymentInfo | null>(null);
+
+  // Monitor for deleted products during payment
+  useProductDeletionMonitor();
 
   useEffect(() => {
     const fetchPayment = async () => {

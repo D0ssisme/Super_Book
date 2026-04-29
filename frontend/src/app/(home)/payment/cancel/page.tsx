@@ -11,10 +11,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { AlertCircle, ArrowLeft, Loader2 } from "lucide-react";
+import { useProductDeletionMonitor } from "@/hooks/useProductDeletionMonitor";
 
 const PaymentCancelContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  // Monitor for deleted products during payment
+  useProductDeletionMonitor();
 
   const orderCode = searchParams.get("orderCode");
   const orderId = searchParams.get("orderId");

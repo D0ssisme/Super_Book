@@ -40,6 +40,7 @@ import { Address } from "@/types/address.type";
 import { Badge } from "@/components/ui/badge";
 import { CreateAddressModal } from "@/components/address/create-address-modal";
 import { useCartStore } from "@/stores/useCartStore";
+import { useProductDeletionMonitor } from "@/hooks/useProductDeletionMonitor";
 import { toast } from "sonner";
 import { Order } from "@/types/order.type";
 import { orderServices } from "@/services/orderServices";
@@ -71,6 +72,9 @@ const OrderPage = () => {
   const [appliedCouponCode, setAppliedCouponCode] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+
+  // Monitor for deleted products during checkout
+  useProductDeletionMonitor();
 
   // Auto-open auth dialog when user tries to checkout without login
   useEffect(() => {
@@ -265,7 +269,7 @@ const OrderPage = () => {
 
   if ((!cart && cartLoading) || addressLoading)
     return <div className="text-center p-10">Loading...</div>;
-  
+
   // If not authenticated, auth dialog will open globally via useEffect
   // No need to show anything here
   if (!user) {
@@ -470,7 +474,7 @@ const OrderPage = () => {
                           icon={<QrCode className="text-green-600 w-5 h-5" />}
                           selected={field.value}
                         />
-                  
+
                       </RadioGroup>
                     )}
                   />
@@ -491,9 +495,9 @@ const OrderPage = () => {
                       <span>{formatPrice(displayTotal)}</span>
                     </div>
                     <div className="space-y-2 pt-2">
-                    
+
                     </div>
-                    
+
                     <div className="flex justify-between text-gray-600">
                       <span>Vận chuyển:</span>
                       <span className="text-green-600 font-medium">
