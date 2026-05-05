@@ -26,16 +26,40 @@ import statisticsRouter from "./routes/StatisticsRouters.js";
 import couponRouter from "./routes/CouponRouters.js";
 import reviewRouter from "./routes/ReviewRouters.js";
 import { seedDefaultCoupon } from "./utils/seedCoupon.js";
+import { startAutoCancelOrders } from "./utils/autoCancelOrders.js";
 
 const app = express();
 connectDB(process.env.MONGODB_URL);
 // setup(app) // TODO: Uncomment khi deploy production
 
-// CORS - chỉ cho phép frontend URL
-app.use(cors({
-  origin: process.env.FRONTEND_URL || "http://localhost:3000",
-  credentials: true
-}));
+// CORS - cho phép nhiều origin dev để tránh lỗi Network Error khi mở app qua localhost/ngrok
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  ...(process.env.FRONTEND_URLS ? process.env.FRONTEND_URLS.split(",") : []),
+  "http://localhost:3000",
+  "http://127.0.0.1:3000",
+].filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin) {
+        return callback(null, true);
+      }
+
+      if (process.env.NODE_ENV === "development") {
+        return callback(null, true);
+      }
+
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+
+      return callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
+    credentials: true,
+  }),
+);
 app.use(express.json()); // To parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // To parse URL-encoded bodies
 app.use(process.env.API_TAG + "/auth", authRoute);
@@ -64,5 +88,6 @@ await cleanupCorruptedCarts().catch((err) =>
 );
 await seedAdmin();
 await seedDefaultCoupon();
+startAutoCancelOrders();
 
 app.use(errorHandler);

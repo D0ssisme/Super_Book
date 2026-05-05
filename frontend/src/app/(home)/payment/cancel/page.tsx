@@ -22,7 +22,22 @@ const PaymentCancelContent = () => {
 
   const orderCode = searchParams.get("orderCode");
   const orderId = searchParams.get("orderId");
+  // reason/message tra ve tu backend de hien thong bao dung tinh huong.
+  const reason = searchParams.get("reason");
+  const message = searchParams.get("message");
   const hasOrderCode = Boolean(orderCode || orderId);
+
+  const isAutoCanceled = reason === "ORDER_CANCELED";
+  const headerText = isAutoCanceled
+    ? "Đơn đã bị hủy tự động"
+    : "Thanh toán bị hủy";
+  const descriptionText = isAutoCanceled
+    ? "Đơn hàng đã quá thời gian thanh toán. Nếu bạn đã thanh toán, vui lòng liên hệ để được hỗ trợ hoàn tiền."
+    : "Giao dịch chưa hoàn tất. Bạn có thể quay lại đơn hàng để thanh toán lại.";
+  const statusText = isAutoCanceled ? "Đơn đã bị hủy" : "Thanh toán thất bại";
+  const noteText = isAutoCanceled
+    ? "*Nếu bạn đã thanh toán, vui lòng liên hệ admin để được xử lý hoàn tiền."
+    : "*Bạn chưa bị trừ tiền cho giao dịch này.";
 
   if (!hasOrderCode) {
     return null;
@@ -37,10 +52,10 @@ const PaymentCancelContent = () => {
             <AlertCircle className="w-20 h-20 text-red-500 relative z-10" />
           </div>
           <CardTitle className="text-2xl font-bold text-gray-900 text-center mt-4">
-            Thanh toán bị hủy
+            {headerText}
           </CardTitle>
           <p className="text-gray-500 text-sm text-center max-w-xs">
-            Giao dịch chưa hoàn tất. Bạn có thể quay lại đơn hàng để thanh toán lại.
+            {message || descriptionText}
           </p>
         </CardHeader>
 
@@ -54,10 +69,10 @@ const PaymentCancelContent = () => {
             </div>
             <div className="flex justify-between text-sm">
               <span className="text-gray-600">Trạng thái:</span>
-              <span className="font-bold text-red-600">Thanh toán thất bại</span>
+              <span className="font-bold text-red-600">{statusText}</span>
             </div>
             <div className="text-xs text-red-500 mt-2 italic">
-              *Bạn chưa bị trừ tiền cho giao dịch này.
+              {noteText}
             </div>
           </div>
         </CardContent>

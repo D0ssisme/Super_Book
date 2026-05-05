@@ -73,8 +73,10 @@ export async function momoReturnController(req, res) {
         `${frontendUrl}/payment/return?status=PAID&orderCode=${encodeURIComponent(String(result.orderCode || ""))}`,
       );
     }
+    // Gui reason ve frontend de hien thong bao phu hop.
+    const reason = result.reason ? `&reason=${encodeURIComponent(String(result.reason))}` : "";
     return res.redirect(
-      `${frontendUrl}/payment/cancel?status=FAILED&orderCode=${encodeURIComponent(String(result.orderCode || ""))}`,
+      `${frontendUrl}/payment/cancel?status=FAILED&orderCode=${encodeURIComponent(String(result.orderCode || ""))}${reason}`,
     );
   } catch (err) {
     return res.redirect(
