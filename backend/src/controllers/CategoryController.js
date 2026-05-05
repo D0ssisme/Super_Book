@@ -54,6 +54,25 @@ export async function getCategoryById(req, res) {
   }
 }
 
+export async function getCategoryByValue(req, res) {
+  try {
+    const { value } = req.params;
+    const isObjectId = /^[a-fA-F0-9]{24}$/.test(String(value || ""));
+
+    const category = isObjectId
+      ? await getCategoryByIdService(value)
+      : await getCategoryBySlugService(value);
+
+    if (!category) {
+      return res.status(404).json({ message: "Category not found" });
+    }
+
+    res.status(200).json(category);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+}
+
 export async function getAllCategories(req, res) {
   try {
     const category = await getAllCategoryService();
