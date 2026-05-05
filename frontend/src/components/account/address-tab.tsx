@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
 import { Plus } from "lucide-react";
 import { AddressCard } from "@/components/address/address-card";
-import { CreateAddressModal } from "@/components/address/create-address-modal";
+import { CreateAddressModal } from "@/components/address/create-address-modal-simple";
 import { Address } from '@/types/address.type';
 import { getAllAddress, deleteAddress } from '@/services/addressservices';
 import { toast } from 'sonner';
@@ -58,14 +58,20 @@ export default function AddressTab() {
 
         <CardContent className="p-0 lg:p-6">
           <div className="grid gap-4">
-            {isLoading ? <p>Đang tải...</p> : addresses?.map((addr: Address) => (
-              <AddressCard
-                key={addr._id}
-                data={addr}
-                onEdit={() => handleEdit(addr)}
-                onDelete={() => handleDelete(addr._id!)}
-              />
-            ))}
+            {isLoading ? (
+              <p>Đang tải...</p>
+            ) : (
+              addresses
+                ?.sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0))
+                .map((addr: Address) => (
+                  <AddressCard
+                    key={addr._id}
+                    data={addr}
+                    onEdit={() => handleEdit(addr)}
+                    onDelete={() => handleDelete(addr._id!)}
+                  />
+                ))
+            )}
           </div>
         </CardContent>
       </Card>

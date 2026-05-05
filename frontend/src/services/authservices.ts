@@ -35,6 +35,9 @@ export async function registerUser(data: {
   username: string;
   phone: string;
   email: string;
+  detail: string;
+  province: string;
+  district: string;
   password: string;
   confirmPassword: string;
 }) {

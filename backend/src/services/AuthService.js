@@ -1,4 +1,5 @@
 import User from '../models/User.js';
+import Address from '../models/Address.js';
 import { comparePassword } from '../helper/hashPassword.js';
 import {
   generateEmailVerificationToken,
@@ -24,6 +25,10 @@ export const registerService = async (userData) => {
   const phone = userData.phone?.trim() || "";
   const password = userData.password || "";
   const confirmPassword = userData.confirmPassword || "";
+  const detail = userData.detail?.trim() || "";
+  const province = userData.province?.trim() || "";
+  const district = userData.district?.trim() || "";
+  const addressType = userData.addressType?.trim() || "Nhà riêng";
 
   // Check required fields
   if (!fullName) errors.push({ field: "fullName", code: "REQUIRED", message: "Họ và tên không được để trống" });
@@ -32,6 +37,9 @@ export const registerService = async (userData) => {
   if (!phone) errors.push({ field: "phone", code: "REQUIRED", message: "Số điện thoại không được để trống" });
   if (!password) errors.push({ field: "password", code: "REQUIRED", message: "Mật khẩu không được để trống" });
   if (!confirmPassword) errors.push({ field: "confirmPassword", code: "REQUIRED", message: "Nhập lại mật khẩu không được để trống" });
+  if (!detail) errors.push({ field: "detail", code: "REQUIRED", message: "Địa chỉ chi tiết không được để trống" });
+  if (!province) errors.push({ field: "province", code: "REQUIRED", message: "Tỉnh/thành phố không được để trống" });
+  if (!district) errors.push({ field: "district", code: "REQUIRED", message: "Quận/huyện không được để trống" });
 
   // Check password match
   if (password !== confirmPassword) {
@@ -56,7 +64,7 @@ export const registerService = async (userData) => {
       { phone: phone }
     ]
   });
-  if (existing) {
+  if (existing.length > 0) {
     const duplicateErrors = [];
     existing.forEach(user => {
       if (user.username === username)
@@ -77,9 +85,22 @@ export const registerService = async (userData) => {
     username: username,
     email: email,
     phone: phone,
-    password: password
+    password: password,
+    role: 'user'
   });
   await user.save();
+
+  const address = new Address({
+    userId: user._id,
+    name: fullName,
+    phone: phone,
+    detail: detail,
+    province: province,
+    district: district,
+    addressType: addressType,
+    isDefault: true
+  });
+  await address.save();
 
   const UserResponse = toUserResponse(user);
   const token = generateToken(UserResponse);
