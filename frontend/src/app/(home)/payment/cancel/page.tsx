@@ -30,7 +30,7 @@ const PaymentCancelContent = () => {
   const isAutoCanceled = reason === "ORDER_CANCELED";
   const headerText = isAutoCanceled
     ? "Đơn đã bị hủy tự động"
-    : "Thanh toán bị hủy";
+    : "Thanh toán thất bại";
   const descriptionText = isAutoCanceled
     ? "Đơn hàng đã quá thời gian thanh toán. Nếu bạn đã thanh toán, vui lòng liên hệ để được hỗ trợ hoàn tiền."
     : "Giao dịch chưa hoàn tất. Bạn có thể quay lại đơn hàng để thanh toán lại.";
