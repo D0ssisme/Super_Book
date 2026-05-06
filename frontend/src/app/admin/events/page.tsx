@@ -46,6 +46,8 @@ export default function EventsPage() {
   const [booksLoading, setBooksLoading] = useState(false);
   const [categoriesLoading, setCategoriesLoading] = useState(false);
   const [statusUpdatingId, setStatusUpdatingId] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
   const [formData, setFormData] = useState({
     name: "",
     description: "",
@@ -64,6 +66,15 @@ export default function EventsPage() {
   useEffect(() => {
     fetchEvents();
   }, [pagination.currentPage, pagination.limit]);
+
+  useEffect(() => {
+    if (formError) {
+      setFormError(null);
+    }
+    if (Object.keys(formErrors).length > 0) {
+      setFormErrors({});
+    }
+  }, [formData]);
 
   const fetchEvents = async () => {
     try {
@@ -113,19 +124,66 @@ export default function EventsPage() {
     }
   };
 
-  const handleSubmit = async () => {
-    if (
-      !formData.name ||
-      !formData.discountPercent ||
-      !formData.startDate ||
-      !formData.endDate
-    ) {
-      toast.error("Vui lòng điền đầy đủ thông tin");
-      return;
+  const validateForm = () => {
+    const nextErrors: Record<string, string> = {};
+
+    if (!formData.name.trim()) {
+      nextErrors.name = "Vui lòng nhập tên sự kiện";
     }
 
-    if (formData.endDate < formData.startDate) {
-      toast.error("Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu");
+    if (!formData.startDate) {
+      nextErrors.startDate = "Vui lòng chọn ngày bắt đầu";
+    }
+
+    if (!formData.endDate) {
+      nextErrors.endDate = "Vui lòng chọn ngày kết thúc";
+    }
+
+    if (formData.startDate && formData.endDate) {
+      const start = new Date(formData.startDate);
+      const end = new Date(formData.endDate);
+      if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+        nextErrors.dateRange = "Ngày bắt đầu hoặc ngày kết thúc không hợp lệ";
+      } else if (end < start) {
+        nextErrors.dateRange = "Ngày kết thúc phải lớn hơn hoặc bằng ngày bắt đầu";
+      }
+    }
+
+    if (!Number.isFinite(formData.discountPercent)) {
+      nextErrors.discountPercent = "Phần trăm giảm giá không hợp lệ";
+    } else if (formData.discountPercent <= 0 || formData.discountPercent > 100) {
+      nextErrors.discountPercent = "Phần trăm giảm giá phải từ 1 đến 100";
+    }
+
+    if (formData.applyType === "products" && formData.bookIds.length === 0) {
+      nextErrors.bookIds = "Vui lòng chọn ít nhất 1 sản phẩm";
+    }
+
+    if (
+      formData.applyType === "categories" &&
+      formData.categoryIds.length === 0
+    ) {
+      nextErrors.categoryIds = "Vui lòng chọn ít nhất 1 danh mục";
+    }
+
+    return nextErrors;
+  };
+
+  const handleSubmit = async () => {
+    const nextErrors = validateForm();
+    if (Object.keys(nextErrors).length > 0) {
+      setFormErrors(nextErrors);
+      const firstError =
+        nextErrors.name ||
+        nextErrors.discountPercent ||
+        nextErrors.startDate ||
+        nextErrors.endDate ||
+        nextErrors.dateRange ||
+        nextErrors.bookIds ||
+        nextErrors.categoryIds ||
+        "Vui lòng kiểm tra lại thông tin";
+      setFormError(firstError);
+      toast.error(firstError);
       return;
     }
 
@@ -170,6 +228,8 @@ export default function EventsPage() {
 
   const handleEdit = (event: Event) => {
     setEditingEvent(event);
+    setFormError(null);
+    setFormErrors({});
     setFormData({
       name: event.name,
       description: event.description || "",
@@ -186,6 +246,8 @@ export default function EventsPage() {
 
   const resetForm = () => {
     setEditingEvent(null);
+    setFormError(null);
+    setFormErrors({});
     setFormData({
       name: "",
       description: "",
@@ -486,6 +548,9 @@ export default function EventsPage() {
                   className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   placeholder="VD: Black Friday 2024"
                 />
+                {formErrors.name ? (
+                  <p className="text-sm text-red-600 mt-1">{formErrors.name}</p>
+                ) : null}
               </div>
 
               <div>
@@ -521,6 +586,11 @@ export default function EventsPage() {
                   className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   placeholder="30"
                 />
+                {formErrors.discountPercent ? (
+                  <p className="text-sm text-red-600 mt-1">
+                    {formErrors.discountPercent}
+                  </p>
+                ) : null}
               </div>
 
               <div>
@@ -637,6 +707,11 @@ export default function EventsPage() {
                       Đã chọn {formData.bookIds.length} sản phẩm
                     </p>
                   )}
+                  {formErrors.bookIds ? (
+                    <p className="text-sm text-red-600 mt-2">
+                      {formErrors.bookIds}
+                    </p>
+                  ) : null}
                 </div>
               )}
 
@@ -699,6 +774,11 @@ export default function EventsPage() {
                       Đã chọn {formData.categoryIds.length} danh mục
                     </p>
                   )}
+                  {formErrors.categoryIds ? (
+                    <p className="text-sm text-red-600 mt-2">
+                      {formErrors.categoryIds}
+                    </p>
+                  ) : null}
                 </div>
               )}
 
@@ -715,6 +795,11 @@ export default function EventsPage() {
                   max={formData.endDate || undefined}
                   className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
+                {formErrors.startDate ? (
+                  <p className="text-sm text-red-600 mt-1">
+                    {formErrors.startDate}
+                  </p>
+                ) : null}
               </div>
 
               <div>
@@ -730,7 +815,15 @@ export default function EventsPage() {
                   min={formData.startDate || undefined}
                   className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
+                {formErrors.endDate ? (
+                  <p className="text-sm text-red-600 mt-1">
+                    {formErrors.endDate}
+                  </p>
+                ) : null}
               </div>
+              {formErrors.dateRange ? (
+                <p className="text-sm text-red-600">{formErrors.dateRange}</p>
+              ) : null}
             </div>
 
             <div className="flex gap-3 mt-6">
