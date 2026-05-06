@@ -35,6 +35,7 @@ import {
   getTopCategories,
   getPaymentMethodsStats,
   getComparisonStats,
+  getOrderStatusStats,
 } from "@/api/statisticsApi";
 
 // Helper function để format date từ input type="date"
@@ -122,6 +123,12 @@ export default function AdminDashboard() {
   const [revenueFilterYear, setRevenueFilterYear] = useState<string>(() =>
     new Date().getFullYear().toString(),
   );
+
+  // State cho order status stats
+  const [orderStatusData, setOrderStatusData] = useState<any>(null);
+  const [orderStatusLoading, setOrderStatusLoading] = useState(false);
+  const [orderStatusDateFrom, setOrderStatusDateFrom] = useState<string>("");
+  const [orderStatusDateTo, setOrderStatusDateTo] = useState<string>("");
 
   // Fetch overview stats
   useEffect(() => {
@@ -270,6 +277,24 @@ export default function AdminDashboard() {
     fetchData();
   }, []);
 
+  // Fetch order status stats
+  useEffect(() => {
+    const fetchOrderStatus = async () => {
+      try {
+        setOrderStatusLoading(true);
+        const response = await getOrderStatusStats(orderStatusDateFrom, orderStatusDateTo);
+        if (response.success) {
+          setOrderStatusData(response.data);
+        }
+      } catch (error) {
+        console.error("Error fetching order status stats:", error);
+      } finally {
+        setOrderStatusLoading(false);
+      }
+    };
+    fetchOrderStatus();
+  }, [orderStatusDateFrom, orderStatusDateTo]);
+
   // Lấy danh sách năm (giả định từ 2020 đến năm hiện tại)
   const getAvailableYears = () => {
     const currentYear = new Date().getFullYear();
@@ -347,7 +372,7 @@ export default function AdminDashboard() {
       {/* Header */}
       <div className="bg-white border-l-4 border-emerald-600 px-6 py-5 rounded-lg shadow-sm mb-6">
         <h2 className="text-gray-800 text-2xl font-bold">
-          Dashboard - Tổng quan hệ thống
+          THỐNG KÊ DOANH THU 
         </h2>
         <p className="text-gray-600 text-sm mt-1">
           Theo dõi và quản lý hoạt động cửa hàng
@@ -387,6 +412,51 @@ export default function AdminDashboard() {
       )}
 
       <div className="space-y-6">
+        {/* Statistics & Report Section - Full Width */}
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
+          <div className="bg-gray-50 border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+            <h3 className="text-gray-800 font-bold text-lg flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-emerald-600" />
+              Thống kê & báo cáo
+            </h3>
+          </div>
+
+          {/* Date range picker */}
+          <div className="px-6 pb-4 pt-4 flex items-center gap-4 flex-wrap border-b border-gray-200">
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600 font-medium">
+                Từ ngày:
+              </label>
+              <input
+                type="date"
+                value={orderStatusDateFrom}
+                onChange={(e) => setOrderStatusDateFrom(e.target.value)}
+                className="border border-gray-300 px-3 py-1.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-sm text-gray-600 font-medium">
+                Đến ngày:
+              </label>
+              <input
+                type="date"
+                value={orderStatusDateTo}
+                onChange={(e) => setOrderStatusDateTo(e.target.value)}
+                className="border border-gray-300 px-3 py-1.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              />
+            </div>
+            <button
+              onClick={() => {
+                setOrderStatusDateFrom("");
+                setOrderStatusDateTo("");
+              }}
+              className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200 transition-all"
+            >
+              Xóa bộ lọc
+            </button>
+          </div>
+        </div>
+
         {/* Stats Grid - Row 1: 5 cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
           {/* Doanh thu */}
@@ -497,330 +567,6 @@ export default function AdminDashboard() {
               <div className="bg-emerald-600 p-4 rounded-lg">
                 <BookOpen className="w-7 h-7 text-white" />
               </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Two Charts Side by Side */}
-        <div className="grid grid-cols-1 gap-6">
-          {/* Biểu đồ lợi nhuận */}
-          <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
-            <div className="bg-gray-50 border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h3 className="text-gray-800 font-bold text-lg flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-purple-600" />
-                Thống kê lợi nhuận
-              </h3>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setProfitView("day")}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${profitView === "day" ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
-                >
-                  Theo ngày
-                </button>
-                <button
-                  onClick={() => setProfitView("month")}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${profitView === "month" ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
-                >
-                  Theo tháng
-                </button>
-                <button
-                  onClick={() => setProfitView("year")}
-                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all ${profitView === "year" ? "bg-purple-600 text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
-                >
-                  Theo năm
-                </button>
-              </div>
-            </div>
-
-            {/* Date range picker cho chế độ theo ngày */}
-            {profitView === "day" && (
-              <div className="px-6 pb-4 flex items-center gap-4 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-gray-600 font-medium">
-                    Từ ngày:
-                  </label>
-                  <input
-                    type="date"
-                    value={dateFrom}
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    className="border border-gray-300 px-3 py-1.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-gray-600 font-medium">
-                    Đến ngày:
-                  </label>
-                  <input
-                    type="date"
-                    value={dateTo}
-                    onChange={(e) => setDateTo(e.target.value)}
-                    className="border border-gray-300 px-3 py-1.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                </div>
-                <button
-                  onClick={() => {
-                    setDateFrom("");
-                    setDateTo("");
-                  }}
-                  className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200 transition-all"
-                >
-                  Xóa bộ lọc
-                </button>
-              </div>
-            )}
-
-            {/* Month/Year picker cho chế độ theo tháng */}
-            {profitView === "month" && (
-              <div className="px-6 pb-4 flex items-center gap-4 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-gray-600 font-medium">
-                    Tháng:
-                  </label>
-                  <select
-                    value={selectedMonth}
-                    onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="border border-gray-300 px-3 py-1.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  >
-                    <option value="">Tất cả</option>
-                    {Array.from({ length: 12 }, (_, i) => i + 1).map(
-                      (month) => (
-                        <option key={month} value={month}>
-                          Tháng {month}
-                        </option>
-                      ),
-                    )}
-                  </select>
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-gray-600 font-medium">
-                    Năm:
-                  </label>
-                  <select
-                    value={selectedYear}
-                    onChange={(e) => setSelectedYear(e.target.value)}
-                    className="border border-gray-300 px-3 py-1.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  >
-                    <option value="">Tất cả</option>
-                    {getAvailableYears().map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <button
-                  onClick={() => {
-                    setSelectedMonth("");
-                    setSelectedYear("");
-                  }}
-                  className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200 transition-all"
-                >
-                  Xóa bộ lọc
-                </button>
-              </div>
-            )}
-
-            {/* Year picker cho chế độ theo năm */}
-            {profitView === "year" && (
-              <div className="px-6 pb-4 flex items-center gap-4 flex-wrap">
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-gray-600 font-medium">
-                    Năm:
-                  </label>
-                  <select
-                    value={filterYear}
-                    onChange={(e) => setFilterYear(e.target.value)}
-                    className="border border-gray-300 px-3 py-1.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  >
-                    <option value="">Tất cả</option>
-                    {getAvailableYears().map((year) => (
-                      <option key={year} value={year}>
-                        {year}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <button
-                  onClick={() => setFilterYear("")}
-                  className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200 transition-all"
-                >
-                  Xóa bộ lọc
-                </button>
-              </div>
-            )}
-
-            <div className="p-6 pt-0">
-              {profitView === "day" && (
-                <div className="mb-4 text-sm text-gray-600">
-                  {dateFrom && dateTo ? (
-                    <span>
-                      Thống kê từ{" "}
-                      <strong>
-                        {new Date(dateFrom).toLocaleDateString("vi-VN")}
-                      </strong>{" "}
-                      đến{" "}
-                      <strong>
-                        {new Date(dateTo).toLocaleDateString("vi-VN")}
-                      </strong>
-                    </span>
-                  ) : dateFrom ? (
-                    <span>
-                      Thống kê từ{" "}
-                      <strong>
-                        {new Date(dateFrom).toLocaleDateString("vi-VN")}
-                      </strong>
-                    </span>
-                  ) : dateTo ? (
-                    <span>
-                      Thống kê đến{" "}
-                      <strong>
-                        {new Date(dateTo).toLocaleDateString("vi-VN")}
-                      </strong>
-                    </span>
-                  ) : (
-                    <span>Chọn khoảng thời gian để xem thống kê</span>
-                  )}
-                </div>
-              )}
-              {profitLoading ? (
-                <div className="animate-pulse space-y-4">
-                  <div className="h-80 bg-gray-200 rounded-lg"></div>
-                  <div className="space-y-2">
-                    <div className="h-10 bg-gray-200 rounded"></div>
-                    <div className="h-10 bg-gray-200 rounded"></div>
-                    <div className="h-10 bg-gray-200 rounded"></div>
-                  </div>
-                </div>
-              ) : chartData.length === 0 ? (
-                <div className="text-center py-12">
-                  <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                    <BarChart3 className="w-12 h-12 text-gray-400" />
-                  </div>
-                  <p className="text-gray-500 font-medium">
-                    Chưa có dữ liệu lợi nhuận
-                  </p>
-                  <p className="text-gray-400 text-sm mt-1">
-                    Dữ liệu sẽ hiển thị khi có đơn hàng hoàn thành
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {/* Recharts Bar Chart */}
-                  <div className="h-80 w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={chartData}
-                        margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                        <XAxis
-                          dataKey="period"
-                          tick={{ fontSize: 12, fill: "#6b7280" }}
-                          angle={-45}
-                          textAnchor="end"
-                          height={60}
-                        />
-                        <YAxis
-                          tick={{ fontSize: 12, fill: "#6b7280" }}
-                          tickFormatter={(value) =>
-                            `${(value / 1000000).toFixed(1)}M`
-                          }
-                        />
-                        <Tooltip
-                          formatter={(value) => [
-                            formatVND(Number(value ?? 0)),
-                            "Lợi nhuận",
-                          ]}
-                          labelStyle={{ color: "#374151", fontWeight: "bold" }}
-                          contentStyle={{
-                            backgroundColor: "#fff",
-                            border: "1px solid #e5e7eb",
-                            borderRadius: "8px",
-                            boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                          }}
-                        />
-                        <Legend wrapperStyle={{ paddingTop: "20px" }} />
-                        <Bar
-                          dataKey="profit"
-                          name="Lợi nhuận"
-                          radius={[4, 4, 0, 0]}
-                        >
-                          {chartData.map((entry, index) => (
-                            <Cell
-                              key={`cell-${index}`}
-                              fill={`url(#colorGradient)`}
-                            />
-                          ))}
-                        </Bar>
-                        <defs>
-                          <linearGradient
-                            id="colorGradient"
-                            x1="0"
-                            y1="0"
-                            x2="0"
-                            y2="1"
-                          >
-                            <stop
-                              offset="0%"
-                              stopColor="#8b5cf6"
-                              stopOpacity={1}
-                            />
-                            <stop
-                              offset="100%"
-                              stopColor="#6366f1"
-                              stopOpacity={1}
-                            />
-                          </linearGradient>
-                        </defs>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                  {/* Summary Table */}
-                  <div className="overflow-x-auto">
-                    <table className="w-full text-sm">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th className="px-4 py-2 text-left text-gray-700 font-semibold">
-                            {profitView === "day"
-                              ? "Ngày"
-                              : profitView === "month"
-                                ? "Tháng"
-                                : "Năm"}
-                          </th>
-                          <th className="px-4 py-2 text-right text-gray-700 font-semibold">
-                            Lợi nhuận
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {chartData.map((item, idx) => (
-                          <tr
-                            key={idx}
-                            className="border-t border-gray-200 hover:bg-gray-50"
-                          >
-                            <td className="px-4 py-2 text-gray-600">
-                              {item.period}
-                            </td>
-                            <td className="px-4 py-2 text-right font-semibold text-purple-700">
-                              {formatVND(item.profit)}
-                            </td>
-                          </tr>
-                        ))}
-                        <tr className="border-t-2 border-purple-600 bg-purple-50">
-                          <td className="px-4 py-2 font-bold text-gray-800">
-                            Tổng cộng
-                          </td>
-                          <td className="px-4 py-2 text-right font-bold text-purple-700">
-                            {formatVND(
-                              chartData.reduce((sum, i) => sum + i.profit, 0),
-                            )}
-                          </td>
-                        </tr>
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -1039,37 +785,7 @@ export default function AdminDashboard() {
                       icon: "💵",
                       color: "bg-emerald-600",
                     },
-                    cash: {
-                      label: "COD (Tiền mặt)",
-                      icon: "💵",
-                      color: "bg-emerald-600",
-                    },
-                    CARD: {
-                      label: "Thẻ tín dụng",
-                      icon: "💎",
-                      color: "bg-purple-600",
-                    },
-                    creditCard: {
-                      label: "Thẻ tín dụng",
-                      icon: "💎",
-                      color: "bg-purple-600",
-                    },
-                    PAYOS: {
-                      label: "PayOS (QR Code)",
-                      icon: "💳",
-                      color: "bg-indigo-600",
-                    },
-                    payos: {
-                      label: "PayOS (QR Code)",
-                      icon: "💳",
-                      color: "bg-indigo-600",
-                    },
                     MOMO: {
-                      label: "MoMo",
-                      icon: "👜",
-                      color: "bg-pink-600",
-                    },
-                    momo: {
                       label: "MoMo",
                       icon: "👜",
                       color: "bg-pink-600",
@@ -1081,7 +797,7 @@ export default function AdminDashboard() {
                     color: "bg-gray-600",
                   };
                   return (
-                    <div key={idx} className="space-y-2">
+                    <div key={payment.method} className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <span className="text-2xl">{config.icon}</span>
@@ -1096,7 +812,7 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                         <span className="text-lg font-bold text-gray-700">
-                          {payment.percentage?.toFixed(1)}%
+                          {payment.percentage}%
                         </span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2.5">
