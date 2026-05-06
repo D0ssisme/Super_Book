@@ -5,6 +5,7 @@ import {
     getProfitStats,
     getTopProducts,
     getOrderStats,
+    getOrderStatusStats,
     getTopCategories,
     getPaymentMethodsStats,
     getComparisonStats
@@ -31,6 +32,9 @@ router.get("/top-products", getTopProducts);
 
 // GET /api/v1/statistics/orders - Thống kê đơn hàng
 router.get("/orders", getOrderStats);
+
+// GET /api/v1/statistics/order-status - Thống kê trạng thái đơn hàng (theo khoảng thời gian)
+router.get("/order-status", getOrderStatusStats);
 
 // GET /api/v1/statistics/top-categories - Top thể loại bán chạy
 router.get("/top-categories", getTopCategories);

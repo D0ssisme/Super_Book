@@ -11,7 +11,8 @@ const userSchema = new mongoose.Schema({
   isVerified: { type: Boolean, default: false },
   lastVerificationSent: Date,
   lastPasswordResetSent: Date,
-  isDeleted: { type: Boolean, default: false }
+  isDeleted: { type: Boolean, default: false },
+  isLocked: { type: Boolean, default: false }
 }, { timestamps: true });
 
 // Hash password before saving

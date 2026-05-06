@@ -8,6 +8,7 @@ import { baseUrl } from "@/constants/index";
 import Swal from "sweetalert2";
 import toast from "react-hot-toast";
 import { getAllUsers, updateUser, deleteUser, createUser, lockUser, unlockUser } from "@/api/userApi";
+import { useUser } from '@/services/authservices';
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -20,6 +21,7 @@ export default function UsersPage() {
   const [showFormPassword, setShowFormPassword] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [emailError, setEmailError] = useState<string>("");
+  const { user } = useUser();
   const [phoneError, setPhoneError] = useState<string>("");
   const [passwordError, setPasswordError] = useState<string>("");
   const [formData, setFormData] = useState({
@@ -240,6 +242,8 @@ export default function UsersPage() {
           },
         });
         fetchUsers();
+        // optimistic update in case backend is slow
+        setUsers((prev) => prev.map((u) => (u._id === id ? { ...u, isActive: false } : u)));
       } catch (error) {
         console.error("Error locking user:", error);
         Swal.fire({
@@ -276,6 +280,8 @@ export default function UsersPage() {
           },
         });
         fetchUsers();
+        // optimistic update in case backend is slow
+        setUsers((prev) => prev.map((u) => (u._id === id ? { ...u, isActive: true } : u)));
       } catch (error) {
         console.error("Error unlocking user:", error);
         Swal.fire({
