@@ -1,5 +1,6 @@
 import { bookServices } from "@/services/bookServices";
 import React from "react";
+import { redirect } from "next/navigation";
 import {
   Truck,
   Shield,
@@ -19,7 +20,16 @@ const ProductDetailPage = async ({
   params: Promise<{ id: string }>;
 }) => {
   const { id } = await params;
-  const book = await bookServices.getBookById(id);
+  let book;
+
+  try {
+    book = await bookServices.getBookById(id);
+  } catch (error: any) {
+    if (error?.status === 404 || error?.status === 400) {
+      redirect("/?deletedBook=1");
+    }
+    throw error;
+  }
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-8">
@@ -108,7 +118,7 @@ const ProductDetailPage = async ({
                 <li className="flex items-start gap-3">
                   <span className="flex items-center gap-2">
                     <Leaf className="text-green-500" size={18} />
-                    Với mỗi cuốn sách bán ra, REBO sẽ trích 1000 VND để ủng hộ
+                    Với mỗi cuốn sách bán ra, Super Book sẽ trích 1000 VND để ủng hộ
                     các tổ chức bảo vệ môi trường
                   </span>
                 </li>

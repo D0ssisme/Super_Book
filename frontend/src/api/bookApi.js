@@ -5,19 +5,19 @@ const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1"
 // Get all books with filters and pagination
 // Query params: categoryId, maxPrice, sortBy (price_asc, price_desc, name_asc, name_desc), page, limit
 export const getAllBooks = async (params = {}) => {
-    const response = await axios.get(`${apiUrl}/books`, { params });
+    const response = await api.get('/books', { params });
     return response.data;
 };
 
 // Get book by ID
 export const getBookById = async (id) => {
-    const response = await axios.get(`${apiUrl}/books/${id}`);
+    const response = await api.get(`/books/${id}`);
     return response.data;
 };
 
 // Get max price of all books
 export const getMaxPrice = async () => {
-    const response = await axios.get(`${apiUrl}/books/max-price`);
+    const response = await api.get('/books/max-price');
     return response.data;
 };
 

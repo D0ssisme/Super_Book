@@ -6,10 +6,22 @@ import BookShowCase from "@/app/(home)/components/BookShowCase";
 import BookNewest from "@/app/(home)/components/BookNewest";
 import EventShowcase from "@/app/(home)/components/EventShowcase";
 import { useTop10BestSellingBooks, useTop10NewestBooks } from "@/hooks/useBook";
+import { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 
 export default function HomePage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const { bestSelling, isLoading: Selling } = useTop10BestSellingBooks();
   const { newest, isLoading: Newest } = useTop10NewestBooks();
+
+  useEffect(() => {
+    if (searchParams.get("deletedBook") === "1") {
+      toast.error("Sách đã bị xóa khỏi hệ thống");
+      router.replace("/");
+    }
+  }, [router, searchParams]);
 
   if (Selling || Newest)
     return (

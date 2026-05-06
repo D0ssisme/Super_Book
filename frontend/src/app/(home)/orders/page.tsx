@@ -69,6 +69,7 @@ const OrderPage = () => {
   const [openAddressDialog, setOpenAddressDialog] = useState(false);
   const [openCreateAddress, setOpenCreateAddress] = useState(false);
   const [isDefaultAddress, setIsDefaultAddress] = useState(false);
+  const [didInitCheckoutAddress, setDidInitCheckoutAddress] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [appliedCouponCode, setAppliedCouponCode] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
@@ -167,24 +168,31 @@ const OrderPage = () => {
     }
   }, [cart, checkoutItems, setValue, router]);
   useEffect(() => {
-    if (addresses && addresses.length > 0 && !getValues("receiverName")) {
-      // Mặc định chọn địa chỉ default trước
-      const defaultAddr =
-        addresses.find((addr: Address) => addr.isDefault) ||
-        addresses[0];
+    if (!addresses || addresses.length === 0 || didInitCheckoutAddress) {
+      return;
+    }
 
-      if (defaultAddr) {
-        fillAddressToForm(defaultAddr);
-        // Lưu vào localStorage để nhớ lần này
-        if (defaultAddr._id && typeof window !== "undefined") {
-          window.localStorage.setItem(
-            getLastAddressStorageKey(user?.data?._id),
-            defaultAddr._id,
-          );
-        }
+    // Only auto-select once and only when shipping address is still empty.
+    if (getValues("receiverAddress")) {
+      setDidInitCheckoutAddress(true);
+      return;
+    }
+
+    const defaultAddr =
+      addresses.find((addr: Address) => addr.isDefault) || addresses[0];
+
+    if (defaultAddr) {
+      fillAddressToForm(defaultAddr);
+      if (defaultAddr._id && typeof window !== "undefined") {
+        window.localStorage.setItem(
+          getLastAddressStorageKey(user?.data?._id),
+          defaultAddr._id,
+        );
       }
     }
-  }, [addresses, setValue, getValues, user?.data?._id]);
+
+    setDidInitCheckoutAddress(true);
+  }, [addresses, didInitCheckoutAddress, getValues, user?.data?._id]);
 
   useEffect(() => {
     const profile = user?.data;
@@ -436,12 +444,12 @@ const OrderPage = () => {
                   onClick={() => setOpenAddressDialog(true)}
                   className="text-blue-600 h-8 font-medium"
                 >
-                  {receiverName ? "Thay đổi" : "Chọn địa chỉ"}
+                  {receiverAddress ? "Thay đổi" : "Chọn địa chỉ"}
                 </Button>
               </CardHeader>
               <CardContent>
                 {/* Logic hiển thị: Dựa vào field watch được từ form */}
-                {receiverName ? (
+                {receiverAddress ? (
                   <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
                     <div className="font-bold text-gray-900 mb-1 flex items-center gap-2">
                       <span>{receiverName}</span>

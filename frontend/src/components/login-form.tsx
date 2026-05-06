@@ -24,11 +24,11 @@ type LoginRequest = {
 };
 
 export function LoginForm({
-                            className,
-                            setMode,
-                            onSuccess,
-                            ...props
-                          }: React.ComponentProps<'form'> & {
+  className,
+  setMode,
+  onSuccess,
+  ...props
+}: React.ComponentProps<'form'> & {
   setMode?: (mode: 'login' | 'register' | 'reset-password') => void
   onSuccess?: () => void
 }) {
@@ -42,11 +42,11 @@ export function LoginForm({
   const {
     register,
     handleSubmit,
-    formState: {errors, isSubmitting},
+    formState: { errors, isSubmitting },
     setError,
     setValue,
   } = useForm<LoginRequest>({
-    defaultValues: {username: "", password: ""},
+    defaultValues: { username: "", password: "" },
     resolver: zodResolver(LoginRequestSchema),
     mode: 'onChange'
   });
@@ -54,7 +54,7 @@ export function LoginForm({
   // Load saved username on mount
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    
+
     const savedUsername = localStorage.getItem(REMEMBER_LOGIN_KEY);
     if (savedUsername) {
       setValue('username', savedUsername);
@@ -64,7 +64,7 @@ export function LoginForm({
   const onSubmit = async (data: LoginRequest) => {
     const res = await login(data);
     if (res.code == "USER_NOT_FOUND") {
-      setError("username", {message: res.message});
+      setError("username", { message: res.message });
       return;
     }
     if (res.code == "INVALID_PASSWORD") {
@@ -80,13 +80,13 @@ export function LoginForm({
       if (rememberPassword) {
         localStorage.setItem(REMEMBER_LOGIN_KEY, data.username);
       }
-      
+
       // Step 1: Save JWT token
       await setJWTtoCookie(res.data.token);
-      
+
       // Step 2: Update user state
       await mutate();
-      
+
       // Step 3: Auto-merge guest cart with user cart
       // (if guest has items, merge them; otherwise fetch user cart)
       try {
@@ -95,7 +95,7 @@ export function LoginForm({
         console.error("Cart merge error during login:", error);
         // Don't block login if cart merge fails
       }
-      
+
       toast.success("Đăng nhập thành công");
       onSuccess?.();
       return;
@@ -190,8 +190,8 @@ export function LoginForm({
               onChange={(e) => setRememberPassword(e.target.checked)}
               className="h-4 w-4 rounded border border-input cursor-pointer"
             />
-            <Label 
-              htmlFor="rememberPassword" 
+            <Label
+              htmlFor="rememberPassword"
               className="text-sm font-normal cursor-pointer"
             >
               Nhớ mật khẩu
