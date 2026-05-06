@@ -173,10 +173,9 @@ export async function updatePurchaseStatusService(receiptId, adminId, purchaseSt
     throw new Error('Invalid purchase status');
   }
 
-  // Luong hop le: pending -> completed/canceled, completed -> canceled; canceled la diem cuoi.
+  // Luong hop le: pending -> completed/canceled; completed/canceled la diem cuoi.
   const canTransition =
-    (oldStatus === 'pending' && (nextStatus === 'completed' || nextStatus === 'canceled')) ||
-    (oldStatus === 'completed' && nextStatus === 'canceled');
+    oldStatus === 'pending' && (nextStatus === 'completed' || nextStatus === 'canceled');
 
   if (!canTransition) {
     throw new Error('Invalid status transition');
@@ -193,24 +192,9 @@ export async function updatePurchaseStatusService(receiptId, adminId, purchaseSt
     qtyMap.set(key, (qtyMap.get(key) || 0) + Number(item.quantity || 0));
   }
 
-  // Chỉ completed mới được coi là đã áp tồn kho.
+  // Chi cong ton kho khi xac nhan phieu nhap.
   const oldApplied = oldStatus === 'completed';
   const nextApplied = nextStatus === 'completed';
-
-  if (oldApplied && !nextApplied) {
-    for (const [bookId, qty] of qtyMap.entries()) {
-      const book = await Book.findById(bookId);
-      if (!book) {
-        throw new Error(`Book with id ${bookId} not found`);
-      }
-      const nextQuantity = (book.quantity || 0) - qty;
-      if (nextQuantity < 0) {
-        throw new Error(`Not enough stock to cancel receipt for book ${bookId}`);
-      }
-      book.quantity = nextQuantity;
-      await book.save();
-    }
-  }
 
   if (!oldApplied && nextApplied) {
     for (const [bookId, qty] of qtyMap.entries()) {

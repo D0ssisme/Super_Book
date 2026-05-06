@@ -18,6 +18,7 @@ export default function SuppliersPage() {
   const [itemsPerPage, setItemsPerPage] = useState<number>(10);
   const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [formErrors, setFormErrors] = useState<Partial<Record<keyof Omit<Supplier, "_id">, string>>>({});
   const [formData, setFormData] = useState<Omit<Supplier, "_id">>({
     name: "",
     phone: "",
@@ -29,6 +30,12 @@ export default function SuppliersPage() {
   useEffect(() => {
     fetchSuppliers();
   }, []);
+
+  useEffect(() => {
+    if (Object.keys(formErrors).length > 0) {
+      setFormErrors({});
+    }
+  }, [formData]);
 
   const fetchSuppliers = async () => {
     try {
@@ -76,6 +83,7 @@ export default function SuppliersPage() {
         address: "",
       });
     }
+    setFormErrors({});
     setShowModal(true);
   };
 
@@ -87,6 +95,7 @@ export default function SuppliersPage() {
       email: "",
       address: "",
     });
+    setFormErrors({});
     setEditingSupplier(null);
     setShowModal(false);
   };
@@ -100,30 +109,27 @@ export default function SuppliersPage() {
       address: formData.address.trim(),
     };
 
-    if (!sanitizedData.name || !sanitizedData.phone || !sanitizedData.email || !sanitizedData.address) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Lỗi',
-        text: 'Vui lòng nhập đầy đủ tên, số điện thoại, email và địa chỉ!',
-      });
-      return;
+    const nextErrors: Partial<Record<keyof Omit<Supplier, "_id">, string>> = {};
+
+    if (!sanitizedData.name) {
+      nextErrors.name = "Vui lòng nhập tên nhà cung cấp";
+    }
+    if (!sanitizedData.phone) {
+      nextErrors.phone = "Vui lòng nhập số điện thoại";
+    } else if (!phoneRegex.test(sanitizedData.phone)) {
+      nextErrors.phone = "Số điện thoại phải bắt đầu bằng 0 và gồm 10 chữ số";
+    }
+    if (!sanitizedData.email) {
+      nextErrors.email = "Vui lòng nhập email";
+    } else if (!emailRegex.test(sanitizedData.email)) {
+      nextErrors.email = "Email không đúng định dạng";
+    }
+    if (!sanitizedData.address) {
+      nextErrors.address = "Vui lòng nhập địa chỉ";
     }
 
-    if (!phoneRegex.test(sanitizedData.phone)) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Lỗi',
-        text: 'Số điện thoại phải bắt đầu bằng số 0 và gồm đúng 10 chữ số!',
-      });
-      return;
-    }
-
-    if (!emailRegex.test(sanitizedData.email)) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Lỗi',
-        text: 'Email không đúng định dạng!',
-      });
+    if (Object.keys(nextErrors).length > 0) {
+      setFormErrors(nextErrors);
       return;
     }
 
@@ -331,6 +337,11 @@ export default function SuppliersPage() {
                     placeholder={`Nhập ${label.toLowerCase()}`}
                     className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                   />
+                  {formErrors[field] ? (
+                    <p className="text-sm text-red-600 mt-1">
+                      {formErrors[field]}
+                    </p>
+                  ) : null}
                 </div>
               ))}
             </div>

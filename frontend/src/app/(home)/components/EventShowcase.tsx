@@ -17,7 +17,7 @@ export default function EventShowcase() {
   const fetchDiscountBooks = async () => {
     try {
       setLoading(true);
-      const response = await bookServices.getBooks(1, 30, "", [], "", undefined, undefined, "newest");
+      const response = await bookServices.getBooks(1, 500, "", [], "", undefined, undefined, "newest");
 
       const books = Array.isArray(response?.data) ? response.data : [];
       const onlyDiscountBooks = books

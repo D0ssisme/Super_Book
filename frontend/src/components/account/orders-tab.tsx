@@ -97,12 +97,14 @@ export function OrdersTab() {
       }
       return <Badge variant="destructive">Chưa thanh toán</Badge>; 
     }
-    const map: Record<string, any> = {
+    const map: Record<string, { label: string; color: string }> = {
       pending: { label: "Đang xử lý", color: "bg-yellow-500" },
+      processing: { label: "Đang xử lý", color: "bg-yellow-500" },
+      delivery: { label: "Đang giao", color: "bg-blue-500" },
       canceled: { label: "Đã hủy", color: "bg-gray-500" },
       completed: { label: "Hoàn thành", color: "bg-blue-500" },
     };
-    const info = map[status] || { label: status, color: "bg-gray-500" };
+    const info = map[status] || { label: "Không rõ", color: "bg-gray-500" };
     return (
       <Badge className={`${info.color} hover:${info.color}`}>
         {info.label}
