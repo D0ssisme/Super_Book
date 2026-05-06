@@ -81,3 +81,12 @@ export const getComparisonStats = async () => {
     const response = await api.get('/statistics/comparison');
     return response.data;
 };
+
+// Get order status statistics with date range filtering
+export const getOrderStatusStats = async (from = '', to = '') => {
+    const params = {};
+    if (from) params.from = from;
+    if (to) params.to = to;
+    const response = await api.get('/statistics/order-status', { params });
+    return response.data;
+};

@@ -38,7 +38,7 @@ import {
 } from "@/validation/orderSchema";
 import { Address } from "@/types/address.type";
 import { Badge } from "@/components/ui/badge";
-import { CreateAddressModal } from "@/components/address/create-address-modal";
+import { CreateAddressModal } from "@/components/address/create-address-modal-simple";
 import { useCartStore } from "@/stores/useCartStore";
 import { useProductDeletionMonitor } from "@/hooks/useProductDeletionMonitor";
 import { bookServices } from "@/services/bookServices";
@@ -168,23 +168,20 @@ const OrderPage = () => {
   }, [cart, checkoutItems, setValue, router]);
   useEffect(() => {
     if (addresses && addresses.length > 0 && !getValues("receiverName")) {
-      const storageKey = getLastAddressStorageKey(user?.data?._id);
-      const lastSelectedAddressId =
-        typeof window !== "undefined"
-          ? window.localStorage.getItem(storageKey)
-          : null;
-
-      const lastSelectedAddr = lastSelectedAddressId
-        ? addresses.find((addr: Address) => addr._id === lastSelectedAddressId)
-        : null;
-
+      // Mặc định chọn địa chỉ default trước
       const defaultAddr =
-        lastSelectedAddr ||
         addresses.find((addr: Address) => addr.isDefault) ||
         addresses[0];
 
       if (defaultAddr) {
         fillAddressToForm(defaultAddr);
+        // Lưu vào localStorage để nhớ lần này
+        if (defaultAddr._id && typeof window !== "undefined") {
+          window.localStorage.setItem(
+            getLastAddressStorageKey(user?.data?._id),
+            defaultAddr._id,
+          );
+        }
       }
     }
   }, [addresses, setValue, getValues, user?.data?._id]);

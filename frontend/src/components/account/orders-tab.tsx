@@ -115,12 +115,14 @@ export function OrdersTab() {
   // Xử lý filter phía Client (Lưu ý: Nếu API hỗ trợ filter thì nên truyền param vào API luôn)
   const ordersList: Order[] = order?.data || [];
 
-  const filteredOrders = ordersList.filter((item) => {
-    if (filterStatus === "ALL") return true;
-    if (filterStatus === "PAID") return item.paymentStatus === "paid";
-    if (filterStatus === "UNPAID") return item.paymentStatus === "unpaid";
-    return true;
-  });
+  const filteredOrders = ordersList
+    .filter((item) => {
+      if (filterStatus === "ALL") return true;
+      if (filterStatus === "PAID") return item.paymentStatus === "paid";
+      if (filterStatus === "UNPAID") return item.paymentStatus === "unpaid";
+      return true;
+    })
+    .sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime());
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
@@ -211,6 +213,9 @@ export function OrdersTab() {
                         <span className="font-semibold text-lg">
                           Đơn hàng #{order._id.slice(-6).toUpperCase()}
                         </span>
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Ngày đặt hàng: {formatDate(order.purchaseDate)}
                       </div>
                       <div className="text-sm text-gray-600 flex items-center gap-2">
                         <CreditCard className="w-4 h-4" /> Phương thức:{" "}
