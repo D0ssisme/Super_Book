@@ -7,6 +7,7 @@ export interface User {
   password: string;
   role: "user" | "admin";
   isVerified: boolean;
+  isActive: boolean;
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;

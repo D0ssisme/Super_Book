@@ -1,13 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Plus, Pencil, Trash2, Eye, EyeOff } from "lucide-react";
+import { Plus, Pencil, Trash2, Eye, EyeOff, Lock, Unlock } from "lucide-react";
 import Pagination from "../components/Pagination";
 import type { User } from "@/types/user.type";
 import axios from "axios";
 import { baseUrl } from "@/constants/index";
 import Swal from "sweetalert2";
 import toast from "react-hot-toast";
-import { getAllUsers, updateUser, deleteUser, createUser } from "@/api/userApi";
+import { getAllUsers, updateUser, deleteUser, createUser, lockUser, unlockUser } from "@/api/userApi";
 
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
@@ -215,6 +215,78 @@ export default function UsersPage() {
     }
   };
 
+  const handleLockUser = async (id: string, username: string) => {
+    const result = await Swal.fire({
+      title: 'Xác nhận khóa người dùng',
+      html: `Bạn có chắc muốn khóa tài khoản "<strong>${username}</strong>"?<br/><small class="text-yellow-600">⚠️ Người dùng sẽ không thể đăng nhập</small>`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#f59e0b',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Khóa',
+      cancelButtonText: 'Hủy',
+      reverseButtons: true,
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await lockUser(id);
+        toast.success('Khóa người dùng thành công!', {
+          position: 'bottom-right',
+          duration: 3000,
+          style: {
+            fontSize: '15px',
+            padding: '16px',
+          },
+        });
+        fetchUsers();
+      } catch (error) {
+        console.error("Error locking user:", error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: (error as any).response?.data?.message || 'Có lỗi xảy ra khi khóa người dùng!',
+        });
+      }
+    }
+  };
+
+  const handleUnlockUser = async (id: string, username: string) => {
+    const result = await Swal.fire({
+      title: 'Xác nhận mở khóa người dùng',
+      html: `Bạn có chắc muốn mở khóa tài khoản "<strong>${username}</strong>"?`,
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonColor: '#10b981',
+      cancelButtonColor: '#6b7280',
+      confirmButtonText: 'Mở khóa',
+      cancelButtonText: 'Hủy',
+      reverseButtons: true,
+    });
+
+    if (result.isConfirmed) {
+      try {
+        await unlockUser(id);
+        toast.success('Mở khóa người dùng thành công!', {
+          position: 'bottom-right',
+          duration: 3000,
+          style: {
+            fontSize: '15px',
+            padding: '16px',
+          },
+        });
+        fetchUsers();
+      } catch (error) {
+        console.error("Error unlocking user:", error);
+        Swal.fire({
+          icon: 'error',
+          title: 'Lỗi',
+          text: (error as any).response?.data?.message || 'Có lỗi xảy ra khi mở khóa người dùng!',
+        });
+      }
+    }
+  };
+
   const openModal = (user: User | null = null) => {
     // Reset validation errors
     setEmailError("");
@@ -312,6 +384,7 @@ export default function UsersPage() {
                   <th className="px-4 py-3 text-left text-gray-700 font-semibold text-sm">Email</th>
                   <th className="px-4 py-3 text-left text-gray-700 font-semibold text-sm">Số điện thoại</th>
                   <th className="px-4 py-3 text-left text-gray-700 font-semibold text-sm">Vai trò</th>
+                  <th className="px-4 py-3 text-left text-gray-700 font-semibold text-sm">Trạng thái</th>
                   <th className="px-4 py-3 text-center text-gray-700 font-semibold text-sm">Thao tác</th>
                 </tr>
               </thead>
@@ -344,16 +417,48 @@ export default function UsersPage() {
                         </span>
                       </td>
                       <td className="px-4 py-4">
+                        <span className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${user.isActive
+                          ? "bg-green-50 text-green-700 border border-green-200"
+                          : "bg-red-50 text-red-700 border border-red-200"
+                          }`}>
+                          {user.isActive ? "✓ Hoạt động" : "✗ Bị khóa"}
+                        </span>
+                      </td>
+                      <td className="px-4 py-4">
                         <div className="flex justify-center gap-2">
                           <button
                             onClick={() => openModal(user)}
-                            className="p-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-all duration-200"
+                            className="p-2 bg-emerald-100 text-emerald-700 rounded-lg hover:bg-emerald-200 transition-all duration-200 tooltip" title="Sửa"
                           >
                             <Pencil className="w-4 h-4" />
                           </button>
+                          {user.role === "user" && (
+                            <>
+                              {user.isActive ? (
+                                <button
+                                  onClick={() => handleLockUser(user._id, user.username)}
+                                  className="p-2 bg-yellow-100 text-yellow-700 rounded-lg hover:bg-yellow-200 transition-all duration-200 tooltip" title="Khóa"
+                                >
+                                  <Lock className="w-4 h-4" />
+                                </button>
+                              ) : (
+                                <button
+                                  onClick={() => handleUnlockUser(user._id, user.username)}
+                                  className="p-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-all duration-200 tooltip" title="Mở khóa"
+                                >
+                                  <Unlock className="w-4 h-4" />
+                                </button>
+                              )}
+                            </>
+                          )}
+                          {user.role === "admin" && (
+                            <div className="p-2 bg-gray-100 text-gray-400 rounded-lg cursor-not-allowed" title="Không thể khóa tài khoản admin">
+                              <Lock className="w-4 h-4" />
+                            </div>
+                          )}
                           <button
                             onClick={() => handleDelete(user._id, user.username)}
-                            className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all duration-200"
+                            className="p-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-all duration-200 tooltip" title="Xóa"
                           >
                             <Trash2 className="w-4 h-4" />
                           </button>
