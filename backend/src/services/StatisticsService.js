@@ -508,3 +508,33 @@ export async function getComparisonStatsService() {
         throw error;
     }
 }
+
+// Order status counts with optional date range filtering
+export async function getOrderStatusStatsService(from, to) {
+    try {
+        const matchCondition = {};
+        if (from || to) {
+            matchCondition.createdAt = {};
+            if (from) matchCondition.createdAt.$gte = new Date(from);
+            if (to) matchCondition.createdAt.$lte = new Date(to);
+        }
+
+        const statusStats = await Order.aggregate([
+            { $match: matchCondition },
+            {
+                $group: {
+                    _id: "$purchaseStatus",
+                    count: { $sum: 1 }
+                }
+            }
+        ]);
+
+        return {
+            success: true,
+            data: statusStats
+        };
+    } catch (error) {
+        console.error("Error in getOrderStatusStatsService:", error);
+        throw error;
+    }
+}

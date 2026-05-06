@@ -35,7 +35,10 @@ export function LoginForm({
   const { mutate } = useUser();
   const { onLoginSuccess } = useCartStore();
   const [showPassword, setShowPassword] = useState(false);
-  const [rememberPassword, setRememberPassword] = useState(false);
+  const [rememberPassword, setRememberPassword] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return !!localStorage.getItem(REMEMBER_LOGIN_KEY);
+  });
   const {
     register,
     handleSubmit,
@@ -55,7 +58,6 @@ export function LoginForm({
     const savedUsername = localStorage.getItem(REMEMBER_LOGIN_KEY);
     if (savedUsername) {
       setValue('username', savedUsername);
-      setRememberPassword(true);
     }
   }, [setValue]);
 
@@ -67,6 +69,10 @@ export function LoginForm({
     }
     if (res.code == "INVALID_PASSWORD") {
       setError("password", { message: res.message });
+      return;
+    }
+    if (res.code == "ACCOUNT_LOCKED") {
+      toast.error(res.message || 'Tài khoản đã bị khóa');
       return;
     }
     if ("token" in res.data) {

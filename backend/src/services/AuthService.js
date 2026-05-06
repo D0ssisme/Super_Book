@@ -17,7 +17,7 @@ import { v4 as uuidv4 } from 'uuid';
 export const registerService = async (userData) => {
   // Input validation - kiểm tra dữ liệu đầu vào
   const errors = [];
-  
+
   // Trim all inputs
   const fullName = userData.fullName?.trim() || "";
   const username = userData.username?.trim() || "";
@@ -120,10 +120,14 @@ export const loginService = async (username, password) => {
   }
 
   const user = await User.findOne({
-    $or: [{ username: sanitizedUsername }, { email: sanitizedUsername.toLowerCase() }, { phone: sanitizedUsername}]
+    $or: [{ username: sanitizedUsername }, { email: sanitizedUsername.toLowerCase() }, { phone: sanitizedUsername }]
   });
   if (!user) {
     throw new ErrorResponse('Tài khoản không tồn tại', 401, 'USER_NOT_FOUND');
+  }
+  // Prevent login for locked accounts
+  if (user.isLocked) {
+    throw new ErrorResponse('Tài khoản đã bị khóa', 403, 'ACCOUNT_LOCKED');
   }
   const isMatch = await comparePassword(sanitizedPassword, user.password);
   if (!isMatch) {
@@ -139,26 +143,26 @@ export const verifyEmailService = async (token) => {
     throw new ErrorResponse('Invalid token', 401);
   }
   const user = await User.findById(decoded.userId);
-  if (!user){
+  if (!user) {
     throw new ErrorResponse('User not found', 404);
   }
-  if (user.email !== decoded.email){
+  if (user.email !== decoded.email) {
     throw new ErrorResponse('Token email mismatch', 401);
   }
-  if (user.isVerified){
+  if (user.isVerified) {
     throw new ErrorResponse('Email already verified', 400);
   }
   user.isVerified = true;
   await user.save();
   const UserResponse = toUserResponse(user);
   const authToken = generateToken(UserResponse);
-  return { UserResponse , token: authToken };
+  return { UserResponse, token: authToken };
 };
 
 export const forgotPasswordService = async (email) => {
   const user = await User.findOne({ email: email });
-  if(!user){
-    return {  success: true } // luôn trả true để tăng bảo mật tránh cho hacker biết email có tồn tại không
+  if (!user) {
+    return { success: true } // luôn trả true để tăng bảo mật tránh cho hacker biết email có tồn tại không
   }
   const now = new Date()
   const lastSent = user.lastPasswordResetSent;
@@ -177,28 +181,28 @@ export const resetPasswordService = async (token, newPassword) => {
     throw new ErrorResponse('Invalid token', 401);
   }
   const user = await User.findById(decoded.userId);
-  if (!user){
+  if (!user) {
     throw new ErrorResponse('User not found', 404);
   }
-  if (user.email !== decoded.email){
+  if (user.email !== decoded.email) {
     throw new ErrorResponse('Token email mismatch', 401);
   }
   user.password = newPassword;
   await user.save();
   await sendPasswordResetSuccessEmail(user)
-  return {  success: true}
+  return { success: true }
 }
 export const resendVerificationService = async (email) => {
   const user = await User.findOne({ email: email });
-  if (!user){
+  if (!user) {
     throw new ErrorResponse('User not found', 404);
   }
-  if (user.isVerified){
+  if (user.isVerified) {
     throw new ErrorResponse('Email already verified', 400);
   }
   const now = new Date()
   const lastSent = user.lastVerificationSent;
-  if (lastSent && now - lastSent < 60 * 1000){ // 1 phut
+  if (lastSent && now - lastSent < 60 * 1000) { // 1 phut
     throw new ErrorResponse('Please wait 1 minute before requesting another verification email', 429);
   }
   const verificationToken = generateEmailVerificationToken(user)
@@ -210,7 +214,7 @@ export const resendVerificationService = async (email) => {
 //change password after login
 export const changePasswordService = async (userId, oldPassword, newPassword) => {
   const user = await User.findById(userId);
-  if (!user){
+  if (!user) {
     throw new ErrorResponse('Người dùng không tồn tại', 404);
   }
   const isMatch = await comparePassword(oldPassword, user.password);
@@ -219,22 +223,22 @@ export const changePasswordService = async (userId, oldPassword, newPassword) =>
   }
   user.password = newPassword;
   await user.save();
-  return {  success: true}
+  return { success: true }
 }
 export const getProfileService = async (username) => {
-  const user = await User.findOne({username: username});
+  const user = await User.findOne({ username: username });
   if (!user) {
     throw new ErrorResponse('User not found', 404);
   }
-  return { fullName: user.fullName,username: user.username, email: user.email, phone: user.phone, id: user._id, role: user.role };
+  return { fullName: user.fullName, username: user.username, email: user.email, phone: user.phone, id: user._id, role: user.role };
 };
 export const updateProfileService = async (userId, updateData) => {
   const user = await User.findById(userId)
-  if (!user){
+  if (!user) {
     throw new ErrorResponse('Người dùng không tồn tại', 404);
   }
   // check email/username/phone có tồn tại trong thằng user khác không
-  if (updateData.email && updateData.email !== user.email){
+  if (updateData.email && updateData.email !== user.email) {
     const existingEmail = await User.findOne({
       email: updateData.email,
       _id: { $ne: userId } //not equal
@@ -243,16 +247,16 @@ export const updateProfileService = async (userId, updateData) => {
       throw new ErrorResponse('Email đã tồn tại', 400);
     }
   }
-  if (updateData.username && updateData.username !== user.username){
+  if (updateData.username && updateData.username !== user.username) {
     const existingUsername = await User.findOne({
       username: updateData.username,
       _id: { $ne: userId } //not equal
     })
     if (existingUsername) {
-      throw new ErrorResponse('Tên đăng nhập đã tồn tại', 400 )
+      throw new ErrorResponse('Tên đăng nhập đã tồn tại', 400)
     }
   }
-  if (updateData.phone && updateData.phone !== user.phone){
+  if (updateData.phone && updateData.phone !== user.phone) {
     const existingPhone = await User.findOne({
       phone: updateData.phone,
       _id: { $ne: userId } //not equal
