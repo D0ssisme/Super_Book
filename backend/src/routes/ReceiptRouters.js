@@ -17,6 +17,7 @@ router.use(auth);
 router.use(authorizeRoles("admin"));
 router.use(checkEmptyBody)
 
+// Chi admin moi duoc quan ly phieu nhap
 router.get('/:id', getReceiptById);
 router.post('/', createReceipt);
 router.post('/me', getAllReceipts);
