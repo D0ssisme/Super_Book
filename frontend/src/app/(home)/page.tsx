@@ -6,11 +6,11 @@ import BookShowCase from "@/app/(home)/components/BookShowCase";
 import BookNewest from "@/app/(home)/components/BookNewest";
 import EventShowcase from "@/app/(home)/components/EventShowcase";
 import { useTop10BestSellingBooks, useTop10NewestBooks } from "@/hooks/useBook";
-import { useEffect } from "react";
+import { useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
-export default function HomePage() {
+function HomeContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { bestSelling, isLoading: Selling } = useTop10BestSellingBooks();
@@ -47,5 +47,13 @@ export default function HomePage() {
 
       <BrandCarousel />
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="text-center py-10">Đang tải trang chủ...</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }
