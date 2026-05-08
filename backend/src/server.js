@@ -79,10 +79,12 @@ app.use(process.env.API_TAG + "/events", eventRouter);
 app.use(process.env.API_TAG + "/statistics", statisticsRouter);
 app.use(process.env.API_TAG + "/coupons", couponRouter);
 app.use(process.env.API_TAG + "/reviews", reviewRouter);
-app.listen(process.env.PORTBE, async () => {
-  console.log("Server is running on port " + process.env.PORTBE);
-});
 
+const PORT = process.env.PORT || 8080;
+
+app.listen(PORT, "0.0.0.0", async () => {
+  console.log("Server is running on port " + PORT);
+});
 await cleanupCorruptedCarts().catch((err) =>
   console.warn("Cleanup warning:", err.message),
 );
