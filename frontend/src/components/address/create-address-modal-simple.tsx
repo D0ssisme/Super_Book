@@ -72,7 +72,7 @@ export const CreateAddressModal = ({
     formState: { errors, isSubmitting },
     setValue,
     watch,
-  } = useForm<Address>({
+  } = useForm({
     defaultValues: {
       _id: initialData?._id,
       name: initialData?.name || user?.data?.fullName || "",

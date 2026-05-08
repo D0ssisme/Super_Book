@@ -8,9 +8,25 @@ import {
 
 export async function createBookService(book, files) {
   try {
-    let { name, categoryId, publisherId, quantity, price, authors } = book;
+    let {
+      name,
+      categoryId,
+      publisherId,
+      supplierId,
+      productCode,
+      translator,
+      publishYear,
+      weight,
+      dimensions,
+      pageCount,
+      format,
+      description,
+      quantity,
+      price,
+      authors,
+    } = book;
     authors = JSON.parse(authors);
-    if (!name || !categoryId || !publisherId || !authors) {
+    if (!name || !categoryId || !publisherId || !supplierId || !productCode || !authors) {
       // chan do phai fetch len neu du lieu loi
       throw new Error("Can't upload image to cloudinary!");
     }
@@ -19,6 +35,15 @@ export async function createBookService(book, files) {
       name: name,
       categoryId: categoryId,
       publisherId: publisherId,
+      supplierId: supplierId,
+      productCode: productCode,
+      translator: translator,
+      publishYear: publishYear || new Date().getFullYear(),
+      weight: weight || 0,
+      dimensions: dimensions,
+      pageCount: pageCount || 0,
+      format: format,
+      description: description,
       imageUrl: imageUrl,
       quantity: quantity,
       price: price,
@@ -36,6 +61,7 @@ export async function createBookService(book, files) {
     const populatedBook = await Book.findById(newBook._id)
       .populate("categoryId", "name")
       .populate("publisherId", "name")
+      .populate("supplierId", "name")
       .lean();
     const authorsRel = await BookAuthor.find({
       bookId: newBook._id,
@@ -49,7 +75,24 @@ export async function createBookService(book, files) {
 }
 
 export async function updateBookService(id, data, files) {
-  let { name, categoryId, publisherId, quantity, price, authors, existingImages } = data;
+  let {
+    name,
+    categoryId,
+    publisherId,
+    supplierId,
+    productCode,
+    translator,
+    publishYear,
+    weight,
+    dimensions,
+    pageCount,
+    format,
+    description,
+    quantity,
+    price,
+    authors,
+    existingImages,
+  } = data;
   const book = await Book.findById(id);
   if (!book) {
     throw new Error(`Book with id ${id} not found`);
@@ -67,6 +110,15 @@ export async function updateBookService(id, data, files) {
   book.name = name;
   book.categoryId = categoryId;
   book.publisherId = publisherId;
+  book.supplierId = supplierId;
+  book.productCode = productCode;
+  book.translator = translator;
+  book.publishYear = publishYear || book.publishYear || new Date().getFullYear();
+  book.weight = weight || 0;
+  book.dimensions = dimensions;
+  book.pageCount = pageCount || 0;
+  book.format = format;
+  book.description = description;
   book.quantity = quantity;
   book.price = price;
 
@@ -99,6 +151,7 @@ export async function updateBookService(id, data, files) {
   const populatedBook = await Book.findById(book._id)
     .populate("categoryId", "name")
     .populate("publisherId", "name")
+    .populate("supplierId", "name")
     .lean();
   const authorsRel = await BookAuthor.find({ bookId: book._id }).populate(
     "authorId",
@@ -112,6 +165,7 @@ export async function findBookService(_id, includeDeleted = false) {
   const book = await Book.findById(_id)
     .populate("categoryId", "name")
     .populate("publisherId", "name")
+    .populate("supplierId", "name")
     .lean();
   if (!book) {
     throw new Error(`Book with id ${_id} not found`);
@@ -149,7 +203,11 @@ export async function findBookService(_id, includeDeleted = false) {
         if (activeEvent.bookIds.some(id => id.toString() === book._id.toString())) {
           applies = true;
         }
-      } else if (activeEvent.applyType === 'categories' && activeEvent.categoryIds?.length > 0) {
+      } else if (
+        activeEvent.applyType === 'categories' &&
+        activeEvent.categoryIds?.length > 0 &&
+        book.categoryId?._id
+      ) {
         if (activeEvent.categoryIds.some(id => id.toString() === book.categoryId._id.toString())) {
           applies = true;
         }
@@ -266,6 +324,7 @@ export async function getAllBooksService(query) {
       Book.find(filter)
         .populate("categoryId", "name")
         .populate("publisherId", "name")
+        .populate("supplierId", "name")
         .skip(skip)
         .limit(limit)
         .sort(sortOptions)
@@ -321,7 +380,11 @@ export async function getAllBooksService(query) {
             if (activeEvent.bookIds.some(id => id.toString() === book._id.toString())) {
               applies = true;
             }
-          } else if (activeEvent.applyType === 'categories' && activeEvent.categoryIds?.length > 0) {
+          } else if (
+            activeEvent.applyType === 'categories' &&
+            activeEvent.categoryIds?.length > 0 &&
+            book.categoryId?._id
+          ) {
             if (activeEvent.categoryIds.some(id => id.toString() === book.categoryId._id.toString())) {
               applies = true;
             }

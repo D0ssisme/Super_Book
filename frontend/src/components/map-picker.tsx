@@ -119,19 +119,21 @@ function Map4DAutoSuggest({
 
   useEffect(() => {
     if (debouncedPosition.lat == null || debouncedPosition.lng == null) return;
+    const lat = debouncedPosition.lat as number;
+    const lng = debouncedPosition.lng as number;
     const fetchAddress = async () => {
       try {
         const geocodeResult = await getAddressFromLatLog(
-          debouncedPosition.lat,
-          debouncedPosition.lng,
+          lat,
+          lng,
         );
 
         const fallbackResult =
           !geocodeResult?.addressComponents ||
           geocodeResult.addressComponents.length === 0
             ? await reverseGeocodeByLatLngFree(
-                debouncedPosition.lat,
-                debouncedPosition.lng,
+                lat,
+                lng,
               )
             : null;
 

@@ -37,6 +37,10 @@ export default function TransferPaymentPage() {
           toast.error(res?.message || "Không thể tạo thông tin thanh toán QR");
           return;
         }
+        if (!res.payment) {
+          toast.error("Không thể tạo thông tin thanh toán QR");
+          return;
+        }
         setPayment(res.payment);
       } catch (error) {
         toast.error("Không thể tạo thông tin thanh toán QR");
@@ -137,13 +141,17 @@ export default function TransferPaymentPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="bg-white border rounded-lg p-4 flex justify-center">
-              <Image
-                src={payment.qrCodeUrl}
-                alt="QR chuyển khoản"
-                width={320}
-                height={320}
-                className="w-full max-w-xs h-auto"
-              />
+              {payment.qrCodeUrl ? (
+                <Image
+                  src={payment.qrCodeUrl}
+                  alt="QR chuyển khoản"
+                  width={320}
+                  height={320}
+                  className="w-full max-w-xs h-auto"
+                />
+              ) : (
+                <p className="text-sm text-gray-500">Không có mã QR để hiển thị</p>
+              )}
             </div>
             <p className="text-sm text-gray-600 text-center">
               Nội dung chuyển khoản phải chính xác để hệ thống xác nhận nhanh

@@ -1,4 +1,4 @@
-import { Book } from "@/types/book.type";
+import { Book, BookDetail } from "@/types/book.type";
 import { ApiResponse } from "@/types/response.type";
 import api from '@/lib/axios';
 
@@ -55,9 +55,9 @@ export const bookServices = {
     }
   },
 
-  getBookById: async (productId: string): Promise<Book> => {
+  getBookById: async (productId: string): Promise<BookDetail> => {
     try {
-      const response = await api.get<Book>(`/books/${productId}`);
+      const response = await api.get<BookDetail>(`/books/${productId}`);
       return response.data;
     } catch (error: any) {
       // Check if product was deleted (404) or doesn't exist (400)
