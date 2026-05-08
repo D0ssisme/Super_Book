@@ -36,7 +36,7 @@ export default function TransferPaymentPage() {
       try {
         const res = await createPayment(id);
         if (!res?.ok) {
-          toast.error(res?.message || "Không thể tạo thông tin thanh toán QR");
+          toast.error((res as { message?: string })?.message || "Không thể tạo thông tin thanh toán QR");
           return;
         }
         setPayment(res.payment);
@@ -182,7 +182,7 @@ export default function TransferPaymentPage() {
           <CardContent className="space-y-4">
             <div className="bg-white border rounded-lg p-4 flex justify-center">
               <Image
-                src={payment.qrCodeUrl}
+                src={payment.qrCodeUrl || ""}
                 alt="QR chuyển khoản"
                 width={320}
                 height={320}
