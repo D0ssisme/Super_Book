@@ -148,7 +148,7 @@ export const CreateAddressModal = ({
       }
 
       if (onSuccess) {
-        onSuccess(data);
+        onSuccess(res as Address);
       }
       onClose();
     } catch (error) {
@@ -291,8 +291,8 @@ export const CreateAddressModal = ({
                         !selectedProvince && "opacity-50 cursor-not-allowed",
                         errors.district && "border-red-500"
                       )}>
-                        <SelectValue 
-                          placeholder={!selectedProvince ? "Chọn tỉnh trước" : "Chọn quận"} 
+                        <SelectValue
+                          placeholder={!selectedProvince ? "Chọn tỉnh trước" : "Chọn quận"}
                         />
                       </SelectTrigger>
                       <SelectContent>

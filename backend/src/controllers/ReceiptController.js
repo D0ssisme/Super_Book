@@ -5,6 +5,7 @@ import {
   updateSupplyReceiptService, updatePurchaseStatusService
 } from '../services/ReceiptService.js';
 
+// POST /receipt - tao phieu nhap
 export async function createReceipt(req, res) {
   try {
     const {details, supplierId} = req.body;
@@ -17,6 +18,7 @@ export async function createReceipt(req, res) {
     res.status(400).send({message: err.message});
   }
 }
+// POST /receipt/me - lay danh sach phieu nhap cua admin dang dang nhap
 export async function getAllReceipts(req, res) {
   try {
     const receipt = await getAllReceiptsByAdminId(req.user.id);
@@ -28,6 +30,7 @@ export async function getAllReceipts(req, res) {
     res.status(400).send({message: err.message});
   }
 }
+// PUT /receipt/:id - cap nhat phieu nhap (chi pending)
 export async function updateReceipt(req, res) {
   try {
     const {supplierId,paymentStatus, supplyDate, details} = req.body;
@@ -40,6 +43,7 @@ export async function updateReceipt(req, res) {
     res.status(400).send({message: err.message});
   }
 }
+// GET /receipt/:id - lay chi tiet phieu nhap
 export async function getReceiptById(req, res) {
   try {
     const receipt = getReceiptByIdService(req.params.id);
@@ -51,6 +55,7 @@ export async function getReceiptById(req, res) {
     res.status(400).send({message: err.message});
   }
 }
+// PUT /receipt/status/:id - doi trang thai phieu
 export async function updateStatus(req, res) {
   try {
     const {purchaseStatus} = req.body;

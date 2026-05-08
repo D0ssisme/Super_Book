@@ -4,6 +4,7 @@ import {
     getProfitStatsService,
     getTopProductsService,
     getOrderStatsService,
+    getOrderStatusStatsService,
     getTopCategoriesService,
     getPaymentMethodsStatsService,
     getComparisonStatsService
@@ -57,6 +58,17 @@ export const getTopProducts = async (req, res) => {
 export const getOrderStats = async (req, res) => {
     try {
         const stats = await getOrderStatsService();
+        res.status(200).json(stats);
+    } catch (err) {
+        res.status(500).json({ message: err.message });
+    }
+};
+
+// GET /api/v1/statistics/order-status?from=YYYY-MM-DD&to=YYYY-MM-DD
+export const getOrderStatusStats = async (req, res) => {
+    try {
+        const { from, to } = req.query;
+        const stats = await getOrderStatusStatsService(from, to);
         res.status(200).json(stats);
     } catch (err) {
         res.status(500).json({ message: err.message });

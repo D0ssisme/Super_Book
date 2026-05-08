@@ -1,11 +1,18 @@
 import axios from "axios";
 import useSWR from "swr";
+import api from '@/lib/axios';
 import { toast } from "sonner";
 import { getJWTfromCookie } from "@/lib/cookies";
 import { baseUrl } from "@/constants";
 
 export function useUser() {
-  const { data, error, isLoading, mutate } = useSWR(`${baseUrl}/auth/profile`);
+  const fetcher = async (url: string) => {
+    // use centralized `api` so Authorization header is included automatically
+    const path = url.replace(baseUrl, "");
+    const res = await api.get(path);
+    return res.data;
+  };
+  const { data, error, isLoading, mutate } = useSWR(`${baseUrl}/auth/profile`, fetcher);
   return {
     user: data,
     error,

@@ -97,12 +97,14 @@ export function OrdersTab() {
       }
       return <Badge variant="destructive">Chưa thanh toán</Badge>; 
     }
-    const map: Record<string, any> = {
+    const map: Record<string, { label: string; color: string }> = {
       pending: { label: "Đang xử lý", color: "bg-yellow-500" },
+      processing: { label: "Đang xử lý", color: "bg-yellow-500" },
+      delivery: { label: "Đang giao", color: "bg-blue-500" },
       canceled: { label: "Đã hủy", color: "bg-gray-500" },
       completed: { label: "Hoàn thành", color: "bg-blue-500" },
     };
-    const info = map[status] || { label: status, color: "bg-gray-500" };
+    const info = map[status] || { label: "Không rõ", color: "bg-gray-500" };
     return (
       <Badge className={`${info.color} hover:${info.color}`}>
         {info.label}
@@ -113,12 +115,14 @@ export function OrdersTab() {
   // Xử lý filter phía Client (Lưu ý: Nếu API hỗ trợ filter thì nên truyền param vào API luôn)
   const ordersList: Order[] = order?.data || [];
 
-  const filteredOrders = ordersList.filter((item) => {
-    if (filterStatus === "ALL") return true;
-    if (filterStatus === "PAID") return item.paymentStatus === "paid";
-    if (filterStatus === "UNPAID") return item.paymentStatus === "unpaid";
-    return true;
-  });
+  const filteredOrders = ordersList
+    .filter((item) => {
+      if (filterStatus === "ALL") return true;
+      if (filterStatus === "PAID") return item.paymentStatus === "paid";
+      if (filterStatus === "UNPAID") return item.paymentStatus === "unpaid";
+      return true;
+    })
+    .sort((a, b) => new Date(b.purchaseDate).getTime() - new Date(a.purchaseDate).getTime());
 
   const handlePageChange = (newPage: number) => {
     if (newPage >= 1 && newPage <= pagination.totalPages) {
@@ -209,6 +213,9 @@ export function OrdersTab() {
                         <span className="font-semibold text-lg">
                           Đơn hàng #{order._id.slice(-6).toUpperCase()}
                         </span>
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Ngày đặt hàng: {formatDate(order.purchaseDate)}
                       </div>
                       <div className="text-sm text-gray-600 flex items-center gap-2">
                         <CreditCard className="w-4 h-4" /> Phương thức:{" "}

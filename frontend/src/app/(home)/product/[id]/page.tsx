@@ -1,7 +1,11 @@
 import { bookServices } from "@/services/bookServices";
 import React from "react";
+
 import { notFound } from "next/navigation";
 import { Truck, Shield, Leaf, CheckCircle } from "lucide-react";
+
+
+
 import ImageSlider from "../components/ImageSlider";
 import PurchaseCard from "../components/PurchaseCard";
 import ProductReviewsSection from "../components/ProductReviewsSection";
@@ -14,6 +18,7 @@ const ProductDetailPage = async ({
 }) => {
   const { id } = await params;
   let book;
+
   try {
     book = await bookServices.getBookById(id);
   } catch (error: any) {
@@ -113,9 +118,11 @@ const ProductDetailPage = async ({
                   <span>Được kiểm tra thanh toán khi nhận hàng</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <Leaf className="text-green-500 shrink-0 mt-0.5" size={18} />
-                  <span>
-                    Với mỗi cuốn sách bán ra, SuperBook sẽ trích 1000 VND để ủng hộ các tổ chức bảo vệ môi trường
+
+                  <span className="flex items-center gap-2">
+                    <Leaf className="text-green-500" size={18} />
+                    Với mỗi cuốn sách bán ra, Super Book sẽ trích 1000 VND để ủng hộ
+                    các tổ chức bảo vệ môi trường
                   </span>
                 </li>
               </ul>
