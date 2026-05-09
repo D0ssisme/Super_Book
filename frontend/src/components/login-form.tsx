@@ -63,6 +63,10 @@ export function LoginForm({
 
   const onSubmit = async (data: LoginRequest) => {
     const res = await login(data);
+    if (!res || !res.data) {
+      toast.error('Không thể kết nối máy chủ. Vui lòng thử lại.');
+      return;
+    }
     if (res.code == "USER_NOT_FOUND") {
       setError("username", { message: res.message });
       return;
@@ -75,7 +79,7 @@ export function LoginForm({
       toast.error(res.message || 'Tài khoản đã bị khóa');
       return;
     }
-    if ("token" in res.data) {
+    if (res.data && "token" in res.data) {
       // Save username if "remember password" is checked
       if (rememberPassword) {
         localStorage.setItem(REMEMBER_LOGIN_KEY, data.username);

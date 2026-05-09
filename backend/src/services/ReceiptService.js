@@ -46,7 +46,14 @@ export async function createSupplyReceiptService(adminId, supplierId, details) {
     .populate('adminId', 'fullName email')
     .populate('supplierId', 'name phone')
     .lean();
-  populatedReceipt.details = await SupplyDetail.find({ receiptId: receipt._id });
+  
+  const detailDocs = await SupplyDetail.find({ receiptId: receipt._id })
+    .populate({
+      path: 'bookId',
+      select: 'name price imageUrl isDeleted'
+    });
+  
+  populatedReceipt.details = detailDocs;
   return populatedReceipt;
 }
 
@@ -141,30 +148,44 @@ export async function updateSupplyReceiptService(receiptId, adminId, supplierId,
     .populate('adminId', 'fullName email')
     .populate('supplierId', 'name phone')
     .lean();
-  populatedReceipt.details = await SupplyDetail.find({ receiptId: receipt._id });
+  
+  const detailDocs = await SupplyDetail.find({ receiptId: receipt._id })
+    .populate({
+      path: 'bookId',
+      select: 'name price imageUrl isDeleted'
+    });
+  
+  populatedReceipt.details = detailDocs;
   return populatedReceipt;
 }
 
 // Lay danh sach phieu nhap theo admin
 export async function getAllReceiptsByAdminId(adminId) {
-  const populatedReceipt = await Order.find({ adminId: adminId })
+  const receipts = await SupplyReceipt.find({ adminId: adminId })
     .populate('adminId', 'fullName email')
     .populate('supplierId', 'name phone')
     .lean();
-  populatedReceipt.details = await SupplyDetail.find({ orderId: populatedReceipt._id });
-  return populatedReceipt;
+  
+  // Them chi tiet cho moi phieu
+  const receiptsWithDetails = await Promise.all(
+    receipts.map(async (receipt) => ({
+      ...receipt,
+      details: await SupplyDetail.find({ receiptId: receipt._id })
+    }))
+  );
+  return receiptsWithDetails;
 }
 
 // Lay chi tiet mot phieu nhap
 export async function getReceiptByIdService(receiptId) {
-  const receipt = await Order.findById(receiptId)
-    .populate('customerId', 'fullName email')
+  const receipt = await SupplyReceipt.findById(receiptId)
+    .populate('adminId', 'fullName email')
     .populate('supplierId', 'name phone')
     .lean();
   if (!receipt) {
     throw new Error(`Supply Receipt with id ${receiptId} not found`);
   }
-  receipt.details = await SupplyDetail.find({ orderId: receipt._id });
+  receipt.details = await SupplyDetail.find({ receiptId: receipt._id });
   return receipt;
 }
 

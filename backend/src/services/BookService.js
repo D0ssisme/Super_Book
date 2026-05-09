@@ -173,6 +173,7 @@ export async function deleteBookService(id) {
   if (!book) {
     throw new Error(`Book with id ${id} not found`);
   }
+
   // Soft delete - chỉ đánh dấu, không xóa thực
   // Không xóa BookAuthor để tránh mất thông tin
   // Hóa đơn cũ vẫn lấy được thông tin sách
