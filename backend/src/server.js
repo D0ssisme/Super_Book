@@ -15,7 +15,6 @@ import authRoute from "./routes/AuthRouters.js";
 import authorRouter from "./routes/AuthorRouters.js";
 import publisherRouter from "./routes/PublisherRouters.js";
 import supplierRouter from "./routes/SupplierRouters.js";
-import receiptRouter from "./routes/ReceiptRouters.js";
 import { setup } from "./utils/hosting.js";
 import supplyReceiptRouter from "./routes/SupplyReceiptRouters.js";
 import paymentRouter from "./routes/PaymentRouters.js";
@@ -40,47 +39,49 @@ const allowedOrigins = [
   "http://127.0.0.1:3000",
 ].filter(Boolean);
 
-app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin) {
-        return callback(null, true);
-      }
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin) {
+      return callback(null, true);
+    }
 
-      if (process.env.NODE_ENV === "development") {
-        return callback(null, true);
-      }
+    if (process.env.NODE_ENV === "development") {
+      return callback(null, true);
+    }
 
-      if (allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
 
-      return callback(new Error(`CORS blocked for origin: ${origin}`));
-    },
-    credentials: true,
-  }),
-);
+    return callback(new Error(`CORS blocked for origin: ${origin}`));
+  },
+  credentials: true,
+};
+
+const apiTag = process.env.API_TAG || "/api/v1";
+
+app.use(cors(corsOptions));
+app.options(/.*/, cors(corsOptions));
 app.use(express.json()); // To parse JSON bodies
 app.use(express.urlencoded({ extended: true })); // To parse URL-encoded bodies
-app.use(process.env.API_TAG + "/auth", authRoute);
-app.use(process.env.API_TAG + "/address", addressRouter);
-app.use(process.env.API_TAG + "/users", userRoute);
-app.use(process.env.API_TAG + "/books", bookRoute);
-app.use(process.env.API_TAG + "/cart", cartRoute);
-app.use(process.env.API_TAG + "/categories", categoryRoute);
-app.use(process.env.API_TAG + "/orders", orderRoute);
-app.use(process.env.API_TAG + "/authors", authorRouter);
-app.use(process.env.API_TAG + "/publishers", publisherRouter);
-app.use(process.env.API_TAG + "/suppliers", supplierRouter);
-app.use(process.env.API_TAG + "/receipts", receiptRouter);
-app.use(process.env.API_TAG + "/supply-receipts", supplyReceiptRouter);
-app.use(process.env.API_TAG + "/payment", paymentRouter);
-app.use(process.env.API_TAG + "/events", eventRouter);
-app.use(process.env.API_TAG + "/statistics", statisticsRouter);
-app.use(process.env.API_TAG + "/coupons", couponRouter);
-app.use(process.env.API_TAG + "/reviews", reviewRouter);
+app.use(apiTag + "/auth", authRoute);
+app.use(apiTag + "/address", addressRouter);
+app.use(apiTag + "/users", userRoute);
+app.use(apiTag + "/books", bookRoute);
+app.use(apiTag + "/cart", cartRoute);
+app.use(apiTag + "/categories", categoryRoute);
+app.use(apiTag + "/orders", orderRoute);
+app.use(apiTag + "/authors", authorRouter);
+app.use(apiTag + "/publishers", publisherRouter);
+app.use(apiTag + "/suppliers", supplierRouter);
+app.use(apiTag + "/supply-receipts", supplyReceiptRouter);
+app.use(apiTag + "/payment", paymentRouter);
+app.use(apiTag + "/events", eventRouter);
+app.use(apiTag + "/statistics", statisticsRouter);
+app.use(apiTag + "/coupons", couponRouter);
+app.use(apiTag + "/reviews", reviewRouter);
 
-const PORT = process.env.PORT || 8080;
+const PORT = process.env.PORTBE || process.env.PORT || 8080;
 
 app.listen(PORT, "0.0.0.0", async () => {
   console.log("Server is running on port " + PORT);

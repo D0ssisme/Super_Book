@@ -106,6 +106,7 @@ function getClientIp(reqLike) {
   return "127.0.0.1";
 }
 
+// Gom cac truong can thiet de tao chu ky HMAC theo MoMo docs.
 function buildMomoRawSignature(data) {
   return [
     `accessKey=${data.accessKey}`,
@@ -144,6 +145,7 @@ function resolveMomoRequestType(reqLike = {}) {
 }
 
 async function createMomoPayment(order, reqLike = {}, options = {}) {
+  // Tao giao dich MoMo: build payload, ky request va goi API sandbox.
   const { forceNewOrderId = false } = options;
   const endpoint =
     process.env.MOMO_ENDPOINT ||
@@ -296,6 +298,7 @@ async function handleMomoResult({ orderId, resultCode }) {
 }
 
 export async function createPaymentService(orderId, customerId, reqLike = {}) {
+  // Ham dieu phoi chinh: kiem tra don, chon dung luong thanh toan theo paymentMethod.
   const order = await Order.findById(orderId);
   if (!order) {
     throw new Error(`Order with id ${orderId} not found`);
@@ -319,6 +322,7 @@ export async function createPaymentService(orderId, customerId, reqLike = {}) {
   }
 
   if (order.paymentMethod === "MOMO") {
+    // MoMo: neu da co link con hop le thi dung lai, tranh tao giao dich trung lap.
     const clientIp = getClientIp(reqLike);
 
     // Nếu đơn chưa failed và đã có link, reuse link cũ để tránh tạo giao dịch trùng.

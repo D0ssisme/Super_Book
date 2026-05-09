@@ -10,6 +10,7 @@ export interface SupplyReceipt {
 
 export interface SupplyItem {
   book_id: string;
+  book_name?: string;
   import_price: number;
   quantity: number;
   sub_amount: number;
