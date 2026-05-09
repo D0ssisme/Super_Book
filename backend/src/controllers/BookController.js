@@ -32,7 +32,14 @@ export const findBook = async (req, res) => {
     const Book = await findBookService(req.params.id);
     res.status(200).json(Book);
   } catch (err) {
-    res.status(400).json({ message: err.message });
+    const message = err?.message || String(err);
+    if (message.toLowerCase().includes('not found')) {
+      // Resource not found -> 404
+      res.status(404).json({ message });
+    } else {
+      // Other client errors
+      res.status(400).json({ message });
+    }
   }
 };
 export const deleteBook = async (req, res) => {

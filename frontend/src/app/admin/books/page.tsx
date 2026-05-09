@@ -8,6 +8,7 @@ import type { Book, BooksResponse } from "@/types/book.type";
 import type { Author } from "@/types/author.type";
 import type { Category } from "@/types/category.type";
 import type { Publisher } from "@/types/publisher.type";
+import type { Supplier } from "@/types/supplier.type";
 import axios from "axios";
 import { baseUrl } from "@/constants/index";
 import { createBook, updateBook, deleteBook } from "@/api/bookApi";
@@ -33,6 +34,7 @@ export default function BooksPage() {
   const [authors, setAuthors] = useState<Author[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [publishers, setPublishers] = useState<Publisher[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [pagination, setPagination] = useState({
     totalItems: 0,
@@ -61,6 +63,15 @@ export default function BooksPage() {
     categoryId: "",
     authorIds: [] as string[],
     publisherId: "",
+    supplierId: "",
+    productCode: "",
+    translator: "",
+    publishYear: new Date().getFullYear(),
+    weight: 0,
+    dimensions: "",
+    pageCount: 0,
+    format: "Bìa mềm",
+    description: "",
     imageUrl: [] as string[],
     quantity: 0,
     price: 0
@@ -72,6 +83,7 @@ export default function BooksPage() {
     fetchAuthors();
     fetchCategories();
     fetchPublishers();
+    fetchSuppliers();
   }, [pagination.currentPage, pagination.limit]);
 
   const fetchBooks = async () => {
@@ -119,6 +131,15 @@ export default function BooksPage() {
     }
   };
 
+  const fetchSuppliers = async () => {
+    try {
+      const response = await api.get(`${baseUrl}/suppliers`);
+      setSuppliers(response.data);
+    } catch (error) {
+      console.error("Error fetching suppliers:", error);
+    }
+  };
+
   // Lọc danh sách sách (client-side filtering)
   const filteredBooks = books.filter(book => {
     const matchSearch = book.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -163,7 +184,14 @@ export default function BooksPage() {
   const handleSubmit = async () => {
     if (isSubmitting) return; // Prevent double submission
 
-    if (!formData.name || !formData.categoryId || !formData.publisherId || formData.authorIds.length === 0) {
+    if (
+      !formData.name ||
+      !formData.categoryId ||
+      !formData.publisherId ||
+      !formData.supplierId ||
+      !formData.productCode ||
+      formData.authorIds.length === 0
+    ) {
       Swal.fire({
         icon: 'error',
         title: 'Lỗi',
@@ -179,6 +207,15 @@ export default function BooksPage() {
       submitData.append('name', formData.name);
       submitData.append('categoryId', formData.categoryId);
       submitData.append('publisherId', formData.publisherId);
+      submitData.append('supplierId', formData.supplierId);
+      submitData.append('productCode', formData.productCode);
+      submitData.append('translator', formData.translator);
+      submitData.append('publishYear', formData.publishYear.toString());
+      submitData.append('weight', formData.weight.toString());
+      submitData.append('dimensions', formData.dimensions);
+      submitData.append('pageCount', formData.pageCount.toString());
+      submitData.append('format', formData.format);
+      submitData.append('description', formData.description);
       // Backend expects authors as JSON string with authorId property
       const authorsData = formData.authorIds.map(id => ({ authorId: id }));
       submitData.append('authors', JSON.stringify(authorsData));
@@ -287,6 +324,15 @@ export default function BooksPage() {
         categoryId: book.categoryId?._id || '',
         authorIds: authorIds,
         publisherId: book.publisherId?._id || '',
+        supplierId: book.supplierId?._id || '',
+        productCode: book.productCode || '',
+        translator: book.translator || '',
+        publishYear: book.publishYear || new Date().getFullYear(),
+        weight: book.weight || 0,
+        dimensions: book.dimensions || '',
+        pageCount: book.pageCount || 0,
+        format: book.format || 'Bìa mềm',
+        description: book.description || '',
         imageUrl: book.imageUrl,
         quantity: book.quantity,
         price: book.price
@@ -300,6 +346,15 @@ export default function BooksPage() {
         categoryId: categories[0]?._id || "",
         authorIds: [],
         publisherId: publishers[0]?._id || "",
+        supplierId: suppliers[0]?._id || "",
+        productCode: "",
+        translator: "",
+        publishYear: new Date().getFullYear(),
+        weight: 0,
+        dimensions: "",
+        pageCount: 0,
+        format: "Bìa mềm",
+        description: "",
         imageUrl: [],
         quantity: 0,
         price: 0
@@ -367,6 +422,15 @@ export default function BooksPage() {
       categoryId: "",
       authorIds: [],
       publisherId: "",
+      supplierId: "",
+      productCode: "",
+      translator: "",
+      publishYear: new Date().getFullYear(),
+      weight: 0,
+      dimensions: "",
+      pageCount: 0,
+      format: "Bìa mềm",
+      description: "",
       imageUrl: [],
       quantity: 0,
       price: 0
@@ -392,7 +456,7 @@ export default function BooksPage() {
           </div>
           <button
             onClick={() => openModal()}
-            className="flex items-center gap-2 bg-gradient-to-r from-emerald-600 to-teal-600 text-white font-semibold px-5 py-2.5 rounded-lg hover:shadow-lg transition-all duration-300"
+            className="flex items-center gap-2 bg-linear-to-r from-emerald-600 to-teal-600 text-white font-semibold px-5 py-2.5 rounded-lg hover:shadow-lg transition-all duration-300"
           >
             <Plus className="w-4 h-4" /> Thêm sách
           </button>
@@ -641,6 +705,29 @@ export default function BooksPage() {
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-gray-700 mb-1.5 font-medium text-sm">Nhà cung cấp *</label>
+                    <SearchableSelect
+                      value={formData.supplierId}
+                      onChange={(value) => setFormData({ ...formData, supplierId: value })}
+                      options={suppliers}
+                      placeholder="Chọn NCC"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 mb-1.5 font-medium text-sm">Mã hàng *</label>
+                    <input
+                      type="text"
+                      value={formData.productCode}
+                      onChange={(e) => setFormData({ ...formData, productCode: e.target.value })}
+                      className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                      placeholder="VD: BK001"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
                   {/* Quantity */}
                   <div>
                     <label className="block text-gray-700 mb-1.5 font-medium text-sm">Số lượng *</label>
@@ -664,6 +751,89 @@ export default function BooksPage() {
                       className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
                     />
                   </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-gray-700 mb-1.5 font-medium text-sm">Người dịch</label>
+                    <input
+                      type="text"
+                      value={formData.translator}
+                      onChange={(e) => setFormData({ ...formData, translator: e.target.value })}
+                      className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                      placeholder="Nhập tên người dịch"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 mb-1.5 font-medium text-sm">Năm XB</label>
+                    <input
+                      type="number"
+                      min="1900"
+                      max="2100"
+                      value={formData.publishYear}
+                      onChange={(e) => setFormData({ ...formData, publishYear: Math.max(1900, parseInt(e.target.value) || new Date().getFullYear()) })}
+                      className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-gray-700 mb-1.5 font-medium text-sm">Trọng lượng (gr)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.weight}
+                      onChange={(e) => setFormData({ ...formData, weight: Math.max(0, parseInt(e.target.value) || 0) })}
+                      className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 mb-1.5 font-medium text-sm">Kích thước bao bì</label>
+                    <input
+                      type="text"
+                      value={formData.dimensions}
+                      onChange={(e) => setFormData({ ...formData, dimensions: e.target.value })}
+                      className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                      placeholder="VD: 20 x 14 cm"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-gray-700 mb-1.5 font-medium text-sm">Số trang</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.pageCount}
+                      onChange={(e) => setFormData({ ...formData, pageCount: Math.max(0, parseInt(e.target.value) || 0) })}
+                      className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-gray-700 mb-1.5 font-medium text-sm">Hình thức</label>
+                    <input
+                      type="text"
+                      value={formData.format}
+                      onChange={(e) => setFormData({ ...formData, format: e.target.value })}
+                      className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm"
+                      placeholder="VD: Bìa mềm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-gray-700 mb-1.5 font-medium text-sm">Mô tả sản phẩm</label>
+                  <textarea
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                    className="w-full border border-gray-300 px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent text-sm min-h-24"
+                    placeholder="Nhập mô tả riêng cho cuốn sách"
+                  />
                 </div>
 
                 {/* Authors */}
@@ -692,9 +862,9 @@ export default function BooksPage() {
                 <label className="block text-gray-700 mb-1.5 font-medium text-sm">Hình ảnh</label>
                 <div className="space-y-2">
                   {/* Image Previews Grid */}
-                  <div className="grid grid-cols-2 gap-2 max-h-[400px] overflow-y-auto p-1">
+                  <div className="grid grid-cols-2 gap-2 max-h-100 overflow-y-auto p-1">
                     {imagePreviews.filter(preview => preview).map((preview, index) => (
-                      <div key={index} className={`relative group aspect-[3/4] ${index === 0 ? 'ring-2 ring-emerald-500' : ''}`}>
+                      <div key={index} className={`relative group aspect-3/4 ${index === 0 ? 'ring-2 ring-emerald-500' : ''}`}>
                         <Image
                           src={preview}
                           alt={`Preview ${index + 1}`}
@@ -732,7 +902,7 @@ export default function BooksPage() {
                     ))}
 
                     {/* Add More Images Button */}
-                    <label className="w-full aspect-[3/4] border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 hover:border-emerald-400 transition-colors">
+                    <label className="w-full aspect-3/4 border-2 border-dashed border-gray-300 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-gray-50 hover:border-emerald-400 transition-colors">
                       <Upload className="w-5 h-5 text-gray-400 mb-1" />
                       <span className="text-gray-500 text-[10px] text-center">Thêm</span>
                       <input
@@ -757,7 +927,7 @@ export default function BooksPage() {
               <button
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-300 font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex-1 bg-linear-to-r from-emerald-600 to-teal-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition-all duration-300 font-semibold text-sm disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {isSubmitting ? "Đang xử lý..." : (editingBook ? "Cập nhật" : "Thêm mới")}
               </button>
@@ -811,6 +981,14 @@ export default function BooksPage() {
                   <p><span className="text-gray-500">Thể loại:</span> <span className="font-medium text-gray-800">{detailBook.categoryId && typeof detailBook.categoryId === 'object' ? detailBook.categoryId.name : detailBook.categoryId ? getCategoryName(detailBook.categoryId as string) : 'N/A'}</span></p>
                   <p><span className="text-gray-500">Tác giả:</span> <span className="font-medium text-gray-800">{Array.isArray(detailBook.authors) && detailBook.authors.length > 0 ? detailBook.authors.map(a => a?.name).filter(Boolean).join(', ') || 'N/A' : 'N/A'}</span></p>
                   <p><span className="text-gray-500">NXB:</span> <span className="font-medium text-gray-800">{detailBook.publisherId && typeof detailBook.publisherId === 'object' ? detailBook.publisherId.name : detailBook.publisherId ? getPublisherName(detailBook.publisherId as string) : 'N/A'}</span></p>
+                  <p><span className="text-gray-500">Nhà cung cấp:</span> <span className="font-medium text-gray-800">{detailBook.supplierId?.name || 'N/A'}</span></p>
+                  <p><span className="text-gray-500">Mã hàng:</span> <span className="font-medium text-gray-800">{detailBook.productCode || 'N/A'}</span></p>
+                  <p><span className="text-gray-500">Người dịch:</span> <span className="font-medium text-gray-800">{detailBook.translator || 'N/A'}</span></p>
+                  <p><span className="text-gray-500">Năm XB:</span> <span className="font-medium text-gray-800">{detailBook.publishYear || 'N/A'}</span></p>
+                  <p><span className="text-gray-500">Trọng lượng:</span> <span className="font-medium text-gray-800">{detailBook.weight ? `${detailBook.weight} gr` : 'N/A'}</span></p>
+                  <p><span className="text-gray-500">Kích thước:</span> <span className="font-medium text-gray-800">{detailBook.dimensions || 'N/A'}</span></p>
+                  <p><span className="text-gray-500">Số trang:</span> <span className="font-medium text-gray-800">{detailBook.pageCount || 'N/A'}</span></p>
+                  <p><span className="text-gray-500">Hình thức:</span> <span className="font-medium text-gray-800">{detailBook.format || 'N/A'}</span></p>
                   <p><span className="text-gray-500">Số lượng:</span> <span className="font-medium text-gray-800">{detailBook.quantity ?? 0}</span></p>
                   <p><span className="text-gray-500">Giá:</span> <span className="font-bold text-emerald-600 text-lg">{formatPrice(detailBook.price)}</span></p>
                 </div>
@@ -850,7 +1028,7 @@ export default function BooksPage() {
                   setShowDetailModal(false);
                   openModal(detailBook);
                 }}
-                className="flex-1 bg-gradient-to-r from-emerald-600 to-teal-600 text-white px-4 py-2.5 rounded-lg hover:shadow-lg transition-all duration-300 font-semibold"
+                className="flex-1 bg-linear-to-r from-emerald-600 to-teal-600 text-white px-4 py-2.5 rounded-lg hover:shadow-lg transition-all duration-300 font-semibold"
               >
                 Sửa thông tin
               </button>
