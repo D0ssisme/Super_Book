@@ -3,6 +3,7 @@ import Book from '../models/Book.js';
 import SupplyReceipt from '../models/SupplyReceipt.js';
 import SupplyDetail from '../models/SupplyDetail.js';
 
+// Tao phieu nhap + chi tiet, tinh tong tien tu chi tiet
 export async function createSupplyReceiptService(adminId, supplierId, details) {
   // Tính tổng tiền trước
   let totalAmount = 0;
@@ -19,6 +20,7 @@ export async function createSupplyReceiptService(adminId, supplierId, details) {
   if (details && details.length > 0) {
     await Promise.all(
       details.map(async item => {
+          // Kiem tra book va so lieu hop le truoc khi tao chi tiet
           const book = await Book.findById(item.bookId);
           if (!book) {
             throw new Error(`Book with id ${item.bookId} not found`);
@@ -44,16 +46,24 @@ export async function createSupplyReceiptService(adminId, supplierId, details) {
     .populate('adminId', 'fullName email')
     .populate('supplierId', 'name phone')
     .lean();
-  populatedReceipt.details = await SupplyDetail.find({ receiptId: receipt._id });
+  
+  const detailDocs = await SupplyDetail.find({ receiptId: receipt._id })
+    .populate({
+      path: 'bookId',
+      select: 'name price imageUrl isDeleted'
+    });
+  
+  populatedReceipt.details = detailDocs;
   return populatedReceipt;
 }
 
+// Cap nhat thong tin phieu nhap (chi duoc sua khi pending)
 export async function updateSupplyReceiptService(receiptId, adminId, supplierId, purchaseStatus, supplyDate, details) {
   const existingReceipt = await SupplyReceipt.findById(receiptId);
   if (!existingReceipt) {
     throw new Error(`Supply Receipt with id ${receiptId} not found`);
   }
-
+  // Lay trang thai hien tai va trang thai muon cap nhat
   const oldStatus = existingReceipt.purchaseStatus?.toString() || 'pending';
   const nextStatus = (purchaseStatus || oldStatus).toString();
   const ALLOWED_STATUSES = ['pending', 'completed', 'canceled'];
@@ -79,12 +89,13 @@ export async function updateSupplyReceiptService(receiptId, adminId, supplierId,
     importPrice: item.importPrice
   }));
 
-  // details từ frontend modal luôn được truyền, fallback để an toàn với các client khác
+  // Neu client khong gui details, giu nguyen chi tiet cu
   const incomingDetails = Array.isArray(details) ? details : oldDetails;
   if (Array.isArray(details) && details.length === 0) {
     throw new Error('Receipt must have at least one item');
   }
 
+  // Chuan hoa details (kiem tra du lieu + gan receiptId, bookId)
   const normalizedNewDetails = [];
   for (const item of incomingDetails) {
     if (!item.bookId) {
@@ -110,6 +121,7 @@ export async function updateSupplyReceiptService(receiptId, adminId, supplierId,
     });
   }
 
+  // Tinh lai tong tien theo chi tiet moi
   const totalAmount = normalizedNewDetails.reduce((sum, item) => sum + (item.importPrice * item.quantity), 0);
 
   const receipt = await SupplyReceipt.findByIdAndUpdate(
@@ -124,6 +136,7 @@ export async function updateSupplyReceiptService(receiptId, adminId, supplierId,
     { new: true }
   );
 
+  // Chi cap nhat chi tiet khi client gui details moi
   if (Array.isArray(details)) {
     await SupplyDetail.deleteMany({ receiptId: existingReceipt._id });
     if (normalizedNewDetails.length > 0) {
@@ -135,31 +148,48 @@ export async function updateSupplyReceiptService(receiptId, adminId, supplierId,
     .populate('adminId', 'fullName email')
     .populate('supplierId', 'name phone')
     .lean();
-  populatedReceipt.details = await SupplyDetail.find({ receiptId: receipt._id });
+  
+  const detailDocs = await SupplyDetail.find({ receiptId: receipt._id })
+    .populate({
+      path: 'bookId',
+      select: 'name price imageUrl isDeleted'
+    });
+  
+  populatedReceipt.details = detailDocs;
   return populatedReceipt;
 }
 
+// Lay danh sach phieu nhap theo admin
 export async function getAllReceiptsByAdminId(adminId) {
-  const populatedReceipt = await Order.find({ adminId: adminId })
+  const receipts = await SupplyReceipt.find({ adminId: adminId })
     .populate('adminId', 'fullName email')
     .populate('supplierId', 'name phone')
     .lean();
-  populatedReceipt.details = await SupplyDetail.find({ orderId: populatedReceipt._id });
-  return populatedReceipt;
+  
+  // Them chi tiet cho moi phieu
+  const receiptsWithDetails = await Promise.all(
+    receipts.map(async (receipt) => ({
+      ...receipt,
+      details: await SupplyDetail.find({ receiptId: receipt._id })
+    }))
+  );
+  return receiptsWithDetails;
 }
 
+// Lay chi tiet mot phieu nhap
 export async function getReceiptByIdService(receiptId) {
-  const receipt = await Order.findById(receiptId)
-    .populate('customerId', 'fullName email')
+  const receipt = await SupplyReceipt.findById(receiptId)
+    .populate('adminId', 'fullName email')
     .populate('supplierId', 'name phone')
     .lean();
   if (!receipt) {
     throw new Error(`Supply Receipt with id ${receiptId} not found`);
   }
-  receipt.details = await SupplyDetail.find({ orderId: receipt._id });
+  receipt.details = await SupplyDetail.find({ receiptId: receipt._id });
   return receipt;
 }
 
+// Cap nhat trang thai phieu (pending -> completed/canceled)
 export async function updatePurchaseStatusService(receiptId, adminId, purchaseStatus) {
   const receipt = await SupplyReceipt.findById(receiptId);
   if (!receipt) {
@@ -173,10 +203,9 @@ export async function updatePurchaseStatusService(receiptId, adminId, purchaseSt
     throw new Error('Invalid purchase status');
   }
 
-  // Luong hop le: pending -> completed/canceled, completed -> canceled; canceled la diem cuoi.
+  // Luong hop le: pending -> completed/canceled; completed/canceled la diem cuoi.
   const canTransition =
-    (oldStatus === 'pending' && (nextStatus === 'completed' || nextStatus === 'canceled')) ||
-    (oldStatus === 'completed' && nextStatus === 'canceled');
+    oldStatus === 'pending' && (nextStatus === 'completed' || nextStatus === 'canceled');
 
   if (!canTransition) {
     throw new Error('Invalid status transition');
@@ -187,31 +216,18 @@ export async function updatePurchaseStatusService(receiptId, adminId, purchaseSt
     throw new Error(`Supply details not found`);
   }
 
+  // Gom so luong theo tung sach (de cap nhat ton kho)
   const qtyMap = new Map();
   for (const item of supplyDetails) {
     const key = item.bookId.toString();
     qtyMap.set(key, (qtyMap.get(key) || 0) + Number(item.quantity || 0));
   }
 
-  // Chỉ completed mới được coi là đã áp tồn kho.
+  // Chi cong ton kho khi xac nhan phieu nhap.
   const oldApplied = oldStatus === 'completed';
   const nextApplied = nextStatus === 'completed';
 
-  if (oldApplied && !nextApplied) {
-    for (const [bookId, qty] of qtyMap.entries()) {
-      const book = await Book.findById(bookId);
-      if (!book) {
-        throw new Error(`Book with id ${bookId} not found`);
-      }
-      const nextQuantity = (book.quantity || 0) - qty;
-      if (nextQuantity < 0) {
-        throw new Error(`Not enough stock to cancel receipt for book ${bookId}`);
-      }
-      book.quantity = nextQuantity;
-      await book.save();
-    }
-  }
-
+  // Chi cong ton kho mot lan khi chuyen sang completed
   if (!oldApplied && nextApplied) {
     for (const [bookId, qty] of qtyMap.entries()) {
       const book = await Book.findById(bookId);

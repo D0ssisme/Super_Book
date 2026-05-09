@@ -4,6 +4,8 @@ import React, { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { bookServices } from "@/services/bookServices";
+import { useCartStore } from "@/stores/useCartStore";
+import { toast } from "sonner";
 
 interface CartPreviewDropdownProps {
   cartItems?: any[];
@@ -24,11 +26,13 @@ export default function CartPreviewDropdown({
   totalPrice = 0 
 }: CartPreviewDropdownProps) {
   const router = useRouter();
+  const removeCartItem = useCartStore((state) => state.removeCartItem);
   const [isOpen, setIsOpen] = useState(false);
   const [bookDataMap, setBookDataMap] = useState<Map<string, BookData>>(new Map());
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const fetchTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const deletedProductsRef = useRef<Set<string>>(new Set());
 
   const openDropdown = () => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -74,8 +78,31 @@ export default function CartPreviewDropdown({
           try {
             const book = await bookServices.getBookById(item.bookId);
             newMap.set(item.bookId, book);
-          } catch (error) {
-            console.error(`Failed to fetch book ${item.bookId}:`, error);
+          } catch (error: any) {
+            // Check if product was deleted (404 or 400 error)
+            if (error.status === 404 || error.status === 400) {
+              // Mark as deleted
+              deletedProductsRef.current.add(item.bookId);
+              
+              // Show notification
+              const cartItem = cartItems.find(c => c.bookId === item.bookId);
+              const productName = cartItem?.name || 'sản phẩm';
+              
+              toast.error(`Sản phẩm "${productName}" đã bị xóa khỏi kho`, {
+                description: "Sản phẩm sẽ tự động xóa khỏi giỏ hàng của bạn",
+              });
+              
+              // Auto remove from cart
+              if (cartItem) {
+                try {
+                  await removeCartItem(cartItem._id);
+                } catch (removeError) {
+                  console.error(`Failed to remove cart item ${cartItem._id}:`, removeError);
+                }
+              }
+            } else {
+              console.error(`Failed to fetch book ${item.bookId}:`, error);
+            }
           }
         }
       }
@@ -88,7 +115,7 @@ export default function CartPreviewDropdown({
     return () => {
       if (fetchTimeoutRef.current) clearTimeout(fetchTimeoutRef.current);
     };
-  }, [isOpen, cartItems, bookDataMap]);
+  }, [isOpen, cartItems, bookDataMap, removeCartItem]);
 
   useEffect(() => {
     return () => {

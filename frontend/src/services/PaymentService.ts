@@ -20,22 +20,21 @@ export interface QrPaymentInfo {
   message?: string;
 }
 
-export async function createPayment(id: string) {
+export async function createPayment(id: string): Promise<{ ok: boolean; payment?: QrPaymentInfo; message?: string }> {
   try {
-    return await api
-      .post(`/payment/create/${id}`)
-      .then((res) => res.data as { ok: boolean; payment: QrPaymentInfo });
+    const res = await api.post(`/payment/create/${id}`);
+    // Normalize response shape to a consistent union
+    const data = res.data;
+    if (data && typeof data.ok === "boolean") {
+      return { ok: data.ok, payment: data.payment, message: data.message };
+    }
+    // Fallback: assume success with payment payload
+    return { ok: true, payment: data as QrPaymentInfo };
   } catch (error: any) {
-    const message =
-      error?.response?.data?.message || "Không thể tạo thanh toán";
-    return { ok: false, message } as {
-      ok: false;
-      message: string;
-      payment?: QrPaymentInfo;
-    };
-  } 
-  
-} 
+    const message = error?.response?.data?.message || "Không thể tạo thanh toán";
+    return { ok: false, message };
+  }
+}
 
 export async function cancelPayment(id: string) {
   return await api.put(`/payment/cancel/${id}`).then((res) => res.data);

@@ -1,7 +1,6 @@
 import {
   createSupplyReceiptService,
   updateSupplyReceiptService,
-  getReceiptByIdService,
   updatePurchaseStatusService
 } from '../services/ReceiptService.js';
 import SupplyReceipt from '../models/SupplyReceipt.js';
@@ -29,7 +28,10 @@ export async function getAllSupplyReceipts(req, res) {
     const receiptsWithDetails = await Promise.all(
       receipts.map(async (receipt) => {
         const details = await SupplyDetail.find({ receiptId: receipt._id })
-          .populate('bookId', 'name price imageUrl');
+          .populate({
+            path: 'bookId',
+            select: 'name price imageUrl isDeleted'
+          });
         return { ...receipt, details };
       })
     );
@@ -65,7 +67,10 @@ export async function getSupplyReceiptById(req, res) {
     }
 
     const details = await SupplyDetail.find({ receiptId: receipt._id })
-      .populate('bookId', 'name price imageUrl quantity');
+      .populate({
+        path: 'bookId',
+        select: 'name price imageUrl quantity isDeleted'
+      });
 
     res.status(200).json({ ...receipt, details });
   } catch (err) {

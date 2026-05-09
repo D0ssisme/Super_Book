@@ -1,6 +1,6 @@
 "use client";
 import { cn } from "@/lib/utils";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { RegisterRequestSchema } from "@/validation/authschemas";
 import { Input } from "@/components/ui/input";
@@ -9,14 +9,25 @@ import { Label } from "@/components/ui/label";
 import { registerUser, useUser } from "@/services/authservices";
 import { setJWTtoCookie } from "@/lib/cookies";
 import { toast } from "sonner";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { getDistricts, getProvinces, Province } from "@/services/addressservices";
 
 type RegisterRequest = {
   fullName: string;
   username: string;
   phone: string;
   email: string;
+  detail: string;
+  province: string;
+  district: string;
   password: string;
   confirmPassword: string;
 };
@@ -35,20 +46,77 @@ export function RegisterForm({
   onSuccess?: () => void;
 }) {
   const { mutate } = useUser();
+  const { provinces, isLoading: isLoadingProvinces } = getProvinces();
+  const [districts, setDistricts] = useState<Province[]>([]);
+  const [provinceSearch, setProvinceSearch] = useState("");
+  const [districtSearch, setDistrictSearch] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
+    control,
+    watch,
+    setValue,
     setError,
   } = useForm<RegisterRequest>({
     resolver: zodResolver(RegisterRequestSchema),
-    mode: "onChange",
+    mode: "onSubmit",
+    defaultValues: {
+      fullName: "",
+      username: "",
+      phone: "",
+      email: "",
+      detail: "",
+      province: "",
+      district: "",
+      password: "",
+      confirmPassword: "",
+    },
   });
 
+  const selectedProvince = watch("province");
+
+  const filteredProvinces = provinces?.filter((prov) =>
+    (prov.full_name?.toLowerCase() + " " + prov.name?.toLowerCase()).includes(
+      provinceSearch.toLowerCase()
+    )
+  ) || [];
+
+  const filteredDistricts = districts.filter((dist) =>
+    (dist.full_name?.toLowerCase() + " " + dist.name?.toLowerCase()).includes(
+      districtSearch.toLowerCase()
+    )
+  );
+
+  useEffect(() => {
+    if (!selectedProvince) {
+      setDistricts([]);
+      setValue("district", "", { shouldValidate: true });
+      return;
+    }
+
+    const province = provinces?.find((item) => String(item.id) === String(selectedProvince));
+    if (!province?.id) return;
+
+    setValue("district", "", { shouldValidate: true });
+    getDistricts(String(province.id))
+      .then((res) => setDistricts(res || []))
+      .catch(() => setDistricts([]));
+  }, [provinces, selectedProvince, setValue]);
+
   const onSubmit = async (data: RegisterRequest) => {
-    const res = await registerUser(data);
+    const province = provinces?.find((item) => String(item.id) === String(data.province));
+    const district = districts.find((item) => String(item.id) === String(data.district));
+
+    const payload = {
+      ...data,
+      province: province?.full_name || province?.name || data.province,
+      district: district?.full_name || district?.name || data.district,
+    };
+
+    const res = await registerUser(payload);
     if (res.errors) {
       res.errors.forEach((err: BackendError) => {
         setError(err.field as keyof RegisterRequest, { message: err.message });
@@ -145,6 +213,114 @@ export function RegisterForm({
           )}
         />
         <ErrorMessage message={errors.email?.message} />
+      </div>
+
+      <div className="grid gap-2 md:grid-cols-2 gap-y-4 gap-x-3">
+        <div className="grid gap-1.5">
+          <Label htmlFor="detail" className={cn(errors.detail && "text-red-500")}>
+            Địa chỉ chi tiết *
+          </Label>
+          <Input
+            id="detail"
+            type="text"
+            {...register("detail")}
+            placeholder="Số nhà, tên đường, phường/xã..."
+            className={cn(
+              errors.detail && "border-red-500 focus-visible:ring-red-500",
+            )}
+          />
+          <ErrorMessage message={errors.detail?.message} />
+        </div>
+
+        <div className="grid gap-1.5">
+          <Label className={cn(errors.province && "text-red-500")}>
+            Tỉnh / Thành phố *
+          </Label>
+          <Controller
+            control={control}
+            name="province"
+            render={({ field }) => (
+              <Select value={field.value} onValueChange={(val) => {
+                field.onChange(val);
+                setProvinceSearch("");
+              }}>
+                <SelectTrigger className={cn(
+                  "w-full",
+                  errors.province && "border-red-500"
+                )}>
+                  <SelectValue placeholder={isLoadingProvinces ? "Đang tải..." : "Chọn tỉnh"} />
+                </SelectTrigger>
+                <SelectContent>
+                  <div className="p-2 pb-0">
+                    <Input
+                      placeholder="Tìm tỉnh/thành phố... "
+                      value={provinceSearch}
+                      onChange={(e) => setProvinceSearch(e.target.value)}
+                      className="h-8 text-sm"
+                    />
+                  </div>
+                  <div className="max-h-48 overflow-y-auto">
+                    {filteredProvinces.map((prov) => (
+                      <SelectItem key={prov.id} value={prov.id}>
+                        {prov.full_name || prov.name}
+                      </SelectItem>
+                    ))}
+                  </div>
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {errors.province && <ErrorMessage message={errors.province.message} />}
+        </div>
+
+        <div className="grid gap-1.5">
+          <Label className={cn(errors.district && "text-red-500")}>
+            Quận / Huyện *
+          </Label>
+          <Controller
+            control={control}
+            name="district"
+            render={({ field }) => (
+              <Select 
+                value={field.value} 
+                onValueChange={(val) => {
+                  field.onChange(val);
+                  setDistrictSearch("");
+                }}
+                disabled={!selectedProvince}
+              >
+                <SelectTrigger className={cn(
+                  "w-full",
+                  !selectedProvince && "opacity-50 cursor-not-allowed",
+                  errors.district && "border-red-500"
+                )}>
+                  <SelectValue 
+                    placeholder={!selectedProvince ? "Chọn tỉnh trước" : districts.length === 0 ? "Đang tải..." : "Chọn quận"} 
+                  />
+                </SelectTrigger>
+                <SelectContent>
+                  <div className="p-2 pb-0">
+                    <Input
+                      placeholder="Tìm quận..."
+                      value={districtSearch}
+                      onChange={(e) => setDistrictSearch(e.target.value)}
+                      className="h-8 text-sm"
+                      disabled={!selectedProvince}
+                    />
+                  </div>
+                  <div className="max-h-48 overflow-y-auto">
+                    {filteredDistricts.map((dist) => (
+                      <SelectItem key={dist.id} value={dist.id}>
+                        {dist.full_name || dist.name}
+                      </SelectItem>
+                    ))}
+                  </div>
+                </SelectContent>
+              </Select>
+            )}
+          />
+          {errors.district && selectedProvince && <ErrorMessage message={errors.district.message} />}
+        </div>
       </div>
 
       <div className="grid gap-2">

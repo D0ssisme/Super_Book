@@ -38,8 +38,10 @@ import {
 } from "@/validation/orderSchema";
 import { Address } from "@/types/address.type";
 import { Badge } from "@/components/ui/badge";
-import { CreateAddressModal } from "@/components/address/create-address-modal";
+import { CreateAddressModal } from "@/components/address/create-address-modal-simple";
 import { useCartStore } from "@/stores/useCartStore";
+import { useProductDeletionMonitor } from "@/hooks/useProductDeletionMonitor";
+import { bookServices } from "@/services/bookServices";
 import { toast } from "sonner";
 import { Order } from "@/types/order.type";
 import { orderServices } from "@/services/orderServices";
@@ -67,10 +69,54 @@ const OrderPage = () => {
   const [openAddressDialog, setOpenAddressDialog] = useState(false);
   const [openCreateAddress, setOpenCreateAddress] = useState(false);
   const [isDefaultAddress, setIsDefaultAddress] = useState(false);
+  const [didInitCheckoutAddress, setDidInitCheckoutAddress] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const [appliedCouponCode, setAppliedCouponCode] = useState("");
   const [discountAmount, setDiscountAmount] = useState(0);
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
+
+  // Monitor for deleted products during checkout
+  useProductDeletionMonitor();
+
+  // Validate cart items on page load (checkout-specific)
+  useEffect(() => {
+    const validateCheckoutItems = async () => {
+      if (!cart || cart.items.length === 0 || !checkoutItems || checkoutItems.length === 0) {
+        return;
+      }
+
+      let hasDeletedItems = false;
+      const deletedProducts: string[] = [];
+      const itemsToCheckout = cart.items.filter((item) =>
+        checkoutItems.includes(item._id)
+      );
+
+      // Check if all products in checkout still exist
+      for (const item of itemsToCheckout) {
+        try {
+          await bookServices.getBookById(item.bookId);
+        } catch (error: any) {
+          if (error.status === 404 || error.status === 400) {
+            hasDeletedItems = true;
+            deletedProducts.push(item.bookId);
+          }
+        }
+      }
+
+      if (hasDeletedItems) {
+        const productNames = deletedProducts.join(", ");
+        toast.error(`Sản phẩm "${productNames}" đã bị xóa khỏi kho. Vui lòng kiểm tra lại giỏ hàng.`);
+
+        // Refetch cart and redirect back to cart
+        await fetchCart();
+        setTimeout(() => {
+          router.push("/cart");
+        }, 2000);
+      }
+    };
+
+    validateCheckoutItems();
+  }, [cart, checkoutItems, fetchCart, router]);
 
   // Auto-open auth dialog when user tries to checkout without login
   useEffect(() => {
@@ -122,27 +168,31 @@ const OrderPage = () => {
     }
   }, [cart, checkoutItems, setValue, router]);
   useEffect(() => {
-    if (addresses && addresses.length > 0 && !getValues("receiverName")) {
-      const storageKey = getLastAddressStorageKey(user?.data?._id);
-      const lastSelectedAddressId =
-        typeof window !== "undefined"
-          ? window.localStorage.getItem(storageKey)
-          : null;
+    if (!addresses || addresses.length === 0 || didInitCheckoutAddress) {
+      return;
+    }
 
-      const lastSelectedAddr = lastSelectedAddressId
-        ? addresses.find((addr: Address) => addr._id === lastSelectedAddressId)
-        : null;
+    // Only auto-select once and only when shipping address is still empty.
+    if (getValues("receiverAddress")) {
+      setDidInitCheckoutAddress(true);
+      return;
+    }
 
-      const defaultAddr =
-        lastSelectedAddr ||
-        addresses.find((addr: Address) => addr.isDefault) ||
-        addresses[0];
+    const defaultAddr =
+      addresses.find((addr: Address) => addr.isDefault) || addresses[0];
 
-      if (defaultAddr) {
-        fillAddressToForm(defaultAddr);
+    if (defaultAddr) {
+      fillAddressToForm(defaultAddr);
+      if (defaultAddr._id && typeof window !== "undefined") {
+        window.localStorage.setItem(
+          getLastAddressStorageKey(user?.data?._id),
+          defaultAddr._id,
+        );
       }
     }
-  }, [addresses, setValue, getValues, user?.data?._id]);
+
+    setDidInitCheckoutAddress(true);
+  }, [addresses, didInitCheckoutAddress, getValues, user?.data?._id]);
 
   useEffect(() => {
     const profile = user?.data;
@@ -201,6 +251,33 @@ const OrderPage = () => {
         );
         return;
       }
+
+      // Validate that all items in the order still exist in cart
+      if (!data.details || data.details.length === 0) {
+        toast.error("Giỏ hàng của bạn trống. Vui lòng quay lại trang giỏ hàng.");
+        router.push("/cart");
+        return;
+      }
+
+      // Verify each item still exists in the current cart
+      for (const orderItem of data.details) {
+        const cartItem = cart?.items.find(item => item.bookId === orderItem.bookId);
+        if (!cartItem) {
+          toast.error(
+            `Sản phẩm không còn tồn tại trong giỏ hàng. Vui lòng kiểm tra lại.`,
+          );
+          await fetchCart();
+          return;
+        }
+        if (cartItem.quantity < orderItem.quantity) {
+          toast.error(
+            `Số lượng sản phẩm "${orderItem.bookId}" không đủ. Vui lòng kiểm tra lại.`,
+          );
+          await fetchCart();
+          return;
+        }
+      }
+
       const payload: OrderPayload = {
         ...data,
         couponCode: appliedCouponCode || undefined,
@@ -265,7 +342,7 @@ const OrderPage = () => {
 
   if ((!cart && cartLoading) || addressLoading)
     return <div className="text-center p-10">Loading...</div>;
-  
+
   // If not authenticated, auth dialog will open globally via useEffect
   // No need to show anything here
   if (!user) {
@@ -367,12 +444,12 @@ const OrderPage = () => {
                   onClick={() => setOpenAddressDialog(true)}
                   className="text-blue-600 h-8 font-medium"
                 >
-                  {receiverName ? "Thay đổi" : "Chọn địa chỉ"}
+                  {receiverAddress ? "Thay đổi" : "Chọn địa chỉ"}
                 </Button>
               </CardHeader>
               <CardContent>
                 {/* Logic hiển thị: Dựa vào field watch được từ form */}
-                {receiverName ? (
+                {receiverAddress ? (
                   <div className="bg-gray-50 p-4 rounded-lg border border-gray-100">
                     <div className="font-bold text-gray-900 mb-1 flex items-center gap-2">
                       <span>{receiverName}</span>
@@ -470,14 +547,7 @@ const OrderPage = () => {
                           icon={<QrCode className="text-green-600 w-5 h-5" />}
                           selected={field.value}
                         />
-                        <PaymentOption
-                          value="CARD"
-                          label="Thẻ tín dụng / Ghi nợ"
-                          icon={
-                            <CreditCard className="text-indigo-600 w-5 h-5" />
-                          }
-                          selected={field.value}
-                        />
+
                       </RadioGroup>
                     )}
                   />
@@ -498,46 +568,9 @@ const OrderPage = () => {
                       <span>{formatPrice(displayTotal)}</span>
                     </div>
                     <div className="space-y-2 pt-2">
-                      <div className="flex items-center gap-2">
-                        <input
-                          value={couponCode}
-                          onChange={(e) =>
-                            setCouponCode(e.target.value.toUpperCase())
-                          }
-                          placeholder="Nhập mã giảm giá"
-                          className="h-10 w-full rounded-md border border-gray-300 px-3 text-sm outline-none focus:border-blue-500"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          className="h-10"
-                          onClick={handleApplyCoupon}
-                          disabled={isApplyingCoupon}
-                        >
-                          {isApplyingCoupon ? "Đang áp..." : "Áp mã"}
-                        </Button>
-                      </div>
-                      {appliedCouponCode && (
-                        <div className="flex items-center justify-between rounded-md bg-green-50 px-3 py-2 text-xs text-green-700">
-                          <span>
-                            Đã áp mã <strong>{appliedCouponCode}</strong>
-                          </span>
-                          <button
-                            type="button"
-                            className="font-semibold underline"
-                            onClick={handleRemoveCoupon}
-                          >
-                            Bỏ mã
-                          </button>
-                        </div>
-                      )}
+
                     </div>
-                    <div className="flex justify-between text-gray-600">
-                      <span>Giảm giá:</span>
-                      <span className="text-green-600 font-medium">
-                        -{formatPrice(discountAmount)}
-                      </span>
-                    </div>
+
                     <div className="flex justify-between text-gray-600">
                       <span>Vận chuyển:</span>
                       <span className="text-green-600 font-medium">

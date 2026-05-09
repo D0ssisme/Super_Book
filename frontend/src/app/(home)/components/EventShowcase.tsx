@@ -17,10 +17,11 @@ export default function EventShowcase() {
   const fetchDiscountBooks = async () => {
     try {
       setLoading(true);
-      const response = await bookServices.getBooks(1, 30, "", [], "", undefined, undefined, "newest");
+      const response = await bookServices.getBooks(1, 500, "", [], "", undefined, undefined, "newest");
 
       const books = Array.isArray(response?.data) ? response.data : [];
       const onlyDiscountBooks = books
+        .filter((book) => !book.isDeleted)
         .filter((book) => book.event?.discountPercent && book.event.discountPercent > 0)
         .sort((a, b) => (b.event?.discountPercent || 0) - (a.event?.discountPercent || 0));
 

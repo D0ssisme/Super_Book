@@ -218,6 +218,21 @@ export default function AdminDashboard() {
     return years.reverse();
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "pending":
+        return "bg-amber-50 text-amber-700 border border-amber-200";
+      case "processing":
+        return "bg-emerald-50 text-emerald-700 border border-emerald-200";
+      case "delivered":
+        return "bg-teal-50 text-teal-700 border border-teal-200";
+      case "cancelled":
+        return "bg-gray-100 text-gray-600 border border-gray-200";
+      default:
+        return "bg-gray-50 text-gray-600 border border-gray-200";
+    }
+  };
+
   // Format VND
   const formatVND = (n: number) =>
     new Intl.NumberFormat("vi-VN", {
@@ -248,28 +263,6 @@ export default function AdminDashboard() {
         {Math.abs(value).toFixed(1)}%
       </span>
     );
-  };
-
-  const revenueChartData = revenueData.map((item) => ({
-    period: item.period,
-    revenue: item.revenue,
-    cost: item.cost,
-    profit: item.profit,
-  }));
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-amber-50 text-amber-700 border border-amber-200";
-      case "processing":
-        return "bg-emerald-50 text-emerald-700 border border-emerald-200";
-      case "delivered":
-        return "bg-teal-50 text-teal-700 border border-teal-200";
-      case "cancelled":
-        return "bg-gray-100 text-gray-600 border border-gray-200";
-      default:
-        return "bg-gray-50 text-gray-600 border border-gray-200";
-    }
   };
 
   // Use data returned from backend (paymentMethods)
@@ -385,10 +378,22 @@ export default function AdminDashboard() {
                   <div>Đã hủy: <strong>{loading ? '...' : formatVND(stats.cancelledAmount)}</strong></div>
                 </div>
                 <div className="flex items-center gap-2">
-                  <TrendIndicator value={stats.revenueChange} />
-                  <span className="text-xs text-emerald-100">
-                    vs tháng trước
-                  </span>
+                  {stats.revenueChange === 0 ? (
+                    <span className="inline-flex items-center gap-1 text-xs text-white font-medium">
+                      <Minus className="w-3 h-3" />
+                      0%
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-xs text-white font-medium">
+                      {stats.revenueChange > 0 ? (
+                        <ArrowUp className="w-3 h-3" />
+                      ) : (
+                        <ArrowDown className="w-3 h-3" />
+                      )}
+                      {Math.abs(stats.revenueChange).toFixed(1)}%
+                    </span>
+                  )}
+                  <span className="text-xs text-white">vs tháng trước</span>
                 </div>
               </div>
               <div className="bg-white/20 p-3 rounded-lg">
@@ -409,6 +414,7 @@ export default function AdminDashboard() {
                     {loading ? "..." : stats.totalOrders}
                   </p>
                   <TrendIndicator value={stats.ordersChange} />
+                  <span className="text-xs text-gray-500">vs tháng trước</span>
                 </div>
                 <p className="text-xs text-amber-600">
                   {stats.pendingOrders} chờ xử lý
@@ -423,7 +429,6 @@ export default function AdminDashboard() {
         </div>
 
         {/* Profit chart removed as requested */}
-
         {/* Three Column Layout: Top Products + Order Stats + Categories */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Top sách bán chạy */}
@@ -648,11 +653,6 @@ export default function AdminDashboard() {
                       icon: "👜",
                       color: "bg-pink-600",
                     },
-                    momo: {
-                      label: "MoMo",
-                      icon: "👜",
-                      color: "bg-pink-600",
-                    },
                   };
                   const config = methodConfig[payment.method] || {
                     label: payment.method,
@@ -660,7 +660,7 @@ export default function AdminDashboard() {
                     color: "bg-gray-600",
                   };
                   return (
-                    <div key={idx} className="space-y-2">
+                    <div key={payment.method} className="space-y-2">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
                           <span className="text-2xl">{config.icon}</span>
@@ -675,7 +675,7 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                         <span className="text-lg font-bold text-gray-700">
-                          {payment.percentage?.toFixed(1)}%
+                          {payment.percentage}%
                         </span>
                       </div>
                       <div className="w-full bg-gray-200 rounded-full h-2.5">

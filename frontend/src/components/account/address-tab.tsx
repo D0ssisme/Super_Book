@@ -3,9 +3,17 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardTitle } from "@/components/ui/card";
-import { Plus } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Plus, AlertTriangle } from "lucide-react";
 import { AddressCard } from "@/components/address/address-card";
-import { CreateAddressModal } from "@/components/address/create-address-modal";
+import { CreateAddressModal } from "@/components/address/create-address-modal-simple";
 import { Address } from '@/types/address.type';
 import { getAllAddress, deleteAddress } from '@/services/addressservices';
 import { toast } from 'sonner';
@@ -13,6 +21,9 @@ import { toast } from 'sonner';
 export default function AddressTab() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingAddress, setEditingAddress] = useState<Address | null>(null);
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [addressToDelete, setAddressToDelete] = useState<Address | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { addresses, isLoading, mutate } = getAllAddress();
 
@@ -26,15 +37,25 @@ export default function AddressTab() {
     setIsModalOpen(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm("Bạn có chắc chắn muốn xóa địa chỉ này?")) {
-      try {
-        await deleteAddress(id);
-        await mutate();
-        toast.success("Xóa địa chỉ thành công");
-      } catch (error) {
-        toast.error("Xóa địa chỉ thất bại");
-      }
+  const handleDelete = (addr: Address) => {
+    setAddressToDelete(addr);
+    setIsDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!addressToDelete?._id) return;
+    
+    setIsDeleting(true);
+    try {
+      await deleteAddress(addressToDelete._id);
+      await mutate();
+      toast.success("Xóa địa chỉ thành công");
+      setIsDeleteConfirmOpen(false);
+      setAddressToDelete(null);
+    } catch (error) {
+      toast.error("Xóa địa chỉ thất bại");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -58,14 +79,20 @@ export default function AddressTab() {
 
         <CardContent className="p-0 lg:p-6">
           <div className="grid gap-4">
-            {isLoading ? <p>Đang tải...</p> : addresses?.map((addr: Address) => (
-              <AddressCard
-                key={addr._id}
-                data={addr}
-                onEdit={() => handleEdit(addr)}
-                onDelete={() => handleDelete(addr._id!)}
-              />
-            ))}
+            {isLoading ? (
+              <p>Đang tải...</p>
+            ) : (
+              addresses
+                ?.sort((a, b) => (b.isDefault ? 1 : 0) - (a.isDefault ? 1 : 0))
+                .map((addr: Address) => (
+                  <AddressCard
+                    key={addr._id}
+                    data={addr}
+                    onEdit={() => handleEdit(addr)}
+                    onDelete={() => handleDelete(addr)}
+                  />
+                ))
+            )}
           </div>
         </CardContent>
       </Card>
@@ -78,6 +105,61 @@ export default function AddressTab() {
           onSuccess={handleSuccess}
         />
       )}
+
+      <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="bg-red-100 p-2 rounded-full">
+                <AlertTriangle className="h-5 w-5 text-red-600" />
+              </div>
+              <DialogTitle>Xóa địa chỉ</DialogTitle>
+            </div>
+            <DialogDescription className="text-base">
+              Bạn có chắc chắn muốn xóa địa chỉ này không? Hành động này không thể hoàn tác.
+            </DialogDescription>
+          </DialogHeader>
+
+          {addressToDelete && (
+            <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+              <div className="space-y-2">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Người nhận:</p>
+                  <p className="text-gray-900">{addressToDelete.name}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Địa chỉ:</p>
+                  <p className="text-gray-900">
+                    {addressToDelete.detail}, {addressToDelete.district}, {addressToDelete.province}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-600">Số điện thoại:</p>
+                  <p className="text-gray-900">{addressToDelete.phone}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteConfirmOpen(false)}
+              disabled={isDeleting}
+            >
+              Hủy
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={confirmDelete}
+              disabled={isDeleting}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {isDeleting ? "Đang xóa..." : "Xóa địa chỉ"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

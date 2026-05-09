@@ -1,8 +1,6 @@
 import Event from '../models/Event.js';
-import EventBook from '../models/EventBook.js';
-import Book from '../models/Book.js';
 
-// Create event
+// Tao su kien giam gia, kiem tra du lieu bat buoc
 export async function createEventService(eventData) {
   try {
     const { name, description, discountPercent, startDate, endDate, applyType, bookIds, categoryIds } = eventData;
@@ -11,7 +9,7 @@ export async function createEventService(eventData) {
       throw new Error('Thiếu thông tin bắt buộc');
     }
 
-    // Validate applyType
+    // applyType quyet dinh pham vi ap dung giam gia
     if (!['all', 'products', 'categories'].includes(applyType)) {
       throw new Error('ApplyType không hợp lệ');
     }
@@ -26,7 +24,7 @@ export async function createEventService(eventData) {
       status: 'upcoming'
     };
 
-    // Add bookIds or categoryIds based on applyType
+    // Neu ap dung theo san pham/nhom, chi gan dung danh sach id
     if (applyType === 'products' && bookIds && Array.isArray(bookIds)) {
       eventPayload.bookIds = bookIds;
     } else if (applyType === 'categories' && categoryIds && Array.isArray(categoryIds)) {
@@ -41,7 +39,7 @@ export async function createEventService(eventData) {
   }
 }
 
-// Get all events
+// Lay danh sach su kien (co phan trang)
 export async function getAllEventsService(query = {}) {
   try {
     const page = parseInt(query.page) || 1;
@@ -67,7 +65,7 @@ export async function getAllEventsService(query = {}) {
   }
 }
 
-// Get event by ID
+// Lay chi tiet su kien theo id, kem thong tin sach/nhom
 export async function getEventByIdService(eventId) {
   try {
     const event = await Event.findById(eventId)
@@ -84,7 +82,7 @@ export async function getEventByIdService(eventId) {
   }
 }
 
-// Update event
+// Cap nhat su kien (noi dung + pham vi ap dung)
 export async function updateEventService(eventId, eventData) {
   try {
     const { applyType, bookIds, categoryIds, ...otherData } = eventData;
@@ -97,7 +95,7 @@ export async function updateEventService(eventId, eventData) {
       }
       updatePayload.applyType = applyType;
       
-      // Clear old ids and set new ones based on applyType
+      // Doi pham vi ap dung thi xoa danh sach cu va gan lai
       updatePayload.bookIds = [];
       updatePayload.categoryIds = [];
       
@@ -125,7 +123,7 @@ export async function updateEventService(eventId, eventData) {
   }
 }
 
-// Delete event
+// Xoa su kien
 export async function deleteEventService(eventId) {
   try {
     const event = await Event.findByIdAndDelete(eventId);
@@ -139,56 +137,7 @@ export async function deleteEventService(eventId) {
   }
 }
 
-// Add books to event
-export async function addBooksToEventService(eventId, bookIds) {
-  try {
-    const event = await Event.findById(eventId);
-    if (!event) {
-      throw new Error('Event không tồn tại');
-    }
-
-    // Validate books exist
-    const books = await Book.find({ _id: { $in: bookIds } });
-    if (books.length !== bookIds.length) {
-      throw new Error('Một số sách không tồn tại');
-    }
-
-    // Create EventBook records
-    const eventBooks = bookIds.map(bookId => ({
-      eventId,
-      bookId
-    }));
-
-    await EventBook.insertMany(eventBooks, { ordered: false }).catch(err => {
-      // Ignore duplicate key errors, continue with others
-      if (err.code !== 11000) throw err;
-    });
-
-    return { message: 'Thêm sách vào event thành công' };
-  } catch (err) {
-    throw new Error(err.message);
-  }
-}
-
-// Remove book from event
-export async function removeBookFromEventService(eventId, bookId) {
-  try {
-    const result = await EventBook.findOneAndDelete({
-      eventId,
-      bookId
-    });
-
-    if (!result) {
-      throw new Error('Sách không tồn tại trong event này');
-    }
-
-    return { message: 'Xóa sách khỏi event thành công' };
-  } catch (err) {
-    throw new Error(err.message);
-  }
-}
-
-// Get active events
+// Lay su kien dang hoat dong (status active + con trong thoi gian)
 export async function getActiveEventsService() {
   try {
     const now = new Date();
@@ -204,31 +153,7 @@ export async function getActiveEventsService() {
   }
 }
 
-// Get event for a specific book
-export async function getEventForBookService(bookId) {
-  try {
-    const now = new Date();
-    
-    const eventBook = await EventBook.findOne({ bookId }).populate({
-      path: 'eventId',
-      match: {
-        status: 'active',
-        startDate: { $lte: now },
-        endDate: { $gte: now }
-      }
-    });
-
-    if (eventBook && eventBook.eventId) {
-      return eventBook.eventId;
-    }
-
-    return null;
-  } catch (err) {
-    throw new Error(err.message);
-  }
-}
-
-// Update event status (admin only)
+// Cap nhat trang thai su kien (admin)
 export async function updateEventStatusService(eventId, status) {
   try {
     if (!['active', 'inactive', 'upcoming'].includes(status)) {

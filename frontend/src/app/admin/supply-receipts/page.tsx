@@ -28,6 +28,12 @@ export default function SupplyReceiptsPage() {
     completed: 0,
     canceled: 0,
   });
+  const [formErrors, setFormErrors] = useState<{
+    supplier_id?: string;
+    supply_date?: string;
+    items?: string;
+    itemErrors?: Array<{ book_id?: string; quantity?: string; import_price?: string }>;
+  }>({});
 
   // Fetch data từ API
   const fetchReceipts = async () => {
@@ -121,12 +127,13 @@ export default function SupplyReceiptsPage() {
   // Pagination đã được xử lý từ API
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const isEditableStatus = (status?: string) => status === "pending";
-  const canUpdateStatus = (status?: string) => status === "pending" || status === "completed";
+  const canUpdateStatus = (status?: string) => status === "pending";
   const isReadonlyEdit = Boolean(editing && !isEditableStatus(editing.supply_status));
 
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [statusReceipt, setStatusReceipt] = useState<SupplyReceipt | null>(null);
   const [newStatus, setNewStatus] = useState<string>("");
+  const [statusAction, setStatusAction] = useState<"completed" | "canceled" | "">("");
 
   const [formData, setFormData] = useState<Omit<SupplyReceipt, "id" | "total_amount">>({
     supplier_id: "",
@@ -135,6 +142,12 @@ export default function SupplyReceiptsPage() {
     supply_status: "pending",
     items: [],
   });
+
+  useEffect(() => {
+    if (Object.keys(formErrors).length > 0) {
+      setFormErrors({});
+    }
+  }, [formData]);
 
   // Tính tổng tiền
   const calcTotal = (items: SupplyItem[]) =>
@@ -163,6 +176,7 @@ export default function SupplyReceiptsPage() {
         items: [],
       });
     }
+    setFormErrors({});
     setShowModal(true);
   };
 
@@ -175,6 +189,7 @@ export default function SupplyReceiptsPage() {
       supply_status: "pending",
       items: [],
     });
+    setFormErrors({});
     setShowModal(false);
   };
 
@@ -186,7 +201,7 @@ export default function SupplyReceiptsPage() {
 
     setFormData({
       ...formData,
-      items: [...formData.items, { book_id: "", import_price: 1000, quantity: 1, sub_amount: 1000 }],
+      items: [...formData.items, { book_id: "", book_name: "", import_price: 1000, quantity: 1, sub_amount: 1000 }],
     });
   };
 
@@ -198,6 +213,10 @@ export default function SupplyReceiptsPage() {
 
     const newItems = [...formData.items];
     const updatedItem = { ...newItems[index], [field]: value };
+    if (field === "book_id") {
+      const selectedBook = books.find((b: any) => b.id === value);
+      updatedItem.book_name = selectedBook?.name || updatedItem.book_name || "";
+    }
     updatedItem.sub_amount = updatedItem.import_price * updatedItem.quantity;
     newItems[index] = updatedItem;
     setFormData({ ...formData, items: newItems });
@@ -221,41 +240,45 @@ export default function SupplyReceiptsPage() {
       return;
     }
 
-    if (!formData.supplier_id || formData.items.length === 0) {
-      Swal.fire({
-        icon: "error",
-        title: "Lỗi",
-        text: "Vui lòng chọn nhà cung cấp và thêm ít nhất 1 sản phẩm!",
-      });
-      return;
+    const nextErrors: typeof formErrors = {};
+
+    if (!formData.supplier_id) {
+      nextErrors.supplier_id = "Vui lòng chọn nhà cung cấp";
     }
 
-    // Kiểm tra tất cả items có đủ thông tin
-    for (const item of formData.items) {
-      if (!item.book_id) {
-        Swal.fire({
-          icon: "error",
-          title: "Lỗi",
-          text: "Vui lòng chọn sách cho tất cả sản phẩm!",
-        });
-        return;
-      }
-      if (!item.quantity || item.quantity <= 0) {
-        Swal.fire({
-          icon: "error",
-          title: "Lỗi",
-          text: "Số lượng phải lớn hơn 0!",
-        });
-        return;
-      }
-      if (!item.import_price || item.import_price <= 0) {
-        Swal.fire({
-          icon: "error",
-          title: "Lỗi",
-          text: "Giá nhập phải lớn hơn 0!",
-        });
-        return;
-      }
+    if (!formData.supply_date) {
+      nextErrors.supply_date = "Vui lòng chọn ngày nhập";
+    } else if (Number.isNaN(new Date(formData.supply_date).getTime())) {
+      nextErrors.supply_date = "Ngày nhập không hợp lệ";
+    }
+
+    if (formData.items.length === 0) {
+      nextErrors.items = "Vui lòng thêm ít nhất 1 sản phẩm";
+    }
+
+    if (formData.items.length > 0) {
+      nextErrors.itemErrors = formData.items.map((item) => {
+        const itemError: { book_id?: string; quantity?: string; import_price?: string } = {};
+        if (!item.book_id) {
+          itemError.book_id = "Vui lòng chọn sách";
+        }
+        if (!item.quantity || item.quantity <= 0) {
+          itemError.quantity = "Số lượng phải lớn hơn 0";
+        }
+        if (!item.import_price || item.import_price <= 0) {
+          itemError.import_price = "Giá nhập phải lớn hơn 0";
+        }
+        return itemError;
+      });
+    }
+
+    const hasItemErrors = Boolean(
+      nextErrors.itemErrors?.some((err) => Object.keys(err).length > 0),
+    );
+
+    if (nextErrors.supplier_id || nextErrors.items || hasItemErrors) {
+      setFormErrors(nextErrors);
+      return;
     }
 
     try {
@@ -292,17 +315,21 @@ export default function SupplyReceiptsPage() {
     }
   };
 
-  const openStatusUpdateModal = (receipt: SupplyReceipt) => {
-    if (receipt.supply_status === "canceled") {
+  const openStatusUpdateModal = (
+    receipt: SupplyReceipt,
+    action: "completed" | "canceled",
+  ) => {
+    if (receipt.supply_status !== "pending") {
       Swal.fire({
         icon: "info",
         title: "Không thể cập nhật",
-        text: "Phiếu đã hủy không thể đổi trạng thái nữa.",
+        text: "Chỉ có thể cập nhật khi phiếu đang ở trạng thái chờ xử lý.",
       });
       return;
     }
     setStatusReceipt(receipt);
-    setNewStatus("");
+    setNewStatus(action);
+    setStatusAction(action);
     setShowStatusModal(true);
   };
 
@@ -470,16 +497,28 @@ export default function SupplyReceiptsPage() {
                               )}
                             </button>
                             <button
-                              onClick={() => openStatusUpdateModal(r)}
+                              onClick={() => openStatusUpdateModal(r, "completed")}
                               disabled={!canUpdateStatus(r.supply_status)}
-                              title={canUpdateStatus(r.supply_status) ? "Cập nhật trạng thái" : "Phiếu đã hủy"}
+                              title="Xác nhận"
                               className={`p-2 rounded-lg transition-all duration-200 ${
                                 !canUpdateStatus(r.supply_status)
                                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                  : "bg-indigo-100 text-indigo-700 hover:bg-indigo-200"
+                                  : "bg-emerald-100 text-emerald-700 hover:bg-emerald-200"
                               }`}
                             >
                               <RefreshCw className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={() => openStatusUpdateModal(r, "canceled")}
+                              disabled={!canUpdateStatus(r.supply_status)}
+                              title="Hủy"
+                              className={`p-2 rounded-lg transition-all duration-200 ${
+                                !canUpdateStatus(r.supply_status)
+                                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                                  : "bg-red-100 text-red-700 hover:bg-red-200"
+                              }`}
+                            >
+                              <Trash2 className="w-4 h-4" />
                             </button>
                           </div>
                         </td>
@@ -525,6 +564,9 @@ export default function SupplyReceiptsPage() {
                 placeholder="Chọn nhà cung cấp"
                 disabled={isReadonlyEdit}
               />
+              {formErrors.supplier_id ? (
+                <p className="text-sm text-red-600 mt-1">{formErrors.supplier_id}</p>
+              ) : null}
             </div>
 
             {/* Ngày nhập */}
@@ -539,6 +581,11 @@ export default function SupplyReceiptsPage() {
                 disabled={isReadonlyEdit}
                 className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
               />
+              {formErrors.supply_date ? (
+                <p className="text-sm text-red-600 mt-1">
+                  {formErrors.supply_date}
+                </p>
+              ) : null}
             </div>
 
             {/* Sản phẩm */}
@@ -549,15 +596,26 @@ export default function SupplyReceiptsPage() {
                   <div key={index} className="grid grid-cols-12 gap-2 items-center bg-gray-50 p-3 rounded-lg">
                     <div className="col-span-12 sm:col-span-4">
                       <label className="block text-xs text-gray-500 mb-1">Sách</label>
-                      <SearchableSelect
-                        value={item.book_id}
-                        onChange={(value: string) =>
-                          updateItem(index, "book_id", value)
-                        }
-                        options={books.map((b: any) => ({ _id: b.id, name: b.name }))}
-                        placeholder="Chọn sách"
-                        disabled={isReadonlyEdit}
-                      />
+                      {isReadonlyEdit ? (
+                        <div className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm bg-gray-100 text-gray-700">
+                          {item.book_name || "Sách đã xóa"}
+                        </div>
+                      ) : (
+                        <SearchableSelect
+                          value={item.book_id}
+                          onChange={(value: string) =>
+                            updateItem(index, "book_id", value)
+                          }
+                          options={books.map((b: any) => ({ _id: b.id, name: b.name }))}
+                          placeholder="Chọn sách"
+                          disabled={isReadonlyEdit}
+                        />
+                      )}
+                      {formErrors.itemErrors?.[index]?.book_id ? (
+                        <p className="text-sm text-red-600 mt-1">
+                          {formErrors.itemErrors[index].book_id}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="col-span-4 sm:col-span-2">
                       <label className="block text-xs text-gray-500 mb-1">Số lượng</label>
@@ -573,6 +631,11 @@ export default function SupplyReceiptsPage() {
                         className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         placeholder="Nhập SL"
                       />
+                      {formErrors.itemErrors?.[index]?.quantity ? (
+                        <p className="text-sm text-red-600 mt-1">
+                          {formErrors.itemErrors[index].quantity}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="col-span-4 sm:col-span-2">
                       <label className="block text-xs text-gray-500 mb-1">Giá nhập</label>
@@ -588,6 +651,11 @@ export default function SupplyReceiptsPage() {
                         className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500"
                         placeholder="Nhập giá"
                       />
+                      {formErrors.itemErrors?.[index]?.import_price ? (
+                        <p className="text-sm text-red-600 mt-1">
+                          {formErrors.itemErrors[index].import_price}
+                        </p>
+                      ) : null}
                     </div>
                     <div className="col-span-3 sm:col-span-3">
                       <label className="block text-xs text-gray-500 mb-1">Thành tiền</label>
@@ -607,6 +675,9 @@ export default function SupplyReceiptsPage() {
                   </div>
                 ))}
               </div>
+              {formErrors.items ? (
+                <p className="text-sm text-red-600 mt-2">{formErrors.items}</p>
+              ) : null}
               <button
                 onClick={addItem}
                 disabled={isReadonlyEdit}
@@ -655,30 +726,14 @@ export default function SupplyReceiptsPage() {
       {showStatusModal && statusReceipt && (
         <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
           <div className="bg-white rounded-2xl shadow-xl p-6 w-full max-w-sm border border-gray-200 animate-in fade-in zoom-in duration-200">
-            <h3 className="text-xl font-bold text-gray-800 mb-2">Cập nhật trạng thái phiếu</h3>
-            <p className="text-sm text-emerald-800 mb-5 bg-emerald-50 p-3 rounded-lg border border-emerald-200">
-              Lưu ý: Chỉ khi đổi trạng thái sang <strong>Đã xác nhận</strong> thì tồn kho sách mới được cộng.
+            <h3 className="text-xl font-bold text-gray-800 mb-2">
+              {statusAction === "completed" ? "Xác nhận phiếu" : "Hủy phiếu"}
+            </h3>
+            <p className="text-sm text-gray-700 mb-6">
+              {statusAction === "completed"
+                ? "Bạn có chắc muốn xác nhận phiếu này không?"
+                : "Bạn có chắc muốn hủy phiếu này không?"}
             </p>
-
-            <div className="mb-6">
-              <label className="block text-gray-700 mb-2 font-medium text-sm">Chọn trạng thái mới</label>
-              <select
-                value={newStatus}
-                onChange={(e) => setNewStatus(e.target.value)}
-                className="w-full border border-gray-300 px-4 py-2.5 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent bg-white text-gray-800"
-              >
-                <option value="" disabled>-- Chọn trạng thái --</option>
-                {statusReceipt.supply_status === "pending" && (
-                  <>
-                    <option value="completed">Đã xác nhận</option>
-                    <option value="canceled">Đã hủy</option>
-                  </>
-                )}
-                {statusReceipt.supply_status === "completed" && (
-                  <option value="canceled">Đã hủy</option>
-                )}
-              </select>
-            </div>
 
             <div className="flex gap-3 justify-end mt-2">
               <button
@@ -689,14 +744,13 @@ export default function SupplyReceiptsPage() {
               </button>
               <button
                 onClick={submitStatusUpdate}
-                disabled={!newStatus}
                 className={`px-5 py-2.5 rounded-lg text-white transition-all font-medium min-w-[100px] text-center ${
-                  !newStatus
-                    ? "bg-emerald-400 cursor-not-allowed opacity-70"
+                  statusAction === "canceled"
+                    ? "bg-gradient-to-r from-red-500 to-red-600 hover:shadow-lg"
                     : "bg-gradient-to-r from-emerald-600 to-teal-600 hover:shadow-lg"
                 }`}
               >
-                Xác nhận
+                {statusAction === "canceled" ? "Hủy phiếu" : "Xác nhận"}
               </button>
             </div>
           </div>

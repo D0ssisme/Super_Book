@@ -2,7 +2,9 @@ import {
   createUserService,
   deleteUserService, getAllUsersService,
   getUserByIdService,
-  updateUserService
+  updateUserService,
+  lockUserService,
+  unlockUserService
 } from '../services/UserService.js';
 
 export async function createUser(req, res) {
@@ -79,6 +81,38 @@ export async function getAllUsers(req, res) {
     });
   } catch (err) {
     res.status(400).json({
+      success: false,
+      message: err.message
+    });
+  }
+}
+
+export async function lockUser(req, res) {
+  try {
+    const result = await lockUserService(req.params.id);
+    res.status(200).json({
+      success: true,
+      message: 'Lock User successful',
+      data: result
+    });
+  } catch (err) {
+    res.status(err.statusCode || 400).json({
+      success: false,
+      message: err.message
+    });
+  }
+}
+
+export async function unlockUser(req, res) {
+  try {
+    const result = await unlockUserService(req.params.id);
+    res.status(200).json({
+      success: true,
+      message: 'Unlock User successful',
+      data: result
+    });
+  } catch (err) {
+    res.status(err.statusCode || 400).json({
       success: false,
       message: err.message
     });

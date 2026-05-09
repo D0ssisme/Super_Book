@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import Image from "next/image";
+// Image not used anymore; using inline logo instead
 import { usePathname, useRouter } from "next/navigation";
 import { toast } from "sonner";
 import Swal from "sweetalert2";
@@ -94,18 +94,15 @@ export default function Sidebar({ isOpen }: { isOpen: boolean }) {
         }`}
     >
       {/* Header */}
-      <div className="h-16 flex items-center justify-center bg-emerald-700 overflow-hidden border-b border-emerald-600">
+      <div className="h-16 flex items-center justify-center bg-gray-100 overflow-hidden border-b border-gray-200 px-4">
         {isOpen ? (
-          <Image
-            src="/images/logo.webp"
-            alt="Logo"
-            width={150}
-            height={40}
-            className="transition-opacity duration-300"
-          />
+          <div className="flex items-center gap-3">
+            
+            <span className="text-red-600 font-bold text-lg">SUPER BOOK</span>
+          </div>
         ) : (
-          <div className="w-10 h-10 bg-emerald-600 rounded-lg flex items-center justify-center transition-all duration-300">
-            <Book className="w-6 h-6 text-white" />
+          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center transition-all duration-300 border border-gray-200">
+            <Book className="w-6 h-6 text-red-600" />
           </div>
         )}
       </div>

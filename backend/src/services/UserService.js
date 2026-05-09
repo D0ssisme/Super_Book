@@ -38,9 +38,43 @@ export async function deleteUserService(targetUserId, currentUserId) {
 }
 
 export async function getUserByIdService(userId) {
-  return User.findById(userId);
+  const user = await User.findById(userId);
+  if (!user) return null;
+  const obj = user.toObject();
+  obj.isActive = !obj.isLocked;
+  return obj;
 }
 
 export async function getAllUsersService() {
-  return User.find();
+  const users = await User.find();
+  return users.map((u) => {
+    const obj = u.toObject();
+    obj.isActive = !obj.isLocked;
+    return obj;
+  });
+}
+
+export async function lockUserService(userId) {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ErrorResponse("Người dùng không tồn tại", 404);
+  }
+  if (user.role === "admin") {
+    throw new ErrorResponse("Không thể khóa tài khoản admin", 403);
+  }
+  const updated = await User.findByIdAndUpdate(userId, { isLocked: true }, { new: true });
+  const obj = updated.toObject();
+  obj.isActive = !obj.isLocked;
+  return obj;
+}
+
+export async function unlockUserService(userId) {
+  const user = await User.findById(userId);
+  if (!user) {
+    throw new ErrorResponse("Người dùng không tồn tại", 404);
+  }
+  const updated = await User.findByIdAndUpdate(userId, { isLocked: false }, { new: true });
+  const obj = updated.toObject();
+  obj.isActive = !obj.isLocked;
+  return obj;
 }

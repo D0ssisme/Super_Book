@@ -1,30 +1,4 @@
-import axios from "axios";
-
-const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080/api/v1";
-
-// Get JWT token from cookie
-const getToken = () => {
-    if (typeof document !== 'undefined') {
-        const cookies = document.cookie.split(';');
-        const tokenCookie = cookies.find(c => c.trim().startsWith('access_token='));
-        return tokenCookie ? tokenCookie.split('=')[1] : null;
-    }
-    return null;
-};
-
-// Create axios instance with auth
-const api = axios.create({
-    baseURL: apiUrl,
-});
-
-// Add token to requests
-api.interceptors.request.use((config) => {
-    const token = getToken();
-    if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-});
+import api from "@/lib/axios";
 
 // Get overview statistics
 export const getOverviewStats = async (from = null, to = null) => {
@@ -91,5 +65,14 @@ export const getPaymentMethodsStats = async (from = null, to = null) => {
 // Get comparison stats with previous period
 export const getComparisonStats = async () => {
     const response = await api.get('/statistics/comparison');
+    return response.data;
+};
+
+// Get order status statistics with date range filtering
+export const getOrderStatusStats = async (from = '', to = '') => {
+    const params = {};
+    if (from) params.from = from;
+    if (to) params.to = to;
+    const response = await api.get('/statistics/order-status', { params });
     return response.data;
 };

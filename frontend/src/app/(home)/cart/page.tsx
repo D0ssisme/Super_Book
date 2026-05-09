@@ -2,9 +2,8 @@
 import React, { useEffect, useRef } from "react";
 import CartDetail from "./components/CartDetail";
 import CartSummary from "./components/CartSummary";
-import useSWR from "swr";
-import { cartServices } from "@/services/cartServices";
 import { useCartStore } from "@/stores/useCartStore";
+import { useProductDeletionMonitor } from "@/hooks/useProductDeletionMonitor";
 
 const PENDING_CHECKOUT_BOOK_IDS_KEY = "pending_checkout_book_ids";
 
@@ -12,6 +11,9 @@ const CartPage = () => {
   const cart = useCartStore((s) => s.cart);
   const setSelectedItemIds = useCartStore((s) => s.setSelectedItemIds);
   const restoredRef = useRef(false);
+
+  // Monitor for deleted products
+  useProductDeletionMonitor();
 
   useEffect(() => {
     if (restoredRef.current || !cart || cart.items.length === 0) return;
@@ -50,3 +52,4 @@ const CartPage = () => {
 };
 
 export default CartPage;
+

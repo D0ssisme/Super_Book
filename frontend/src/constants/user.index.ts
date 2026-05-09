@@ -2,15 +2,15 @@
 
 
 export const bannerImages = [
-  "/images/banners/slider_1.webp",
-  "/images/banners/slider_2.webp",
-  "/images/banners/slider_3.webp",
+  "/images/banners/slider1.webp",
+  "/images/banners/slider2.webp",
+  "/images/banners/slider3.webp",
 ];
 
 export const smallBanners = [
-  "/images/banners/sub_banner_1.webp",
-  "/images/banners/sub_banner_2.webp",
-  "/images/banners/sub_banner_3.webp",
+  "/images/banners/sub_banner1.webp",
+  "/images/banners/sub_banner2.webp",
+  "/images/banners/sub_banner3.webp",
 ];
 
 export interface ProductCardProps {

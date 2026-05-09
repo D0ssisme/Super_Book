@@ -1,7 +1,7 @@
 "use client";
 
 import { useCartStore } from "@/stores/useCartStore";
-import { MessageCircle, Share2, ShoppingCart, Tag } from "lucide-react";
+import { Share2, ShoppingCart, Tag } from "lucide-react";
 import React, { useState } from "react";
 import QuantityInput from "@/components/customer/QuantityInput";
 import { toast } from "sonner";
@@ -23,9 +23,14 @@ interface Book {
 interface PurchaseCardProps {
   book: Book;
   initialQuantity?: number;
+  compact?: boolean;
 }
 
-const PurchaseCard = ({ book, initialQuantity = 1 }: PurchaseCardProps) => {
+const PurchaseCard = ({
+  book,
+  initialQuantity = 1,
+  compact = false,
+}: PurchaseCardProps) => {
   const addToCart = useCartStore((s) => s.addToCart);
   const [quantity, setQuantity] = useState(initialQuantity);
   const [isAddingToCart, setIsAddingToCart] = useState(false);
@@ -142,20 +147,21 @@ const PurchaseCard = ({ book, initialQuantity = 1 }: PurchaseCardProps) => {
     }
   };
 
-  // Call hotline
-  const handleCallHotline = () => {
-    if (window.confirm(`Gọi đến hotline 0972 430 690?`)) {
-      window.location.href = "tel:0972430690";
-    }
-  };
-
   return (
-    <div className="bg-white rounded-xl shadow-md p-6 border border-green-100 sticky top-6">
-      <div className="space-y-4">
+    <div
+      className={`bg-white rounded-xl border border-green-100 ${
+        compact ? "p-4" : "p-6 shadow-md"
+      }`}
+    >
+      <div className={compact ? "space-y-3" : "space-y-4"}>
         {/* Event Badge */}
         {book.event && (
-          <div className="bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg p-4 flex items-center gap-3">
-            <div className="flex items-center gap-1 bg-gradient-to-r from-red-500 to-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">
+          <div
+            className={`bg-linear-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg flex items-center ${
+              compact ? "p-3 gap-2" : "p-4 gap-3"
+            }`}
+          >
+            <div className="flex items-center gap-1 bg-linear-to-r from-red-500 to-red-600 text-white px-3 py-1 rounded-full text-sm font-bold">
               <Tag className="w-4 h-4" />-{book.event.discountPercent}%
             </div>
             <div className="flex-1">
@@ -170,12 +176,12 @@ const PurchaseCard = ({ book, initialQuantity = 1 }: PurchaseCardProps) => {
         )}
 
         {/* Price Section */}
-        <div className="pb-4 border-b border-green-100">
+        <div className={compact ? "pb-3 border-b border-green-100" : "pb-4 border-b border-green-100"}>
           <p className="text-sm text-gray-500 mb-1">Giá bán</p>
           <div className="flex items-end gap-3">
             {book.event ? (
               <>
-                <p className="text-3xl font-bold text-red-600">
+                <p className={compact ? "text-2xl font-bold text-red-600" : "text-3xl font-bold text-red-600"}>
                   {finalPrice.toLocaleString("vi-VN")}đ
                 </p>
                 <p className="text-sm line-through text-gray-400 pb-1">
@@ -183,7 +189,7 @@ const PurchaseCard = ({ book, initialQuantity = 1 }: PurchaseCardProps) => {
                 </p>
               </>
             ) : (
-              <p className="text-3xl font-bold text-green-700">
+              <p className={compact ? "text-2xl font-bold text-green-700" : "text-3xl font-bold text-green-700"}>
                 {book.price.toLocaleString("vi-VN")}đ
               </p>
             )}
@@ -221,10 +227,10 @@ const PurchaseCard = ({ book, initialQuantity = 1 }: PurchaseCardProps) => {
 
         {/* Temporary Total */}
         {!isOutOfStock && (
-          <div className="pt-4 border-t border-green-100">
+          <div className={compact ? "pt-3 border-t border-green-100" : "pt-4 border-t border-green-100"}>
             <div className="flex justify-between items-center">
               <span className="text-gray-700 font-medium">Tạm tính:</span>
-              <span className="text-2xl font-bold text-green-700">
+              <span className={compact ? "text-xl font-bold text-green-700" : "text-2xl font-bold text-green-700"}>
                 {(finalPrice * quantity).toLocaleString("vi-VN")}đ
               </span>
             </div>
@@ -232,16 +238,22 @@ const PurchaseCard = ({ book, initialQuantity = 1 }: PurchaseCardProps) => {
         )}
 
         {/* Action Buttons */}
-        <div className="space-y-3">
+        <div className={compact ? "space-y-2" : "space-y-3"}>
           {/* Buy Now Button */}
           <button
             onClick={handleBuyNow}
             disabled={isOutOfStock || isBuyingNow}
-            className="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:hover:bg-gray-400 text-white font-bold py-4 px-6 rounded-xl text-lg transition duration-300 flex items-center justify-center gap-2 shadow-md hover:shadow-lg disabled:cursor-not-allowed disabled:shadow-none"
+            className={`w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 disabled:hover:bg-gray-400 text-white font-bold rounded-xl transition duration-300 flex items-center justify-center gap-2 disabled:cursor-not-allowed disabled:shadow-none ${
+              compact
+                ? "py-2.5 px-3.5 text-sm"
+                : "py-4 px-6 text-lg shadow-md hover:shadow-lg"
+            }`}
           >
             {isBuyingNow ? (
               <>
-                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <div
+                  className={`${compact ? "w-4 h-4" : "w-5 h-5"} border-2 border-white border-t-transparent rounded-full animate-spin`}
+                ></div>
                 ĐANG XỬ LÝ...
               </>
             ) : (
@@ -253,16 +265,20 @@ const PurchaseCard = ({ book, initialQuantity = 1 }: PurchaseCardProps) => {
           <button
             onClick={handleAddToCart}
             disabled={isOutOfStock || isAddingToCart}
-            className="w-full border-2 border-green-600 text-green-600 hover:bg-green-50 disabled:border-gray-300 disabled:text-gray-400 disabled:hover:bg-white font-bold py-4 px-6 rounded-xl text-lg transition duration-300 flex items-center justify-center gap-2 disabled:cursor-not-allowed"
+            className={`w-full border-2 border-green-600 text-green-600 hover:bg-green-50 disabled:border-gray-300 disabled:text-gray-400 disabled:hover:bg-white font-bold rounded-xl transition duration-300 flex items-center justify-center gap-2 disabled:cursor-not-allowed ${
+              compact ? "py-2.5 px-3.5 text-sm" : "py-4 px-6 text-lg"
+            }`}
           >
             {isAddingToCart ? (
               <>
-                <div className="w-5 h-5 border-2 border-green-600 border-t-transparent rounded-full animate-spin"></div>
+                <div
+                  className={`${compact ? "w-4 h-4" : "w-5 h-5"} border-2 border-green-600 border-t-transparent rounded-full animate-spin`}
+                ></div>
                 ĐANG THÊM...
               </>
             ) : (
               <>
-                <ShoppingCart size={22} />
+                <ShoppingCart size={compact ? 18 : 22} />
                 {isOutOfStock ? "HẾT HÀNG" : "THÊM VÀO GIỎ"}
               </>
             )}
@@ -270,42 +286,18 @@ const PurchaseCard = ({ book, initialQuantity = 1 }: PurchaseCardProps) => {
         </div>
 
         {/* Share Section */}
-        <div className="border-t border-green-100 pt-4">
+        <div className={compact ? "border-t border-green-100 pt-3" : "border-t border-green-100 pt-4"}>
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <span className="text-gray-700 font-medium">Chia sẻ</span>
             <div className="flex gap-3">
               <button
                 onClick={handleShare}
-                className="w-10 h-10 bg-green-100 text-green-600 rounded-full flex items-center justify-center hover:bg-green-200 transition"
+                className={`${compact ? "w-9 h-9" : "w-10 h-10"} bg-green-100 text-green-600 rounded-full flex items-center justify-center hover:bg-green-200 transition`}
                 aria-label="Chia sẻ sản phẩm"
                 title="Chia sẻ sản phẩm"
               >
                 <Share2 size={18} />
               </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Hotline */}
-        <div className="border-t border-green-100 pt-6">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={handleCallHotline}
-              className="bg-green-100 p-3 rounded-full hover:bg-green-200 transition"
-              aria-label="Gọi hotline"
-              title="Gọi đặt mua"
-            >
-              <MessageCircle className="text-green-600" size={24} />
-            </button>
-            <div>
-              <p className="text-sm text-gray-600">Gọi đặt mua</p>
-              <button
-                onClick={handleCallHotline}
-                className="text-xl font-bold text-gray-900 hover:text-green-700 transition"
-              >
-                0972 430 690
-              </button>
-              <p className="text-sm text-gray-500">(7:30 - 22:00)</p>
             </div>
           </div>
         </div>

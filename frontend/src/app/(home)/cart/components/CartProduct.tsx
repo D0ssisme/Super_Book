@@ -167,8 +167,14 @@ const CartProduct = ({
               />
             </div>
 
-            <button
-              onClick={onRemove}
+    <button
+              onClick={() => {
+                try {
+                  onRemove();
+                } catch (error) {
+                  console.error("Error removing item:", error);
+                }
+              }}
               className="flex items-center gap-1 text-red-500 hover:text-red-700 hover:bg-red-50 px-3 py-2 rounded-lg transition-all duration-200 w-full justify-center"
             >
               <Trash className="w-4 h-4" />

@@ -7,9 +7,23 @@ export interface BookDetail {
   name: string;
   categoryId: Category;
   publisherId: Publisher;
-  imageUrl: [string];
+  authors?: string[];
+  supplierId?: {
+    _id: string;
+    name: string;
+  };
+  productCode?: string;
+  translator?: string;
+  publishYear?: number;
+  weight?: number;
+  dimensions?: string;
+  pageCount?: number;
+  format?: string;
+  description?: string;
+  imageUrl: string[];
   quantity: number;
   price: number;
+  isDeleted?: boolean;
   event?: {
     discountPercent: number;
   };
@@ -31,6 +45,18 @@ export interface Book {
     _id: string;
     name: string;
   };
+  supplierId?: {
+    _id: string;
+    name: string;
+  };
+  productCode?: string;
+  translator?: string;
+  publishYear?: number;
+  weight?: number;
+  dimensions?: string;
+  pageCount?: number;
+  format?: string;
+  description?: string;
   authors: {
     _id: string;
     name: string;

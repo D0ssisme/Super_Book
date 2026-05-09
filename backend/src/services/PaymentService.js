@@ -106,6 +106,7 @@ function getClientIp(reqLike) {
   return "127.0.0.1";
 }
 
+// Gom cac truong can thiet de tao chu ky HMAC theo MoMo docs.
 function buildMomoRawSignature(data) {
   return [
     `accessKey=${data.accessKey}`,
@@ -144,6 +145,7 @@ function resolveMomoRequestType(reqLike = {}) {
 }
 
 async function createMomoPayment(order, reqLike = {}, options = {}) {
+  // Tao giao dich MoMo: build payload, ky request va goi API sandbox.
   const { forceNewOrderId = false } = options;
   const endpoint =
     process.env.MOMO_ENDPOINT ||
@@ -257,6 +259,25 @@ async function handleMomoResult({ orderId, resultCode }) {
     throw new Error("Order not found for MoMo transaction");
   }
 
+  if (order.purchaseStatus === "canceled") {
+    if (order.paymentStatus !== "failed") {
+      order.paymentStatus = "failed";
+      await order.save();
+    }
+    // Don da bi huy: khong cho chuyen sang paid, chi tra FAILED.
+    console.warn("[momo] Ignore paid callback for canceled order", {
+      orderId: String(order._id),
+      momoOrderId: String(orderId),
+    });
+    return {
+      orderId: order._id,
+      orderCode: orderId,
+      status: "FAILED",
+      // Dung cho UI hien thi ly do that bai.
+      reason: "ORDER_CANCELED",
+    };
+  }
+
   const isSuccess = String(resultCode) === "0";
   if (isSuccess) {
     if (order.paymentStatus !== "paid") {
@@ -277,6 +298,7 @@ async function handleMomoResult({ orderId, resultCode }) {
 }
 
 export async function createPaymentService(orderId, customerId, reqLike = {}) {
+  // Ham dieu phoi chinh: kiem tra don, chon dung luong thanh toan theo paymentMethod.
   const order = await Order.findById(orderId);
   if (!order) {
     throw new Error(`Order with id ${orderId} not found`);
@@ -300,6 +322,7 @@ export async function createPaymentService(orderId, customerId, reqLike = {}) {
   }
 
   if (order.paymentMethod === "MOMO") {
+    // MoMo: neu da co link con hop le thi dung lai, tranh tao giao dich trung lap.
     const clientIp = getClientIp(reqLike);
 
     // Nếu đơn chưa failed và đã có link, reuse link cũ để tránh tạo giao dịch trùng.
@@ -373,6 +396,10 @@ export async function confirmPaymentService(orderId, customerId) {
   const order = await Order.findById(orderId);
   if (!order) {
     throw new Error(`Order with id ${orderId} not found`);
+  }
+
+  if (order.purchaseStatus === "canceled") {
+    throw new Error("Order was canceled and cannot be paid");
   }
 
   if (order.customerId.toString() !== customerId.toString()) {
@@ -467,88 +494,6 @@ export async function handleMomoIpnService(payload) {
   return handleMomoResult({ orderId, resultCode });
 }
 
-// export async function createPaymentService(orderId) {
-//   const order = await Order.findById(orderId);
-//   const details = await OrderDetail.find({ orderId: order._id });
-//   if (!order) {
-//     throw new Error(`Order with id ${orderId} not found`);
-//   }
-//   if (order.paymentMethod.toString() === "COD" && order.paymentMethod.toString() === "CARD"){
-//     return
-//   }
-//   const items = [];
-//   for (const detail of details) {
-//     const book = await Book.findById(detail.bookId);
-//     items.push({
-//       name: book.name,
-//       price: detail.price,
-//       quantity: detail.quantity
-//     });
-//   }
-//   const payload = {
-//     amount: order.totalAmount,
-//     description: `Đơn hàng ${Number(String(Date.now()).slice(-6))}`,
-//     orderCode: Number(String(Date.now()).slice(-6)),
-//     returnUrl: `${process.env.FRONTEND_URL}/payment/return`,
-//     cancelUrl: `${process.env.FRONTEND_URL}/payment/cancel`,
-//     items: items
-//   };
-//   const payment = await payos.paymentRequests.create(payload);
-//   order.paymentLink = payment.checkoutUrl;
-//   order.payosOrderId = payment.orderCode;
-//   order.paymentLinkId = payment.paymentLinkId;
-//   order.paymentMethod = 'PAYOS';
-//   await order.save();
-//   return payment;
-// }
-
-// export async function handlePayosWebhook(payload) {
-//   const verified = payos.webhooks.verify(payload);
-//   if (!verified) throw new Error('Invalid Signature');
-//   const payment = payload.data;
-//   const order = await Order.findOne({ payosOrderId: payment.orderCode });
-//   if (!order) throw new Error('Order not found');
-//   if (order.purchaseStatus === 'canceled' || order.paymentStatus === 'paid') {
-//     return { message: 'Webhook processed successfully' };
-//   }
-//   if (payment.code === '00' && payment.desc === 'success') {
-//     order.paymentStatus = 'paid';
-//     await order.save();
-//
-//     console.log(`Đơn hàng ${payment.orderCode} thanh toán thành công`);
-//     const { subject, html} = await buildOrderSuccessMail(order)
-//     await notifyAdminAndUser(order, subject, html);
-//   } else {
-//     order.paymentStatus = 'failed';
-//     await order.save();
-//
-//     console.log(`Đơn hàng ${payment.orderCode} thanh toán thất bại`);
-//     const { subject, html} = buildOrderFailedMail(order)
-//     await notifyAdminAndUser(order, subject, html);
-//   }
-//   return { message: 'Webhook processed successfully' };
-// }
-
-// export async function cancelPaymentService(orderCode, customerId) {
-//   const order = await Order.findOne({ payosOrderId: orderCode });
-//   if (!order) {
-//     throw new Error(`Order with Code ${orderCode} not found`);
-//   }
-//   if (order.customerId.toString() !== customerId.toString()) {
-//     throw new Error(`You are not authorize to cancel this order`);
-//   }
-//   if (order.purchaseStatus === 'canceled') {
-//     return order
-//   }
-//   order.purchaseStatus = 'canceled';
-//   order.paymentStatus = 'failed'
-//   await order.save();
-//   const { subject, html } = await buildOrderCanceledMail(order);
-//   await notifyAdminAndUser(order, subject, html);
-//
-//   console.log(`Người dùng đã hủy đơn hàng ${order.payosOrderId}`);
-//   return order;
-// }
 async function notifyAdminAndUser(order, subject, html) {
   try {
     await sendMail(process.env.MAIL_ADMIN, subject, html);

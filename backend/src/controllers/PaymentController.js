@@ -6,32 +6,6 @@ import {
   handleMomoReturnService,
 } from "../services/PaymentService.js";
 
-// export async function createPayment(req, res) {
-//   try {
-//     const payment = await createPaymentService(req.params.id);
-//     return res.status(200).json({ok: true, payment});
-//   }catch (err){
-//     res.status(500).json({ok: false, message: err.message});
-//   }
-// }
-// export async function webhookController(req, res){
-//   try {
-//     const result = await handlePayosWebhook(req.body)
-//     console.log(result);
-//     res.status(200).json(result)
-//   }catch (err){
-//     console.log("Webhook err: " + err.message);
-//     res.status(400).json({message: err.message})
-//   }
-// }
-// export async function cancelPayment(req, res){
-//   try {
-//     const order = await cancelPaymentService(req.params.id, req.user.id);
-//     return res.status(200).json(order);
-//   }catch (err){
-//     res.status(400).json({message: err.message});
-//   }
-// }
 
 export async function createPayment(req, res) {
   try {
@@ -73,8 +47,10 @@ export async function momoReturnController(req, res) {
         `${frontendUrl}/payment/return?status=PAID&orderCode=${encodeURIComponent(String(result.orderCode || ""))}`,
       );
     }
+    // Gui reason ve frontend de hien thong bao phu hop.
+    const reason = result.reason ? `&reason=${encodeURIComponent(String(result.reason))}` : "";
     return res.redirect(
-      `${frontendUrl}/payment/cancel?status=FAILED&orderCode=${encodeURIComponent(String(result.orderCode || ""))}`,
+      `${frontendUrl}/payment/cancel?status=FAILED&orderCode=${encodeURIComponent(String(result.orderCode || ""))}${reason}`,
     );
   } catch (err) {
     return res.redirect(
