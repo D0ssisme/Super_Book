@@ -12,7 +12,8 @@ import {
 // GET /api/v1/statistics/overview
 export const getOverviewStats = async (req, res) => {
     try {
-        const stats = await getOverviewStatsService();
+        const { from, to } = req.query;
+        const stats = await getOverviewStatsService(from, to);
         res.status(200).json(stats);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -46,7 +47,8 @@ export const getProfitStats = async (req, res) => {
 export const getTopProducts = async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 10;
-        const products = await getTopProductsService(limit);
+        const { from, to } = req.query;
+        const products = await getTopProductsService(limit, from, to);
         res.status(200).json(products);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -67,7 +69,8 @@ export const getOrderStats = async (req, res) => {
 export const getTopCategories = async (req, res) => {
     try {
         const limit = parseInt(req.query.limit) || 5;
-        const categories = await getTopCategoriesService(limit);
+        const { from, to } = req.query;
+        const categories = await getTopCategoriesService(limit, from, to);
         res.status(200).json(categories);
     } catch (err) {
         res.status(500).json({ message: err.message });
@@ -77,7 +80,8 @@ export const getTopCategories = async (req, res) => {
 // GET /api/v1/statistics/payment-methods
 export const getPaymentMethodsStats = async (req, res) => {
     try {
-        const stats = await getPaymentMethodsStatsService();
+        const { from, to } = req.query;
+        const stats = await getPaymentMethodsStatsService(from, to);
         res.status(200).json(stats);
     } catch (err) {
         res.status(500).json({ message: err.message });
