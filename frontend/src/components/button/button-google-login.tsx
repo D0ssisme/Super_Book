@@ -17,6 +17,10 @@ export const ButtonLoginGoogle = ({ onSuccess }: { onSuccess?: () => void }) => 
         notifyAccountLocked(response.message || 'Tài khoản của bạn đã bị khóa');
         return;
       }
+      if (!response?.data?.token) {
+        toast.error(response?.message || 'Không thể kết nối máy chủ. Vui lòng thử lại.');
+        return;
+      }
       await setJWTtoCookie(response.data.token);
       await mutate();
       // Auto-merge guest cart with user cart on Google login
