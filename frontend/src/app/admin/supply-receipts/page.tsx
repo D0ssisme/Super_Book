@@ -201,7 +201,7 @@ export default function SupplyReceiptsPage() {
 
     setFormData({
       ...formData,
-      items: [...formData.items, { book_id: "", import_price: 1000, quantity: 1, sub_amount: 1000 }],
+      items: [...formData.items, { book_id: "", book_name: "", import_price: 1000, quantity: 1, sub_amount: 1000 }],
     });
   };
 
@@ -213,6 +213,10 @@ export default function SupplyReceiptsPage() {
 
     const newItems = [...formData.items];
     const updatedItem = { ...newItems[index], [field]: value };
+    if (field === "book_id") {
+      const selectedBook = books.find((b: any) => b.id === value);
+      updatedItem.book_name = selectedBook?.name || updatedItem.book_name || "";
+    }
     updatedItem.sub_amount = updatedItem.import_price * updatedItem.quantity;
     newItems[index] = updatedItem;
     setFormData({ ...formData, items: newItems });
@@ -592,15 +596,21 @@ export default function SupplyReceiptsPage() {
                   <div key={index} className="grid grid-cols-12 gap-2 items-center bg-gray-50 p-3 rounded-lg">
                     <div className="col-span-12 sm:col-span-4">
                       <label className="block text-xs text-gray-500 mb-1">Sách</label>
-                      <SearchableSelect
-                        value={item.book_id}
-                        onChange={(value: string) =>
-                          updateItem(index, "book_id", value)
-                        }
-                        options={books.map((b: any) => ({ _id: b.id, name: b.name }))}
-                        placeholder="Chọn sách"
-                        disabled={isReadonlyEdit}
-                      />
+                      {isReadonlyEdit ? (
+                        <div className="w-full border border-gray-300 px-3 py-2 rounded-lg text-sm bg-gray-100 text-gray-700">
+                          {item.book_name || "Sách đã xóa"}
+                        </div>
+                      ) : (
+                        <SearchableSelect
+                          value={item.book_id}
+                          onChange={(value: string) =>
+                            updateItem(index, "book_id", value)
+                          }
+                          options={books.map((b: any) => ({ _id: b.id, name: b.name }))}
+                          placeholder="Chọn sách"
+                          disabled={isReadonlyEdit}
+                        />
+                      )}
                       {formErrors.itemErrors?.[index]?.book_id ? (
                         <p className="text-sm text-red-600 mt-1">
                           {formErrors.itemErrors[index].book_id}

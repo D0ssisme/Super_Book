@@ -7,38 +7,80 @@ import SupplyReceipt from "../models/SupplyReceipt.js";
 import SupplyDetail from "../models/SupplyDetail.js";
 
 // Tổng quan: tổng sách, users, đơn hàng, doanh thu, lợi nhuận, low stock
-export async function getOverviewStatsService() {
+export async function getOverviewStatsService(from, to) {
     try {
         const [
             totalBooks,
             totalUsers,
-            totalOrders,
             totalCategories,
-            lowStockBooks,
+            lowStockBooks
+        ] = await Promise.all([
+            Book.countDocuments({ isDeleted: false }),
+            User.countDocuments({ role: "user" }), // Chỉ đếm khách hàng, không đếm admin
+            Category.countDocuments(),
+            Book.countDocuments({ quantity: { $lte: 10 }, isDeleted: false })
+        ]);
+
+        // Build match condition for orders with optional date filter
+        const orderMatchCondition = {};
+        if (from || to) {
+            orderMatchCondition.createdAt = {};
+            if (from) orderMatchCondition.createdAt.$gte = new Date(from);
+            if (to) orderMatchCondition.createdAt.$lte = new Date(to);
+        }
+
+        const [
+            totalOrders,
             completedOrders,
             pendingOrders,
             cancelledOrders
         ] = await Promise.all([
-            Book.countDocuments({ isDeleted: false }),
-            User.countDocuments({ role: "user" }), // Chỉ đếm khách hàng, không đếm admin
-            Order.countDocuments(),
-            Category.countDocuments(),
-            Book.countDocuments({ quantity: { $lte: 10 }, isDeleted: false }),
-            Order.countDocuments({ purchaseStatus: "completed" }),
-            Order.countDocuments({ purchaseStatus: "pending" }),
-            Order.countDocuments({ purchaseStatus: "canceled" })
+            Order.countDocuments(orderMatchCondition),
+            Order.countDocuments({ ...orderMatchCondition, purchaseStatus: "completed" }),
+            Order.countDocuments({ ...orderMatchCondition, purchaseStatus: "pending" }),
+            Order.countDocuments({ ...orderMatchCondition, purchaseStatus: "canceled" })
         ]);
 
         // Tính tổng doanh thu từ đơn hàng completed
         const revenueResult = await Order.aggregate([
-            { $match: { purchaseStatus: "completed" } },
+            { $match: { ...orderMatchCondition, purchaseStatus: "completed" } },
             { $group: { _id: null, total: { $sum: "$totalAmount" } } }
         ]);
         const totalRevenue = revenueResult.length > 0 ? revenueResult[0].total : 0;
 
+        // Tính tổng giá trị tất cả đơn hàng (không phân trạng thái)
+        const totalOrderValueResult = await Order.aggregate([
+            { $match: { ...(orderMatchCondition || {}) } },
+            { $group: { _id: null, total: { $sum: "$totalAmount" } } }
+        ]);
+        const totalOrderValue = totalOrderValueResult.length > 0 ? totalOrderValueResult[0].total : 0;
+
+        // Tính tổng theo trạng thái đơn (completed, pending, canceled)
+        const byStatus = await Order.aggregate([
+            { $match: { ...(orderMatchCondition || {}) } },
+            { $group: { _id: "$purchaseStatus", total: { $sum: "$totalAmount" } } }
+        ]);
+        let paidAmount = 0;
+        let pendingAmount = 0;
+        let cancelledAmount = 0;
+        byStatus.forEach(s => {
+            const key = (s._id || "").toString();
+            if (key === "completed") paidAmount = s.total;
+            else if (key === "pending") pendingAmount = s.total;
+            else if (key === "canceled" || key === "cancelled") cancelledAmount = s.total;
+        });
+
+        // Build match condition for supply receipts with optional date filter
+        const supplyMatchCondition = { purchaseStatus: "completed" };
+        if (from || to) {
+            supplyMatchCondition.createdAt = {};
+            if (from) supplyMatchCondition.createdAt.$gte = new Date(from);
+            if (to) supplyMatchCondition.createdAt.$lte = new Date(to);
+        }
+
         // Tính tổng chi phí nhập hàng - CHỈ từ phiếu đã hoàn tất
         const costResult = await SupplyReceipt.aggregate([
-            { $match: { purchaseStatus: "completed" } }, // Chỉ lấy phiếu hoàn tất
+            { $match: supplyMatchCondition }, // Chỉ lấy phiếu hoàn tất
             {
                 $lookup: {
                     from: "supplydetails",
@@ -69,6 +111,10 @@ export async function getOverviewStatsService() {
                 totalUsers,
                 totalOrders,
                 totalRevenue,
+                totalOrderValue,
+                paidAmount,
+                pendingAmount,
+                cancelledAmount,
                 totalCategories,
                 lowStockBooks,
                 pendingOrders,
@@ -252,8 +298,17 @@ export async function getProfitStatsService(period = "month", from, to) {
 }
 
 // Top sản phẩm bán chạy
-export async function getTopProductsService(limit = 10) {
+export async function getTopProductsService(limit = 10, from, to) {
     try {
+        // Build match for orders in optional date range
+        const orderMatch = { "order.purchaseStatus": "completed" };
+        if (from || to) {
+            const createdAtMatch = {};
+            if (from) createdAtMatch.$gte = new Date(from);
+            if (to) createdAtMatch.$lte = new Date(to);
+            orderMatch["order.createdAt"] = createdAtMatch;
+        }
+
         const topProducts = await OrderDetail.aggregate([
             {
                 $lookup: {
@@ -264,7 +319,7 @@ export async function getTopProductsService(limit = 10) {
                 }
             },
             { $unwind: "$order" },
-            { $match: { "order.purchaseStatus": "completed" } },
+            { $match: orderMatch },
             {
                 $group: {
                     _id: "$bookId",
@@ -338,8 +393,17 @@ export async function getOrderStatsService() {
 }
 
 // Top categories by revenue
-export async function getTopCategoriesService(limit = 5) {
+export async function getTopCategoriesService(limit = 5, from, to) {
     try {
+        // Build match for orders in optional date range
+        const orderMatch = { "order.purchaseStatus": "completed" };
+        if (from || to) {
+            const createdAtMatch = {};
+            if (from) createdAtMatch.$gte = new Date(from);
+            if (to) createdAtMatch.$lte = new Date(to);
+            orderMatch["order.createdAt"] = createdAtMatch;
+        }
+
         const topCategories = await OrderDetail.aggregate([
             // Lookup order info
             {
@@ -351,8 +415,8 @@ export async function getTopCategoriesService(limit = 5) {
                 }
             },
             { $unwind: "$order" },
-            // Only completed orders
-            { $match: { "order.purchaseStatus": "completed" } },
+            // Only completed orders and optional date range
+            { $match: orderMatch },
             // Lookup book info
             {
                 $lookup: {
@@ -408,10 +472,19 @@ export async function getTopCategoriesService(limit = 5) {
 }
 
 // Payment methods breakdown
-export async function getPaymentMethodsStatsService() {
+export async function getPaymentMethodsStatsService(from, to) {
     try {
-        const paymentStats = await Order.aggregate([
-            // Group by payment method
+        // Build match condition for optional date range
+        const match = {};
+        if (from || to) {
+            match.createdAt = {};
+            if (from) match.createdAt.$gte = new Date(from);
+            if (to) match.createdAt.$lte = new Date(to);
+        }
+
+        const pipeline = [];
+        if (Object.keys(match).length > 0) pipeline.push({ $match: match });
+        pipeline.push(
             {
                 $group: {
                     _id: "$paymentMethod",
@@ -419,13 +492,21 @@ export async function getPaymentMethodsStatsService() {
                     totalAmount: { $sum: "$totalAmount" }
                 }
             },
-            { $sort: { count: -1 } }
-        ]);
+        );
+        pipeline.push({ $sort: { count: -1 } });
+
+        const paymentStats = await Order.aggregate(pipeline);
 
         // Calculate total orders for percentage
-        const totalOrders = paymentStats.reduce((sum, stat) => sum + stat.count, 0);
+        // Optionally filter out unwanted methods at server-side (vnpay, payos)
+        const filtered = paymentStats.filter(s => {
+            const m = (s._id || "").toString().toLowerCase();
+            return m !== "vnpay" && m !== "payos";
+        });
 
-        const methodsWithPercentage = paymentStats.map(stat => ({
+        const totalOrders = filtered.reduce((sum, stat) => sum + stat.count, 0);
+
+        const methodsWithPercentage = filtered.map(stat => ({
             method: stat._id,
             count: stat.count,
             totalAmount: stat.totalAmount,

@@ -6,36 +6,22 @@ import {
   Users,
   ShoppingCart,
   Package,
-  TrendingUp,
-  TrendingDown,
   DollarSign,
-  BarChart3,
   ArrowUp,
   ArrowDown,
   Minus,
 } from "lucide-react";
 import {
-  BarChart,
-  Bar,
   LineChart,
   Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Cell,
-  Legend,
 } from "recharts";
 import {
   getOverviewStats,
-  getProfitStats,
   getRevenueStats,
   getTopProducts,
   getTopCategories,
   getPaymentMethodsStats,
   getComparisonStats,
-  getOrderStatusStats,
 } from "@/api/statisticsApi";
 
 // Helper function để format date từ input type="date"
@@ -58,6 +44,10 @@ export default function AdminDashboard() {
     totalUsers: 0,
     totalOrders: 0,
     totalRevenue: 0,
+    totalOrderValue: 0,
+    paidAmount: 0,
+    pendingAmount: 0,
+    cancelledAmount: 0,
     totalCategories: 0,
     lowStockBooks: 0,
     pendingOrders: 0,
@@ -74,10 +64,8 @@ export default function AdminDashboard() {
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [profitLoading, setProfitLoading] = useState(false);
   const [revenueLoading, setRevenueLoading] = useState(false);
   const [topProductsLoading, setTopProductsLoading] = useState(false);
-  const [profitData, setProfitData] = useState<any[]>([]);
   const [revenueData, setRevenueData] = useState<any[]>([]);
   const [topProducts, setTopProducts] = useState<any[]>([]);
   const [topCategories, setTopCategories] = useState<any[]>([]);
@@ -85,29 +73,8 @@ export default function AdminDashboard() {
     methods: [],
     totalOrders: 0,
   });
-  const [profitView, setProfitView] = useState<"day" | "month" | "year">(
-    "month",
-  );
   const [revenueView, setRevenueView] = useState<"day" | "month" | "year">(
     "month",
-  );
-
-  // State cho lọc theo ngày (profit)
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
-
-  // State cho lọc theo tháng (profit)
-  const [selectedMonth, setSelectedMonth] = useState<string>(() => {
-    const now = new Date();
-    return (now.getMonth() + 1).toString().padStart(2, "0");
-  });
-  const [selectedYear, setSelectedYear] = useState<string>(() =>
-    new Date().getFullYear().toString(),
-  );
-
-  // State cho lọc theo năm (profit)
-  const [filterYear, setFilterYear] = useState<string>(() =>
-    new Date().getFullYear().toString(),
   );
 
   // State cho revenue filters
@@ -124,11 +91,9 @@ export default function AdminDashboard() {
     new Date().getFullYear().toString(),
   );
 
-  // State cho order status stats
-  const [orderStatusData, setOrderStatusData] = useState<any>(null);
-  const [orderStatusLoading, setOrderStatusLoading] = useState(false);
-  const [orderStatusDateFrom, setOrderStatusDateFrom] = useState<string>("");
-  const [orderStatusDateTo, setOrderStatusDateTo] = useState<string>("");
+  // State cho lọc khoảng thời gian chính (dashboard)
+  const [dashboardDateFrom, setDashboardDateFrom] = useState<string>("");
+  const [dashboardDateTo, setDashboardDateTo] = useState<string>("");
 
   // Fetch overview stats
   useEffect(() => {
@@ -137,7 +102,10 @@ export default function AdminDashboard() {
         setLoading(true);
         setError(null);
         const [overviewResponse, comparisonResponse] = await Promise.all([
-          getOverviewStats(),
+          (getOverviewStats as any)(
+            dashboardDateFrom || undefined,
+            dashboardDateTo || undefined,
+          ),
           getComparisonStats(),
         ]);
 
@@ -165,44 +133,7 @@ export default function AdminDashboard() {
       }
     };
     fetchOverview();
-  }, []);
-
-  // Fetch profit stats when period or date filters change
-  useEffect(() => {
-    const fetchProfit = async () => {
-      try {
-        setProfitLoading(true);
-        let from: string | null = null;
-        let to: string | null = null;
-
-        if (profitView === "day" && dateFrom && dateTo) {
-          from = dateFrom;
-          to = dateTo;
-        } else if (profitView === "month" && selectedYear && selectedMonth) {
-          from = `${selectedYear}-${selectedMonth.padStart(2, "0")}-01`;
-          const lastDay = new Date(
-            parseInt(selectedYear),
-            parseInt(selectedMonth),
-            0,
-          ).getDate();
-          to = `${selectedYear}-${selectedMonth.padStart(2, "0")}-${lastDay}`;
-        } else if (profitView === "year" && filterYear) {
-          from = `${filterYear}-01-01`;
-          to = `${filterYear}-12-31`;
-        }
-
-        const response = await (getProfitStats as any)(profitView, from, to);
-        if (response.success) {
-          setProfitData(response.data);
-        }
-      } catch (error) {
-        console.error("Error fetching profit stats:", error);
-      } finally {
-        setProfitLoading(false);
-      }
-    };
-    fetchProfit();
-  }, [profitView, dateFrom, dateTo, selectedMonth, selectedYear, filterYear]);
+  }, [dashboardDateFrom, dashboardDateTo]);
 
   // Fetch revenue stats
   useEffect(() => {
@@ -248,15 +179,15 @@ export default function AdminDashboard() {
     revenueFilterYear,
   ]);
 
-  // Fetch top products, categories, and payment methods
+  // Fetch top products, categories, and payment methods (respect dashboard date range)
   useEffect(() => {
     const fetchData = async () => {
       try {
         setTopProductsLoading(true);
         const [productsRes, categoriesRes, paymentRes] = await Promise.all([
-          getTopProducts(5),
-          getTopCategories(5),
-          getPaymentMethodsStats(),
+          (getTopProducts as any)(5, dashboardDateFrom || null, dashboardDateTo || null),
+          (getTopCategories as any)(5, dashboardDateFrom || null, dashboardDateTo || null),
+          (getPaymentMethodsStats as any)(dashboardDateFrom || null, dashboardDateTo || null),
         ]);
 
         if (productsRes.success) {
@@ -275,25 +206,7 @@ export default function AdminDashboard() {
       }
     };
     fetchData();
-  }, []);
-
-  // Fetch order status stats
-  useEffect(() => {
-    const fetchOrderStatus = async () => {
-      try {
-        setOrderStatusLoading(true);
-        const response = await getOrderStatusStats(orderStatusDateFrom, orderStatusDateTo);
-        if (response.success) {
-          setOrderStatusData(response.data);
-        }
-      } catch (error) {
-        console.error("Error fetching order status stats:", error);
-      } finally {
-        setOrderStatusLoading(false);
-      }
-    };
-    fetchOrderStatus();
-  }, [orderStatusDateFrom, orderStatusDateTo]);
+  }, [dashboardDateFrom, dashboardDateTo]);
 
   // Lấy danh sách năm (giả định từ 2020 đến năm hiện tại)
   const getAvailableYears = () => {
@@ -303,6 +216,21 @@ export default function AdminDashboard() {
       years.push(year);
     }
     return years.reverse();
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "pending":
+        return "bg-amber-50 text-amber-700 border border-amber-200";
+      case "processing":
+        return "bg-emerald-50 text-emerald-700 border border-emerald-200";
+      case "delivered":
+        return "bg-teal-50 text-teal-700 border border-teal-200";
+      case "cancelled":
+        return "bg-gray-100 text-gray-600 border border-gray-200";
+      default:
+        return "bg-gray-50 text-gray-600 border border-gray-200";
+    }
   };
 
   // Format VND
@@ -337,46 +265,66 @@ export default function AdminDashboard() {
     );
   };
 
-  // Prepare chart data from API response
-  const chartData = profitData.map((item) => ({
-    period: item.period,
-    profit: item.profit,
-    revenue: item.revenue,
-    cost: item.cost,
-  }));
-
-  const revenueChartData = revenueData.map((item) => ({
-    period: item.period,
-    revenue: item.revenue,
-    cost: item.cost,
-    profit: item.profit,
-  }));
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending":
-        return "bg-amber-50 text-amber-700 border border-amber-200";
-      case "processing":
-        return "bg-emerald-50 text-emerald-700 border border-emerald-200";
-      case "delivered":
-        return "bg-teal-50 text-teal-700 border border-teal-200";
-      case "cancelled":
-        return "bg-gray-100 text-gray-600 border border-gray-200";
-      default:
-        return "bg-gray-50 text-gray-600 border border-gray-200";
-    }
-  };
+  // Use data returned from backend (paymentMethods)
+  const displayedPaymentMethods = paymentMethods.methods || [];
+  const displayedTotalOrders = paymentMethods.totalOrders || 0;
 
   return (
     <div className="p-6 bg-gray-100 min-h-screen">
       {/* Header */}
       <div className="bg-white border-l-4 border-emerald-600 px-6 py-5 rounded-lg shadow-sm mb-6">
-        <h2 className="text-gray-800 text-2xl font-bold">
-          THỐNG KÊ DOANH THU 
-        </h2>
-        <p className="text-gray-600 text-sm mt-1">
-          Theo dõi và quản lý hoạt động cửa hàng
-        </p>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-4">
+          <div>
+            <h2 className="text-gray-800 text-2xl font-bold">
+              Dashboard - Tổng quan hệ thống
+            </h2>
+            <p className="text-gray-600 text-sm mt-1">
+              Theo dõi và quản lý hoạt động cửa hàng
+            </p>
+          </div>
+        </div>
+
+        {/* Date Range Filter */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-4 border-t border-gray-200">
+          <span className="text-sm font-medium text-gray-700 whitespace-nowrap">
+            Chọn khoảng thời gian:
+          </span>
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-600 font-medium">
+                Từ ngày:
+              </label>
+              <input
+                type="date"
+                value={dashboardDateFrom}
+                onChange={(e) => setDashboardDateFrom(e.target.value)}
+                className="border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-gray-600 font-medium">
+                Đến ngày:
+              </label>
+              <input
+                type="date"
+                value={dashboardDateTo}
+                onChange={(e) => setDashboardDateTo(e.target.value)}
+                className="border border-gray-300 px-3 py-2 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
+              />
+            </div>
+            {(dashboardDateFrom || dashboardDateTo) && (
+              <button
+                onClick={() => {
+                  setDashboardDateFrom("");
+                  setDashboardDateTo("");
+                }}
+                className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200 transition-all whitespace-nowrap"
+              >
+                Xóa bộ lọc
+              </button>
+            )}
+          </div>
+        </div>
       </div>
 
       {/* Error Banner */}
@@ -412,53 +360,8 @@ export default function AdminDashboard() {
       )}
 
       <div className="space-y-6">
-        {/* Statistics & Report Section - Full Width */}
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden border border-gray-200">
-          <div className="bg-gray-50 border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-            <h3 className="text-gray-800 font-bold text-lg flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-emerald-600" />
-              Thống kê & báo cáo
-            </h3>
-          </div>
-
-          {/* Date range picker */}
-          <div className="px-6 pb-4 pt-4 flex items-center gap-4 flex-wrap border-b border-gray-200">
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600 font-medium">
-                Từ ngày:
-              </label>
-              <input
-                type="date"
-                value={orderStatusDateFrom}
-                onChange={(e) => setOrderStatusDateFrom(e.target.value)}
-                className="border border-gray-300 px-3 py-1.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <label className="text-sm text-gray-600 font-medium">
-                Đến ngày:
-              </label>
-              <input
-                type="date"
-                value={orderStatusDateTo}
-                onChange={(e) => setOrderStatusDateTo(e.target.value)}
-                className="border border-gray-300 px-3 py-1.5 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
-              />
-            </div>
-            <button
-              onClick={() => {
-                setOrderStatusDateFrom("");
-                setOrderStatusDateTo("");
-              }}
-              className="px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-sm font-medium hover:bg-gray-200 transition-all"
-            >
-              Xóa bộ lọc
-            </button>
-          </div>
-        </div>
-
         {/* Stats Grid - Row 1: 5 cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {/* Doanh thu */}
           <div className="bg-gradient-to-br from-emerald-600 to-teal-600 rounded-lg p-6 shadow-md hover:shadow-lg transition-all duration-300">
             <div className="flex items-center justify-between">
@@ -467,62 +370,34 @@ export default function AdminDashboard() {
                   Doanh thu
                 </p>
                 <p className="text-2xl font-bold text-white mb-1">
-                  {loading ? "..." : formatVND(stats.totalRevenue)}
+                  {loading ? "..." : formatVND(stats.totalOrderValue)}
                 </p>
+                <div className="text-xs text-emerald-100 mt-2 space-y-1">
+                  <div>Đã thanh toán: <strong>{loading ? '...' : formatVND(stats.paidAmount)}</strong></div>
+                  <div>Đang đợi thanh toán: <strong>{loading ? '...' : formatVND(stats.pendingAmount)}</strong></div>
+                  <div>Đã hủy: <strong>{loading ? '...' : formatVND(stats.cancelledAmount)}</strong></div>
+                </div>
                 <div className="flex items-center gap-2">
-                  <TrendIndicator value={stats.revenueChange} />
-                  <span className="text-xs text-emerald-100">
-                    vs tháng trước
-                  </span>
+                  {stats.revenueChange === 0 ? (
+                    <span className="inline-flex items-center gap-1 text-xs text-white font-medium">
+                      <Minus className="w-3 h-3" />
+                      0%
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1 text-xs text-white font-medium">
+                      {stats.revenueChange > 0 ? (
+                        <ArrowUp className="w-3 h-3" />
+                      ) : (
+                        <ArrowDown className="w-3 h-3" />
+                      )}
+                      {Math.abs(stats.revenueChange).toFixed(1)}%
+                    </span>
+                  )}
+                  <span className="text-xs text-white">vs tháng trước</span>
                 </div>
               </div>
               <div className="bg-white/20 p-3 rounded-lg">
                 <DollarSign className="w-7 h-7 text-white" />
-              </div>
-            </div>
-          </div>
-
-          {/* Lợi nhuận */}
-          <div className="bg-gradient-to-br from-purple-600 to-indigo-600 rounded-lg p-6 shadow-md hover:shadow-lg transition-all duration-300">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-purple-100 text-sm font-medium mb-2">
-                  Lợi nhuận
-                </p>
-                <p className="text-2xl font-bold text-white mb-1">
-                  {loading ? "..." : formatVND(stats.totalProfit)}
-                </p>
-                <div className="flex items-center gap-2">
-                  <TrendIndicator value={stats.profitChange} />
-                  <span className="text-xs text-purple-100">
-                    vs tháng trước
-                  </span>
-                </div>
-              </div>
-              <div className="bg-white/20 p-3 rounded-lg">
-                <TrendingUp className="w-7 h-7 text-white" />
-              </div>
-            </div>
-          </div>
-
-          {/* Chi phí */}
-          <div className="bg-gradient-to-br from-orange-600 to-red-600 rounded-lg p-6 shadow-md hover:shadow-lg transition-all duration-300">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-orange-100 text-sm font-medium mb-2">
-                  Chi phí nhập hàng
-                </p>
-                <p className="text-2xl font-bold text-white mb-1">
-                  {loading ? "..." : formatVND(stats.totalCost)}
-                </p>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs text-orange-100">
-                    Từ phiếu hoàn tất
-                  </span>
-                </div>
-              </div>
-              <div className="bg-white/20 p-3 rounded-lg">
-                <Package className="w-7 h-7 text-white" />
               </div>
             </div>
           </div>
@@ -539,6 +414,7 @@ export default function AdminDashboard() {
                     {loading ? "..." : stats.totalOrders}
                   </p>
                   <TrendIndicator value={stats.ordersChange} />
+                  <span className="text-xs text-gray-500">vs tháng trước</span>
                 </div>
                 <p className="text-xs text-amber-600">
                   {stats.pendingOrders} chờ xử lý
@@ -550,27 +426,9 @@ export default function AdminDashboard() {
             </div>
           </div>
 
-          {/* Tổng sách */}
-          <div className="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-200">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-gray-500 text-sm font-medium mb-2">
-                  Tổng sách
-                </p>
-                <p className="text-3xl font-bold text-gray-800 mb-1">
-                  {loading ? "..." : stats.totalBooks}
-                </p>
-                <p className="text-xs text-amber-600">
-                  {stats.lowStockBooks} sách sắp hết
-                </p>
-              </div>
-              <div className="bg-emerald-600 p-4 rounded-lg">
-                <BookOpen className="w-7 h-7 text-white" />
-              </div>
-            </div>
-          </div>
         </div>
 
+        {/* Profit chart removed as requested */}
         {/* Three Column Layout: Top Products + Order Stats + Categories */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Top sách bán chạy */}
@@ -769,18 +627,23 @@ export default function AdminDashboard() {
             </h3>
           </div>
           <div className="p-6">
-            {paymentMethods.methods?.length === 0 ? (
+            {displayedPaymentMethods.length === 0 ? (
               <div className="text-center py-8 text-gray-400">
                 Chưa có dữ liệu
               </div>
             ) : (
               <div className="space-y-4">
-                {paymentMethods.methods?.map((payment: any, idx: number) => {
+                {displayedPaymentMethods.map((payment: any, idx: number) => {
                   const methodConfig: Record<
                     string,
                     { label: string; icon: string; color: string }
                   > = {
                     COD: {
+                      label: "COD (Tiền mặt)",
+                      icon: "💵",
+                      color: "bg-emerald-600",
+                    },
+                    cash: {
                       label: "COD (Tiền mặt)",
                       icon: "💵",
                       color: "bg-emerald-600",
@@ -832,7 +695,7 @@ export default function AdminDashboard() {
                   Tổng giao dịch
                 </span>
                 <span className="text-xl font-bold text-blue-600">
-                  {paymentMethods.totalOrders || 0}
+                  {displayedTotalOrders || 0}
                 </span>
               </div>
             </div>

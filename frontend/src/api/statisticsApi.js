@@ -1,8 +1,11 @@
 import api from "@/lib/axios";
 
 // Get overview statistics
-export const getOverviewStats = async () => {
-    const response = await api.get('/statistics/overview');
+export const getOverviewStats = async (from = null, to = null) => {
+    const params = {};
+    if (from) params.from = from;
+    if (to) params.to = to;
+    const response = await api.get('/statistics/overview', { params });
     return response.data;
 };
 
@@ -27,8 +30,11 @@ export const getProfitStats = async (period = 'month', from = null, to = null) =
 };
 
 // Get top selling products
-export const getTopProducts = async (limit = 10) => {
-    const response = await api.get('/statistics/top-products', { params: { limit } });
+export const getTopProducts = async (limit = 10, from = null, to = null) => {
+    const params = { limit };
+    if (from) params.from = from;
+    if (to) params.to = to;
+    const response = await api.get('/statistics/top-products', { params });
     return response.data;
 };
 
@@ -39,14 +45,20 @@ export const getOrderStats = async () => {
 };
 
 // Get top categories
-export const getTopCategories = async (limit = 5) => {
-    const response = await api.get('/statistics/top-categories', { params: { limit } });
+export const getTopCategories = async (limit = 5, from = null, to = null) => {
+    const params = { limit };
+    if (from) params.from = from;
+    if (to) params.to = to;
+    const response = await api.get('/statistics/top-categories', { params });
     return response.data;
 };
 
 // Get payment methods stats
-export const getPaymentMethodsStats = async () => {
-    const response = await api.get('/statistics/payment-methods');
+export const getPaymentMethodsStats = async (from = null, to = null) => {
+    const params = {};
+    if (from) params.from = from;
+    if (to) params.to = to;
+    const response = await api.get('/statistics/payment-methods', { params });
     return response.data;
 };
 
