@@ -15,6 +15,7 @@ import { toast } from 'sonner';
 import { useCartStore } from '@/stores/useCartStore';
 import { useState, useEffect } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
+import { notifyAccountLocked } from '@/lib/account-lock';
 
 const REMEMBER_LOGIN_KEY = 'remember_login_username';
 
@@ -72,7 +73,7 @@ export function LoginForm({
       return;
     }
     if (res.code == "ACCOUNT_LOCKED") {
-      toast.error(res.message || 'Tài khoản đã bị khóa');
+      notifyAccountLocked(res.message || 'Tài khoản của bạn đã bị khóa');
       return;
     }
     if ("token" in res.data) {

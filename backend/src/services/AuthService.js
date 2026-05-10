@@ -127,7 +127,7 @@ export const loginService = async (username, password) => {
   }
   // Prevent login for locked accounts
   if (user.isLocked) {
-    throw new ErrorResponse('Tài khoản đã bị khóa', 403, 'ACCOUNT_LOCKED');
+    throw new ErrorResponse('Tài khoản của bạn đã bị khóa', 403, 'ACCOUNT_LOCKED');
   }
   const isMatch = await comparePassword(sanitizedPassword, user.password);
   if (!isMatch) {
@@ -296,6 +296,8 @@ export const googleLoginService = async (code) => {
       password: password
     });
     await user.save();
+  } else if (user.isLocked) {
+    throw new ErrorResponse('Tài khoản của bạn đã bị khóa', 403, 'ACCOUNT_LOCKED');
   }
   const UserResponse = toUserResponse(user);
   const token = generateToken(toUserResponse(user));

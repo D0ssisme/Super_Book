@@ -5,6 +5,7 @@ import { AuthDialogGlobal } from "@/components/auth-dialog-global";
 import { SWRProvider } from "@/components/provider/swr-provider";
 import { useEffect } from "react";
 import { useCartStore } from "@/stores/useCartStore";
+import { AccountLockDialog } from "@/components/account-lock-dialog";
 
 function GuestSessionInitializer() {
   const initializeGuestSession = useCartStore((s) => s.initializeGuestSession);
@@ -23,6 +24,7 @@ export function ClientProviders({ children }: { children: React.ReactNode }) {
       <SWRProvider>
         <GuestSessionInitializer />
         <AuthDialogGlobal />
+        <AccountLockDialog />
         {children}
       </SWRProvider>
     </AuthDialogProvider>

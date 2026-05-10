@@ -5,6 +5,7 @@ import { setJWTtoCookie } from '@/lib/cookies';
 import { GoogleIcon } from '@/components/svg/google';
 import { toast } from 'sonner';
 import { useCartStore } from '@/stores/useCartStore';
+import { notifyAccountLocked } from '@/lib/account-lock';
 
 export const ButtonLoginGoogle = ({ onSuccess }: { onSuccess?: () => void }) => {
   const { mutate } = useUser();
@@ -12,8 +13,12 @@ export const ButtonLoginGoogle = ({ onSuccess }: { onSuccess?: () => void }) => 
   const googleLogin = useGoogleLogin({
     onSuccess: async ({ code }) => {
       const response = await loginGoogle(code);
+      if (response.code === "ACCOUNT_LOCKED") {
+        notifyAccountLocked(response.message || 'Tài khoản của bạn đã bị khóa');
+        return;
+      }
       await setJWTtoCookie(response.data.token);
-      await mutate();      
+      await mutate();
       // Auto-merge guest cart with user cart on Google login
       try {
         await onLoginSuccess();
@@ -21,7 +26,7 @@ export const ButtonLoginGoogle = ({ onSuccess }: { onSuccess?: () => void }) => 
         console.error("Cart merge error during Google login:", error);
         // Don't block login if cart merge fails
       }
-            toast.success('Đăng nhập thành công');
+      toast.success('Đăng nhập thành công');
       onSuccess?.();
     },
     flow: 'auth-code'

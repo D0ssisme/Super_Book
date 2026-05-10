@@ -10,7 +10,7 @@ import { toUserResponse } from "../mappers/UserMapper.js";
 export async function optionalAuth(req, res, next) {
   const token = req.header("Authorization")?.replace("Bearer ", "");
   const guestSessionIdFromHeader = req.header("X-Guest-Session-Id");
-  
+
   console.log(`[optionalAuth] ${req.method} ${req.path} - Token present: ${!!token}, GuestSessionId: ${!!guestSessionIdFromHeader}`);
 
   if (!token) {
@@ -36,6 +36,15 @@ export async function optionalAuth(req, res, next) {
       const guestSessionId = guestSessionIdFromHeader || `guest_${Date.now()}_${Math.random().toString(36).substring(7)}`;
       req.guestSessionId = guestSessionId;
       return next();
+    }
+
+    if (user.isLocked) {
+      console.log(`[optionalAuth] REJECT: Locked user - ${data.username}`);
+      return res.status(403).json({
+        success: false,
+        code: "ACCOUNT_LOCKED",
+        message: "Tài khoản của bạn đã bị khóa",
+      });
     }
 
     req.user = toUserResponse(user);

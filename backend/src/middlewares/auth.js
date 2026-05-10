@@ -23,6 +23,14 @@ export async function auth(req, res, next) {
       console.log(`[auth] REJECT: User not found - ${data.username}`);
       return res.status(401).json({ message: "User not found" });
     }
+    if (user.isLocked) {
+      console.log(`[auth] REJECT: Locked user - ${data.username}`);
+      return res.status(403).json({
+        success: false,
+        code: "ACCOUNT_LOCKED",
+        message: "Tài khoản của bạn đã bị khóa",
+      });
+    }
     req.user = toUserResponse(user);
     console.log(
       `[auth] PASS: User authenticated - id: ${req.user.id}, role: ${req.user.role}`,
