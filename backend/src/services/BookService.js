@@ -13,10 +13,7 @@ export async function createBookService(book, files) {
       categoryId,
       publisherId,
       supplierId,
-      productCode,
-      translator,
       publishYear,
-      weight,
       dimensions,
       pageCount,
       format,
@@ -26,7 +23,7 @@ export async function createBookService(book, files) {
       authors,
     } = book;
     authors = JSON.parse(authors);
-    if (!name || !categoryId || !publisherId || !supplierId || !productCode || !authors) {
+    if (!name || !categoryId || !publisherId || !supplierId || !authors) {
       // chan do phai fetch len neu du lieu loi
       throw new Error("Can't upload image to cloudinary!");
     }
@@ -36,10 +33,7 @@ export async function createBookService(book, files) {
       categoryId: categoryId,
       publisherId: publisherId,
       supplierId: supplierId,
-      productCode: productCode,
-      translator: translator,
       publishYear: publishYear || new Date().getFullYear(),
-      weight: weight || 0,
       dimensions: dimensions,
       pageCount: pageCount || 0,
       format: format,
@@ -80,10 +74,7 @@ export async function updateBookService(id, data, files) {
     categoryId,
     publisherId,
     supplierId,
-    productCode,
-    translator,
     publishYear,
-    weight,
     dimensions,
     pageCount,
     format,
@@ -111,10 +102,7 @@ export async function updateBookService(id, data, files) {
   book.categoryId = categoryId;
   book.publisherId = publisherId;
   book.supplierId = supplierId;
-  book.productCode = productCode;
-  book.translator = translator;
   book.publishYear = publishYear || book.publishYear || new Date().getFullYear();
-  book.weight = weight || 0;
   book.dimensions = dimensions;
   book.pageCount = pageCount || 0;
   book.format = format;

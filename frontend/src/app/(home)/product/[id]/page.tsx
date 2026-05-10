@@ -31,10 +31,6 @@ const ProductDetailPage = async ({
   }
   const detailRows = [
     {
-      label: "Mã hàng",
-      value: book.productCode || "Chưa cập nhật",
-    },
-    {
       label: "Tên Nhà Cung Cấp",
       value: book.supplierId?.name || "Chưa cập nhật",
     },
@@ -46,20 +42,12 @@ const ProductDetailPage = async ({
           : "Chưa cập nhật",
     },
     {
-      label: "Người Dịch",
-      value: book.translator || "Chưa cập nhật",
-    },
-    {
       label: "NXB",
       value: book.publisherId?.name || "Chưa cập nhật",
     },
     {
       label: "Năm XB",
       value: book.publishYear ? String(book.publishYear) : "Chưa cập nhật",
-    },
-    {
-      label: "Trọng lượng (gr)",
-      value: book.weight ? String(book.weight) : "Chưa cập nhật",
     },
     {
       label: "Kích Thước Bao Bì",
